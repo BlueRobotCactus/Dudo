@@ -1,20 +1,45 @@
-// client/src/App.js
-
-import React from 'react';
+import React, { useState } from 'react';
 import {
   BrowserRouter as Router,
   Routes,
   Route,
+  Navigate
 } from 'react-router-dom';
 
+import EnterNamePage from './pages/EnterNamePage';
 import LandingPage from './pages/LandingPage';
 import LobbyPage from './pages/LobbyPage';
 
 function App() {
+  // Initialize from localStorage, or empty if nothing's there
+  const [playerName, setPlayerName] = useState(
+    () => localStorage.getItem('playerName') || ''
+  );
+
+  // Helper to keep both localStorage and state in sync
+  const savePlayerName = (name) => {
+    localStorage.setItem('playerName', name);
+    setPlayerName(name);
+  };
+
   return (
     <Router>
       <Routes>
-        <Route path="/" element={<LandingPage />} />
+        <Route
+          path="/"
+          element={
+            // If no name, go to EnterNamePage
+            playerName
+              ? <LandingPage playerName={playerName} />
+              : <Navigate to="/enter-name" />
+          }
+        />
+
+        <Route
+          path="/enter-name"
+          element={<EnterNamePage onNameSubmitted={savePlayerName} />}
+        />
+
         <Route path="/lobby/:lobbyId" element={<LobbyPage />} />
       </Routes>
     </Router>
