@@ -8,8 +8,9 @@ function LandingPage() {
   const [name, setName] = useState('');
 
   useEffect(() => {
+    const apiUrl = `${process.env.REACT_APP_SERVER_URL}/api/lobbies`;
     // On mount, fetch list of lobbies
-    fetch('http://localhost:5000/api/lobbies')
+    fetch(apiUrl)
       .then(res => res.json())
       .then(data => {
         setLobbies(data);
