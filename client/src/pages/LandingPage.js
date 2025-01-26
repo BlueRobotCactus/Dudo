@@ -1,11 +1,6 @@
-// client/src/pages/LandingPage.js
-
 import React, { useEffect, useState } from 'react';
-import io from 'socket.io-client';
 import { useNavigate } from 'react-router-dom';
-
-const socket = io('http://localhost:5000'); 
-// Adjust if your server is on a different host/port in dev.
+import socket from '../socket'; // the shared socket instance
 
 function LandingPage() {
   const navigate = useNavigate();

@@ -1,10 +1,6 @@
-// client/src/pages/LobbyPage.js
-
 import React, { useEffect, useState } from 'react';
-import io from 'socket.io-client';
 import { useLocation, useParams } from 'react-router-dom';
-
-const socket = io('http://localhost:5000');
+import socket from '../socket'; // the shared socket instance
 
 function LobbyPage() {
   const { lobbyId } = useParams();
