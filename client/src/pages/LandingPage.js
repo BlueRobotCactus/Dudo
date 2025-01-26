@@ -66,10 +66,10 @@ function LandingPage({ playerName }) {
 
   return (
     <div style={{ padding: '20px' }}>
-      <h1>Landing Page</h1>
-      <h2>Welcome, {playerName}!</h2>
-
-      <button onClick={handleChangeName}>Change Name</button>
+      <h1>
+        <span id="landing-page-welcome">Welcome, {playerName}!</span>
+        <button onClick={handleChangeName}>Change Name</button>
+      </h1>
 
       <button onClick={handleCreateLobby}>Create Lobby</button>
 

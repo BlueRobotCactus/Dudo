@@ -5,6 +5,7 @@ import {
   Route,
   Navigate
 } from 'react-router-dom';
+import './App.css';
 
 import EnterNamePage from './pages/EnterNamePage';
 import LandingPage from './pages/LandingPage';
