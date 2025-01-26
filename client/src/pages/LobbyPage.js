@@ -16,21 +16,23 @@ function LobbyPage() {
   const [lobbyData, setLobbyData] = useState({ players: [] });
 
   useEffect(() => {
-    // Listen for new data about our lobby
+    // Request lobby data when the component mounts
+    socket.emit('getLobbyData', lobbyId, (data) => {
+      if (data) {
+        setLobbyData(data);
+      }
+    });
+  
     socket.on('lobbyData', (data) => {
       if (data.id === lobbyId) {
         setLobbyData(data);
       }
     });
-
-    // Optionally, request the latest lobby data upon mount
-    // The server is already pushing updates, so you might not need this
-    // But if needed, you could create a 'getLobbyData' event or a REST endpoint.
-
+  
     return () => {
       socket.off('lobbyData');
     };
-  }, [lobbyId]);
+  }, [lobbyId]);  
 
   const handleStartGame = () => {
     socket.emit('startGame', lobbyId);

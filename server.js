@@ -79,6 +79,15 @@ io.on('connection', (socket) => {
     }
   });
 
+  socket.on('getLobbyData', (lobbyId, callback) => {
+    const lobby = lobbies[lobbyId];
+    if (lobby) {
+      callback(lobby);
+    } else {
+      callback({ error: "Lobby not found" });
+    }
+  });  
+
   // When a host starts the game (placeholder for future logic)
   socket.on('startGame', (lobbyId) => {
     const lobby = lobbies[lobbyId];
