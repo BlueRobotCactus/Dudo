@@ -23,7 +23,6 @@ function EnterNamePage({ onNameSubmitted }) {
       <form onSubmit={handleSubmit}>
         <input
           type="text"
-          placeholder="e.g. Alice"
           value={name}
           onChange={(e) => setName(e.target.value)}
         />
