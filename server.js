@@ -31,7 +31,7 @@ const lobbies = {};
 io.on('connection', (socket) => {
   console.log('New client connected:', socket.id);
 
-  // 1. CREATE LOBBY
+  // PLAYER CREATES LOBBY
   socket.on('createLobby', (hostName, callback) => {
     const lobbyId = uuidv4();
     // Store the host's socket ID so we know who is host
@@ -54,7 +54,7 @@ io.on('connection', (socket) => {
     io.emit('lobbiesList', getLobbiesList());
   });
 
-  // 2. JOIN LOBBY
+  // PLAYER JOINS LOBBY
   socket.on('joinLobby', (data, callback) => {
     const { lobbyId, playerName } = data;
     const lobby = lobbies[lobbyId];
@@ -83,7 +83,7 @@ io.on('connection', (socket) => {
     }
   });
 
-  // 3. GET LOBBY DATA (when user lands on a Lobby Page)
+  // GET LOBBY DATA (when player lands on a Lobby Page)
   socket.on('getLobbyData', (lobbyId, callback) => {
     const lobby = lobbies[lobbyId];
     if (lobby) {
@@ -93,7 +93,7 @@ io.on('connection', (socket) => {
     }
   });
 
-  // 4. HOST STARTS GAME
+  // HOST STARTS GAME
   socket.on('startGame', (lobbyId) => {
     const lobby = lobbies[lobbyId];
     // Only the host can start the game
@@ -103,7 +103,33 @@ io.on('connection', (socket) => {
     }
   });
 
-  // 5. DISCONNECT
+  // PLAYER LEAVES LOBBY
+  socket.on('leaveLobby', ({ playerName, lobbyId }) => {
+    const lobby = lobbies[lobbyId];
+    if (lobby) {
+      // Find the player in that lobby
+      const playerIndex = lobby.players.findIndex((p) => p.id === socket.id);
+      if (playerIndex !== -1) {
+        // Remove the player from the lobby
+        const [removedPlayer] = lobby.players.splice(playerIndex, 1);
+  
+        // If the removed player was the host,
+        // either remove the entire lobby or reassign host logic, as you prefer
+        if (removedPlayer.id === lobby.hostSocketId) {
+          console.log(`Host left lobby: ${lobbyId}. Removing entire lobby.`);
+          delete lobbies[lobbyId];
+        } else {
+          // Otherwise, just update the lobby for everyone else
+          io.to(lobbyId).emit('lobbyData', lobby);
+        }
+  
+        // Update the lobby list for the landing page
+        io.emit('lobbiesList', getLobbiesList());
+      }
+    }
+  });
+
+  // PLAYER DISCONNECTS
   socket.on('disconnect', () => {
     console.log('Client disconnected:', socket.id);
 

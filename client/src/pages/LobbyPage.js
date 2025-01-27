@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { useLocation, useParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import socket from '../socket';  // import the shared socket instance
 
 function LobbyPage() {
   const { lobbyId } = useParams();
   const location = useLocation();
-  const playerName = location.state?.playerName || '';
+  const playerName = location.state?.playerName || localStorage.getItem('playerName') || '';
+  const navigate = useNavigate();
 
   // We passed these via React Router location.state from the landing page
   const { isHost, hostName } = location.state || {};
@@ -42,6 +44,11 @@ function LobbyPage() {
   // Host sees "Your Lobby", everyone else sees "HostName's Lobby"
   const title = isHost ? 'Your Lobby' : `${hostName}'s Lobby`;
 
+  const handleLeaveLobby = () => {
+    socket.emit('leaveLobby', { playerName, lobbyId }); // Notify server
+    navigate('/'); // Redirect to Landing Page
+  };
+
   return (
     <div style={{ padding: '20px' }}>
       <h1>{title}</h1>
@@ -60,6 +67,10 @@ function LobbyPage() {
       {isHost && (
         <button onClick={handleStartGame}>Start Game</button>
       )}
+
+      <button onClick={handleLeaveLobby} style={{ marginTop: '10px' }}>
+        Leave Lobby
+      </button>
     </div>
   );
 }
