@@ -6,13 +6,9 @@ import socket from '../socket';  // import the shared socket instance
 function LobbyPage() {
   const { lobbyId } = useParams();
   const location = useLocation();
+  const [lobbyData, setLobbyData] = useState({ players: [] });
   const playerName = location.state?.playerName || localStorage.getItem('playerName') || '';
   const navigate = useNavigate();
-
-  // We passed these via React Router location.state from the landing page
-  const { isHost, hostName } = location.state || {};
-
-  const [lobbyData, setLobbyData] = useState({ players: [] });
 
   useEffect(() => {
     // Ask the server for the most up-to-date lobby info
@@ -37,12 +33,14 @@ function LobbyPage() {
     };
   }, [lobbyId]);
 
+  // "IsHost" is recalculated every render:
+  const isHost = lobbyData.hostSocketId === socket.id;
+  
+  const lobbyTitle = isHost ? 'Your Lobby' : `${lobbyData.host}'s Lobby`;
+
   const handleStartGame = () => {
     socket.emit('startGame', lobbyId);
   };
-
-  // Host sees "Your Lobby", everyone else sees "HostName's Lobby"
-  const title = isHost ? 'Your Lobby' : `${hostName}'s Lobby`;
 
   const handleLeaveLobby = () => {
     socket.emit('leaveLobby', { playerName, lobbyId }); // Notify server
@@ -51,7 +49,7 @@ function LobbyPage() {
 
   return (
     <div style={{ padding: '20px' }}>
-      <h1>{title}</h1>
+      <h1>{lobbyTitle}</h1>
       <h2>Players in this lobby:</h2>
       <ul>
         {lobbyData.players.map((player) => (

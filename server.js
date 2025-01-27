@@ -106,57 +106,77 @@ io.on('connection', (socket) => {
   // PLAYER LEAVES LOBBY
   socket.on('leaveLobby', ({ playerName, lobbyId }) => {
     const lobby = lobbies[lobbyId];
-    if (lobby) {
-      // Find the player in that lobby
-      const playerIndex = lobby.players.findIndex((p) => p.id === socket.id);
-      if (playerIndex !== -1) {
-        // Remove the player from the lobby
-        const [removedPlayer] = lobby.players.splice(playerIndex, 1);
+    if (!lobby) return;
   
-        // If the removed player was the host,
-        // either remove the entire lobby or reassign host logic, as you prefer
-        if (removedPlayer.id === lobby.hostSocketId) {
-          console.log(`Host left lobby: ${lobbyId}. Removing entire lobby.`);
-          delete lobbies[lobbyId];
-        } else {
-          // Otherwise, just update the lobby for everyone else
-          io.to(lobbyId).emit('lobbyData', lobby);
-        }
+    const playerIndex = lobby.players.findIndex((p) => p.id === socket.id);
+    if (playerIndex === -1) return;
   
-        // Update the lobby list for the landing page
-        io.emit('lobbiesList', getLobbiesList());
+    const [removedPlayer] = lobby.players.splice(playerIndex, 1);
+  
+    // If the removed player was the host...
+    if (removedPlayer.id === lobby.hostSocketId) {
+      if (lobby.players.length > 0) {
+        // Reassign host to the earliest-joined player
+        const newHost = lobby.players[0];
+        lobby.host = newHost.name;
+        lobby.hostSocketId = newHost.id;
+        console.log(`Host left. Reassigning host to: ${newHost.name} for lobby: ${lobbyId}`);
+        
+        // Broadcast the updated lobby
+        io.to(lobbyId).emit('lobbyData', lobby);
+      } else {
+        // No players left, remove the lobby
+        console.log(`Host left and no players remain. Removing lobby: ${lobbyId}`);
+        delete lobbies[lobbyId];
       }
+    } else {
+      // If a non-host left, just broadcast the updated lobby
+      io.to(lobbyId).emit('lobbyData', lobby);
     }
+  
+    // Always update the lobby list on the landing page
+    io.emit('lobbiesList', getLobbiesList());
   });
+  
 
   // PLAYER DISCONNECTS
   socket.on('disconnect', () => {
     console.log('Client disconnected:', socket.id);
-
-    // Remove this player from any lobby they were in
-    for (let id in lobbies) {
-      const lobby = lobbies[id];
+  
+    for (let lobbyId in lobbies) {
+      const lobby = lobbies[lobbyId];
       const playerIndex = lobby.players.findIndex((p) => p.id === socket.id);
-
+  
       if (playerIndex !== -1) {
         const [removedPlayer] = lobby.players.splice(playerIndex, 1);
-
-        // If the HOST left, remove the entire lobby (or re-assign host if desired)
+  
+        // If the removed player was the host...
         if (removedPlayer.id === lobby.hostSocketId) {
-          console.log(`Host left. Removing lobby: ${id}`);
-          delete lobbies[id];
-          io.emit('lobbiesList', getLobbiesList());
-          return;
+          if (lobby.players.length > 0) {
+            // Reassign host to earliest-joined player
+            const newHost = lobby.players[0];
+            lobby.host = newHost.name;
+            lobby.hostSocketId = newHost.id;
+            console.log(`Host disconnected. Reassigning host to: ${newHost.name} for lobby: ${lobbyId}`);
+  
+            // Broadcast updated lobby
+            io.to(lobbyId).emit('lobbyData', lobby);
+          } else {
+            // No players left, remove the lobby
+            console.log(`Host disconnected and no players remain. Removing lobby: ${lobbyId}`);
+            delete lobbies[lobbyId];
+          }
+        } else {
+          // If a non-host disconnected, just broadcast the updated lobby
+          io.to(lobbyId).emit('lobbyData', lobby);
         }
-
-        // Otherwise just notify the lobby that a player left
-        io.to(id).emit('lobbyData', lobby);
-        // And update the landing page’s lobby list
+  
+        // Update lobby list on landing page
         io.emit('lobbiesList', getLobbiesList());
-        return;
+        return; // Stop checking other lobbies
       }
     }
-  });
+  });  
 });
 
 // ----------------- Express Routes -----------------
