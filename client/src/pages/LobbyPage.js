@@ -5,6 +5,7 @@ import socket from '../socket';  // import the shared socket instance
 function LobbyPage() {
   const { lobbyId } = useParams();
   const location = useLocation();
+  const playerName = location.state?.playerName || '';
 
   // We passed these via React Router location.state from the landing page
   const { isHost, hostName } = location.state || {};
@@ -47,7 +48,11 @@ function LobbyPage() {
       <h2>Players in this lobby:</h2>
       <ul>
         {lobbyData.players.map((player) => (
-          <li key={player.id}>{player.name}</li>
+          player.name === playerName ? (
+            <li key={player.id}>{player.name} (You)</li>
+           ) : (
+            <li key={player.id}>{player.name}</li>
+           )
         ))}
       </ul>
 

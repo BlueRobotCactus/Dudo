@@ -33,7 +33,7 @@ function LandingPage({ playerName }) {
     socket.emit('createLobby', playerName, ({ lobbyId, hostName }) => {
       // If successful, navigate to the new lobby
       navigate(`/lobby/${lobbyId}`, {
-        state: { isHost: true, hostName },
+        state: { isHost: true, hostName, playerName },
       });
     });
   };
@@ -49,7 +49,7 @@ function LandingPage({ playerName }) {
       } else {
         // Navigate to the joined lobby
         navigate(`/lobby/${lobbyId}`, {
-          state: { isHost: false, hostName: lobbyData.host },
+          state: { isHost: false, hostName: lobbyData.host, playerName },
         });
       }
     });
