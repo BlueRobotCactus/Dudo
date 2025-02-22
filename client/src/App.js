@@ -10,6 +10,7 @@ import './App.css';
 import EnterNamePage from './pages/EnterNamePage';
 import LandingPage from './pages/LandingPage';
 import LobbyPage from './pages/LobbyPage';
+import GamePage from './pages/GamePage';
 
 function App() {
   // Initialize from localStorage, or empty if nothing's there
@@ -42,6 +43,7 @@ function App() {
         />
 
         <Route path="/lobby/:lobbyId" element={<LobbyPage />} />
+        <Route path="/game/:lobbyId" element={<GamePage />} />
       </Routes>
     </Router>
   );

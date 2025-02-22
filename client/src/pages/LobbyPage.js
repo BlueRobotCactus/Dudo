@@ -1,67 +1,85 @@
 import React, { useEffect, useState } from 'react';
-import { useLocation, useParams } from 'react-router-dom';
-import { useNavigate } from 'react-router-dom';
-import socket from '../socket';  // import the shared socket instance
+import { useLocation, useParams, useNavigate } from 'react-router-dom';
+import socket from '../socket'; // Use shared socket instance
 
 function LobbyPage() {
   const { lobbyId } = useParams();
   const location = useLocation();
-  const [lobbyData, setLobbyData] = useState({ players: [] });
-  const playerName = location.state?.playerName || localStorage.getItem('playerName') || '';
   const navigate = useNavigate();
 
+  // The user’s name passed from LandingPage (for display + server logic)
+  const playerName = location.state?.playerName || '';
+
+  // We'll store full lobby data here
+  const [lobbyData, setLobbyData] = useState({ players: [] });
+
   useEffect(() => {
-    // Ask the server for the most up-to-date lobby info
+    // 1. Get initial lobby data
     socket.emit('getLobbyData', lobbyId, (data) => {
       if (data && !data.error) {
         setLobbyData(data);
+      } else {
+        // If there's an error (lobby not found), navigate home or handle error
+        navigate('/');
       }
     });
 
-    // Listen for real-time "lobbyData" events from the server
+    // 2. Listen for real-time "lobbyData" updates
     const handleLobbyData = (updatedLobby) => {
       if (updatedLobby.id === lobbyId) {
         setLobbyData(updatedLobby);
       }
     };
-
     socket.on('lobbyData', handleLobbyData);
 
-    // Cleanup to avoid duplicate listeners if we unmount
+    // 3. Listen for "gameStarted" event
+    const handleGameStarted = ({ lobbyId, gameState }) => {
+      // Everyone in the lobby navigates to the game page
+      navigate(`/game/${lobbyId}`, {
+        state: { gameState }, // optional: pass initial game state
+      });
+    };
+    socket.on('gameStarted', handleGameStarted);
+
+    // Cleanup on unmount
     return () => {
       socket.off('lobbyData', handleLobbyData);
+      socket.off('gameStarted', handleGameStarted);
     };
-  }, [lobbyId]);
+  }, [lobbyId, navigate]);
 
-  // "IsHost" is recalculated every render:
+  // Determine if you're host by comparing your socket.id to the stored hostSocketId
   const isHost = lobbyData.hostSocketId === socket.id;
-  
-  const lobbyTitle = isHost ? 'Your Lobby' : `${lobbyData.host}'s Lobby`;
 
+  // Host sees "Your Lobby", others see "HostName's Lobby"
+  const lobbyTitle = isHost
+    ? 'Your Lobby'
+    : `${lobbyData.host}'s Lobby`;
+
+  // Click: Host starts game
   const handleStartGame = () => {
     socket.emit('startGame', lobbyId);
   };
 
+  // Click: Leave Lobby
   const handleLeaveLobby = () => {
-    socket.emit('leaveLobby', { playerName, lobbyId }); // Notify server
-    navigate('/'); // Redirect to Landing Page
+    socket.emit('leaveLobby', { playerName, lobbyId });
+    navigate('/');
   };
 
   return (
     <div style={{ padding: '20px' }}>
       <h1>{lobbyTitle}</h1>
+
       <h2>Players in this lobby:</h2>
       <ul>
         {lobbyData.players.map((player) => (
-          player.name === playerName ? (
-            <li key={player.id}>{player.name} (You)</li>
-           ) : (
-            <li key={player.id}>{player.name}</li>
-           )
+          player.name === playerName
+            ? <li key={player.id}>{player.name} (You)</li>
+            : <li key={player.id}>{player.name}</li>
         ))}
       </ul>
 
-      {/* Only show "Start Game" if this client is the host */}
       {isHost && (
         <button onClick={handleStartGame}>Start Game</button>
       )}
