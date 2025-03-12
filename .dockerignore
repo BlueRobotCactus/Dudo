@@ -1,0 +1,19 @@
+# Ignore local node_modules
+node_modules
+client/node_modules
+
+# Ignore build output (we build it in Docker)
+client/build
+
+# Ignore Git
+.git
+.gitignore
+
+# Ignore OS junk
+.DS_Store
+
+# Ignore Docker config
+Dockerfile
+.dockerignore
+
+npm-debug.log

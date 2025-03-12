@@ -1,4 +1,5 @@
 const express = require('express');
+const path = require('path');
 const http = require('http');
 const { Server } = require('socket.io');
 const cors = require('cors');
@@ -14,6 +15,9 @@ const io = new Server(server, {
 
 app.use(cors());
 app.use(express.json());
+
+// Serve all the static files in the React app's build folder
+app.use(express.static(path.join(__dirname, 'client', 'build')));
 
 // In-memory lobbies storage
 const lobbies = {
@@ -264,8 +268,14 @@ function getLobbiesList() {
   }));
 }
 
+// Catch-all handler: For any request that doesn't match an API route,
+// send back index.html so that client-side routing can handle it.
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'client', 'build', 'index.html'));
+});
+
 // Start server
-const PORT = process.env.PORT || 5000;
+const PORT = 8080;
 server.listen(PORT, () => {
   console.log(`Server listening on port ${PORT}`);
 });

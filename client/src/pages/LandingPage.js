@@ -8,8 +8,7 @@ function LandingPage({ playerName }) {
 
   // Fetch the lobbies once the component mounts
   useEffect(() => {
-    const apiUrl = `${process.env.REACT_APP_SERVER_URL}/api/lobbies`;
-    fetch(apiUrl)
+    fetch('/api/lobbies')
       .then((res) => res.json())
       .then((data) => setLobbies(data))
       .catch((err) => console.error(err));
