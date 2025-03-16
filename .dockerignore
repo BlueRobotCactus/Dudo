@@ -1,6 +1,7 @@
 # Ignore local node_modules
 node_modules
 client/node_modules
+Docker Build and Run.txt
 
 # Ignore build output (we build it in Docker)
 client/build

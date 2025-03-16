@@ -1,0 +1,90 @@
+Glenn made this file to help understand how all this works
+
+//---------------------------------------
+// SUMMARY
+//---------------------------------------
+docker build -t dudo-app .    
+// at this point only exists on local machine
+// test it locally with: docker run -p 3000:8080 dudo-app
+// in browser: localhost:3000
+docker tag dudo-app gcr.io/trans-trees-453423-f7/dudo-app:latest
+docker push gcr.io/trans-trees-453423-f7/dudo-app:latest
+gcloud run deploy dudo-service --image gcr.io/trans-trees-453423-f7/dudo-app:latest --platform managed --region us-east4 --allow-unauthenticated
+https://dudo-service-349863571728.us-east4.run.app
+
+//---------------------------------------
+// GENERAL INFO
+//---------------------------------------
+OUR PROJECT NAME IS:
+trans-trees-453423-f7
+NOTE: you can get this from "gcloud config get-value project"
+
+OUR REGION IS:
+us-east4
+
+OUR REPOSITORY IS:
+gcr.io/trans-trees-453423-f7/dudo-app
+
+OUR IMAGE NAME IS:
+dudo-app
+
+//---------------------------------------
+// DETAIL
+//---------------------------------------
+
+from Terminal, in the root folder:
+
+// MAKE CHANGES TO CODE
+don't forget to Save All!
+
+// BUILD A NEW DOCKER IMAGE
+from Terminal, in the root folder
+docker build -t dudo-app .
+docker build -t gcr.io/trans-trees-453423-f7/dudo-app:latest .
+NOTES:
+    "-t" tags the image.
+    If you use the first one, the label is "none"
+    if you use the second one (longer) you don't have to do the TAG step below 
+
+// TAG THE IMAGE
+docker tag dudo-app gcr.io/trans-trees-453423-f7/dudo-app:latest
+NOTES:
+    "dudo-app" is the image id
+    "trans-trees-453423-f7" is the repository name
+    "latest" is just a tag with a special name, meaning “the last build/tag that ran without a specific tag/version specified”
+        It could be anything like "this is version 1", etc.
+        Do not use "latest" in production!
+
+// test locally
+docker run -p 3000:8080 dudo-app
+open http://localhost:3000 in a browser
+NOTES: 
+    3000 refers to the host machine's port (your computer).
+    8080 refers to the container’s port (inside the Docker container).
+
+  // ACCESSING GOOGLE CLOUD
+gcloud auth configure-docker gcr.io
+
+// UPLOAD DOCKER IMAGE (local) TO DOCKER REGISTRY (cloud)
+docker push gcr.io/trans-trees-453423-f7/dudo-app:latest
+
+// DEPLOY A CONTAINER TO CLOUD RUN SERVICE
+gcloud run deploy dudo-service --image gcr.io/trans-trees-453423-f7/dudo-app:latest --platform managed --region us-east4 --allow-unauthenticated
+NOTE:
+    "dudo-service" is the name of the service
+
+//---------------------------------------
+// TEST
+//---------------------------------------
+go to a browser:
+https://dudo-service-349863571728.us-east4.run.app
+
+//---------------------------------------
+// USEFUL TOOLS
+//---------------------------------------
+
+// get our project name
+gcloud config get-value project
+
+// see what containers are running
+docker ps

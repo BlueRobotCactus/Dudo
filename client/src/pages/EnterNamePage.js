@@ -19,7 +19,7 @@ function EnterNamePage({ onNameSubmitted }) {
 
   return (
     <div style={{ padding: '20px' }}>
-      <h1>Enter Your Name</h1>
+      <h1>Name please (GlennTest 1e)</h1>
       <form onSubmit={handleSubmit}>
         <input
           type="text"
