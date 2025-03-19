@@ -72,7 +72,7 @@ function LandingPage({ playerName }) {
 
       <button onClick={handleCreateLobby}>Create Lobby</button>
 
-      <h2>Available Lobbies (GlennTest 1e)</h2>
+      <h2>Available Lobbies (v2)</h2>
       {lobbies.length === 0 && <p>No lobbies yet</p>}
 
       <ul>

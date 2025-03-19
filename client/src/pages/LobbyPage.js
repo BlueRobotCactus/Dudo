@@ -53,8 +53,8 @@ function LobbyPage() {
 
   // Host sees "Your Lobby", others see "HostName's Lobby"
   const lobbyTitle = isHost
-    ? 'Your Lobby (GlennTest 1e)'
-    : `${lobbyData.host}'s Lobby (GlennTest 1e)`;
+    ? 'Your Lobby (v2)'
+    : `${lobbyData.host}'s Lobby (v2)`;
 
   // Click: Host starts game
   const handleStartGame = () => {

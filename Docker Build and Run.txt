@@ -1,8 +1,22 @@
 Glenn made this file to help understand how all this works
 
 //---------------------------------------
+// Shortcuts
+//---------------------------------------
+Make sure docker engine is running
+
+cmd /c build
+cmd /c runlocal
+cmd /c tag
+cmd /c push
+cmd /c deploy
+
+These run the corresponding .bat files in the root directory
+
+//---------------------------------------
 // SUMMARY
 //---------------------------------------
+// open Docker Desktop to start the engine
 docker build -t dudo-app .    
 // at this point only exists on local machine
 // test it locally with: docker run -p 3000:8080 dudo-app
