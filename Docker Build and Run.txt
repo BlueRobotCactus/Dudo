@@ -10,6 +10,7 @@ cmd /c runlocal
 cmd /c tag
 cmd /c push
 cmd /c deploy
+cmd /c debug
 
 These run the corresponding .bat files in the root directory
 
@@ -20,11 +21,29 @@ These run the corresponding .bat files in the root directory
 docker build -t dudo-app .    
 // at this point only exists on local machine
 // test it locally with: docker run -p 3000:8080 dudo-app
-// in browser: localhost:3000
+// in browser: localhost:8080
 docker tag dudo-app gcr.io/trans-trees-453423-f7/dudo-app:latest
 docker push gcr.io/trans-trees-453423-f7/dudo-app:latest
 gcloud run deploy dudo-service --image gcr.io/trans-trees-453423-f7/dudo-app:latest --platform managed --region us-east4 --allow-unauthenticated
+// test online among different browsers/machines
 https://dudo-service-349863571728.us-east4.run.app
+
+//---------------------------------------
+// DEBUGGING
+//---------------------------------------
+server side:
+  build as usual
+  cmd /c debug
+  click on Run/Start Debugging
+  localhost:8080
+  stop everything by going to Docker Desktop and stopping the container
+React UI:
+  have 2 terminal open
+  terminal 1 (in root as usual):  cmd /c runlocal
+  terminal 2 (in client/ folder): npm start
+    this will fire up a browser tab, but no debug stuff yet
+  VSCode Debug/Run and Debug/Debug React UI (Chrome), click green button
+    this will fire up another brower instance; close the first one, use this one
 
 //---------------------------------------
 // GENERAL INFO

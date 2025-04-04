@@ -1,10 +1,21 @@
-const express = require('express');
-const path = require('path');
-const http = require('http');
-const { Server } = require('socket.io');
-const cors = require('cors');
-const { v4: uuidv4 } = require('uuid');
+import { DudoGame } from './DudoGameS.js';
+import { DudoBid } from './DudoBidS.js';
+import { CONNECTION_UNUSED, CONNECTION_PLAYER_IN, CONNECTION_PLAYER_OUT, CONNECTION_OBSERVER } from './DudoGameS.js';
+import express from 'express';
+import path from 'path';
+import http from 'http';
+import { Server } from 'socket.io';
+import cors from 'cors';
+import { v4 as uuidv4 } from 'uuid';
 
+// Needed to replicate __dirname in ES modules
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+// Set up the Express app and Socket.IO server
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
@@ -28,21 +39,28 @@ const lobbies = {
       hostSocketId: 'socketID',
       players: [{ id: 'socketID', name: 'PlayerName' }, ...],
       game: {
-        isStarted: false,
-        currentTurnIndex: 0, 
+        bRoundInProgress: false,
+        whosTurn: 0, 
         // other game-specific fields...
       }
     }
   */
 };
 
+var theGame = new DudoGame();
+
+// ******************************
 // Socket.IO setup
+// ******************************
 io.on('connection', (socket) => {
   console.log('New client connected:', socket.id);
 
-  // ------------------------------
+  socket.emit("yourSocketId", socket.id);
+
+  //************************************************************
+  // socket.on
   // CREATE LOBBY
-  // ------------------------------
+  //************************************************************
   socket.on('createLobby', (hostName, callback) => {
     const lobbyId = uuidv4();
     lobbies[lobbyId] = {
@@ -50,7 +68,7 @@ io.on('connection', (socket) => {
       host: hostName,
       hostSocketId: socket.id,
       players: [{ id: socket.id, name: hostName }],
-      game: { isStarted: false }, // We'll store game data here
+      game: { bRoundInProgress: false }, // We'll store game data here
     };
 
     socket.join(lobbyId);
@@ -65,9 +83,10 @@ io.on('connection', (socket) => {
     io.emit('lobbiesList', getLobbiesList());
   });
 
-  // ------------------------------
+  //************************************************************
+  // socket.on
   // JOIN LOBBY
-  // ------------------------------
+  //************************************************************
   socket.on('joinLobby', (data, callback) => {
     const { lobbyId, playerName } = data;
     const lobby = lobbies[lobbyId];
@@ -95,9 +114,10 @@ io.on('connection', (socket) => {
     }
   });
 
-  // ------------------------------
+  //************************************************************
+  // socket.on
   // GET LOBBY DATA
-  // ------------------------------
+  //************************************************************
   socket.on('getLobbyData', (lobbyId, callback) => {
     const lobby = lobbies[lobbyId];
     if (lobby) {
@@ -107,32 +127,64 @@ io.on('connection', (socket) => {
     }
   });
 
-  // ------------------------------
+  //************************************************************
+  // socket.on
   // START GAME
-  // ------------------------------
+  //************************************************************
   socket.on('startGame', (lobbyId) => {
     const lobby = lobbies[lobbyId];
     if (!lobby) return;
 
-    // Only the host can start
+    // Only the host can start the game
     if (lobby.hostSocketId === socket.id) {
-      // Initialize game state (turn index, etc.)
-      lobby.game.isStarted = true;
-      lobby.game.currentTurnIndex = 0;
 
       console.log(`Game started in lobby: ${lobbyId}`);
 
+      // **********************************
+      // Glenn ported this from java code
+      // **********************************
+
+//      lobby.game = new DudoGame();
+      lobby.game = theGame;
+      lobby.game.bRoundInProgress = true;
+      lobby.game.whosTurn = 0;
+
+      // init connnection stuff from java - &&& fix up later
+      lobby.game.maxConnections = 10;  // &&&for now
+      for (let i=0; i<lobby.game.maxConnections; i++) {
+        lobby.game.allConnectionStatus[i] = CONNECTION_UNUSED;
+      }
+
+      // load player names from lobby
+      lobby.game.numPlayers = lobby.players.length;
+      for (let i=0; i<lobby.players.length; i++) {
+        lobby.game.allParticipantNames[i] = lobby.players[i].name;
+        // deal with connection status later (player vs. observer)
+        lobby.game.allConnectionStatus[i] = CONNECTION_PLAYER_IN;
+        lobby.game.allConnectionID[i] = lobby.players[i].id;
+      }
+
+      StartGame(lobby.game);
+
+      // END GLENN STUFF **********************************
+
       // Emit to all players in the lobby
+
+      const myJSON = JSON.stringify(lobby.game);
+
+
       io.to(lobbyId).emit('gameStarted', {
         lobbyId,
         gameState: lobby.game,
       });
+      console.log("server.js: emitting 'gameStarted'");
     }
   });
 
-  // ------------------------------
+  //************************************************************
+  // socket.on
   // LEAVE LOBBY
-  // ------------------------------
+  //************************************************************
   socket.on('leaveLobby', ({ playerName, lobbyId }) => {
     const lobby = lobbies[lobbyId];
     if (!lobby) return;
@@ -168,53 +220,111 @@ io.on('connection', (socket) => {
     io.emit('lobbiesList', getLobbiesList());
   });
 
-  // ------------------------------
-  // TURN-BASED LOGIC (BID / DOUBT)
-  // ------------------------------
-  socket.on('bid', ({ lobbyId }) => {
-    const lobby = lobbies[lobbyId];
-    if (!lobby || !lobby.game || !lobby.game.isStarted) return;
+  //************************************************************
+  // socket.on
+  // PROCESS THE BID
+  //************************************************************
+  socket.on('bid', ({ lobbyId, bidText, index, name }) => {
 
-    const currentTurnIndex = lobby.game.currentTurnIndex;
-    const currentPlayer = lobby.players[currentTurnIndex];
-    if (currentPlayer.id !== socket.id) {
-      console.log('Player attempted to bid out of turn.');
+    //-------------------------------------------------
+    // add this bid to the bid array
+    //-------------------------------------------------
+    const ggs = theGame;
+    let ptr = ggs.numBids;
+    ggs.allBids[ptr].text = bidText;
+    ggs.allBids[ptr].playerIndex = index;
+    ggs.allBids[ptr].playerName = name;
+    if ((bidText !=="PASO") && (bidText !=="DOUBT")) {
+      ggs.parseBid(bidText);
+        ggs.allBids[ptr].howMany = ggs.parsedHowMany;
+        ggs.allBids[ptr].ofWhat = ggs.parsedOfWhat;
+        ggs.allBids[ptr].paso = false;
+        ggs.allBids[ptr].dudo = false;
+        //ggs.allBids[ptr].shakeShow = myShowShake;   //&&& take care of this
+    }
+    if (bidText === "PASO") {
+        ggs.allBids[ptr].paso = true;
+        ggs.allBids[ptr].dudo = false;
+        ggs.allBids[ptr].shakeShow = false;
+    }
+    if (bidText === "DOUBT") {
+        ggs.allBids[ptr].paso = false;
+        ggs.allBids[ptr].dudo = true;
+        ggs.allBids[ptr].shakeShow = false;
+    }
+    ggs.numBids++;
+
+    //-------------------------------------------------
+    // keep going
+    //-------------------------------------------------
+    const lobby = lobbies[lobbyId];
+    if (!lobby || !lobby.game || !lobby.game.bRoundInProgress) return;
+
+    const whosTurn = lobby.game.whosTurn;
+    const currentPlayer = lobby.players[whosTurn];
+    //if (currentPlayer.id !== socket.id) {
+    if (currentPlayer.id.toString() !== socket.id.toString()) {
+        console.log('Player attempted to bid out of turn.');
       return;
     }
+
+    if (bidText === "DOUBT") {
+      ggs.getDoubtResult();
+      PostRound(ggs);
+    }
+
 
     console.log(`Player ${currentPlayer.name} made a BID in lobby ${lobbyId}`);
 
     // Move to the next turn
-    lobby.game.currentTurnIndex = (currentTurnIndex + 1) % lobby.players.length;
+    lobby.game.whosTurn = (whosTurn + 1) % lobby.players.length;
 
     // Broadcast new game state
+
+    //&&&
+    const myJSON = JSON.stringify(lobby.game);
+
+
     io.to(lobbyId).emit('gameStateUpdate', lobby.game);
+    console.log("server.js: emitting 'gameStateUpdate'");
+
   });
 
+  //************************************************************
+  // socket.on
+  // PROCESS THE DOUBT
+  //&&& do we need this?
+  //************************************************************
   socket.on('doubt', ({ lobbyId }) => {
     const lobby = lobbies[lobbyId];
-    if (!lobby || !lobby.game || !lobby.game.isStarted) return;
+    if (!lobby || !lobby.game || !lobby.game.bRoundInProgress) return;
 
-    const currentTurnIndex = lobby.game.currentTurnIndex;
-    const currentPlayer = lobby.players[currentTurnIndex];
+    const whosTurn = lobby.game.whosTurn;
+    const currentPlayer = lobby.players[whosTurn];
     if (currentPlayer.id !== socket.id) {
       console.log('Player attempted to doubt out of turn.');
       return;
     }
 
+
+
+
     console.log(`Player ${currentPlayer.name} DOUBTED in lobby ${lobbyId}. Game ends.`);
 
     // End the game
-    lobby.game.isStarted = false;
+    lobby.game.bRoundInProgress = false;
     io.to(lobbyId).emit('gameOver', {
       message: `${currentPlayer.name} ended the game by doubting!`,
       finalGameState: lobby.game,
     });
+    console.log("server.js: emitting 'gameOver'");
+
   });
 
-  // ------------------------------
-  // DISCONNECT (unexpected)
-  // ------------------------------
+  //************************************************************
+  // socket.on
+  // DISCONNECT
+  //************************************************************
   socket.on('disconnect', () => {
     console.log('Client disconnected:', socket.id);
 
@@ -259,23 +369,269 @@ app.get('/api/lobbies', (req, res) => {
   res.json(getLobbiesList());
 });
 
+// ------------------------------
 // Helper: list of available lobbies
+// ------------------------------
 function getLobbiesList() {
-  return Object.values(lobbies).map((lobby) => ({
+return Object.values(lobbies).map((lobby) => ({
     id: lobby.id,
     host: lobby.host,
     playerCount: lobby.players.length,
   }));
 }
 
+// ------------------------------
 // Catch-all handler: For any request that doesn't match an API route,
 // send back index.html so that client-side routing can handle it.
+// ------------------------------
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'client', 'build', 'index.html'));
 });
 
+// ------------------------------
 // Start server
+// ------------------------------
 const PORT = 8080;
 server.listen(PORT, () => {
   console.log(`Server listening on port ${PORT}`);
 });
+
+//****************************************************************
+//****************************************************************
+//****************************************************************
+//
+// Routines ported from java
+//
+//****************************************************************
+//****************************************************************
+//****************************************************************
+
+
+//****************************************************************
+// Start the game 
+//****************************************************************
+function StartGame (ggs) {
+
+  ggs.firstRound = true;
+  ggs.bPaloFijoRound = false;
+  
+  //------------------------------------------------------------
+  // give everybody no sticks
+  //------------------------------------------------------------
+  for (let i = 0; i < ggs.numPlayers; i++) {
+      ggs.allSticks[i] = 0;
+  }
+
+  //------------------------------------------------------------
+  // put all players in
+  // (must do after 1st game of session)
+  //------------------------------------------------------------
+  ggs.numPlayers = 0;
+  for (let cc = 0; cc < ggs.maxConnections; cc++) {
+      if (ggs.allConnectionStatus[cc] != CONNECTION_UNUSED) {
+          ggs.allConnectionStatus[cc] = CONNECTION_PLAYER_IN;
+          ggs.numPlayers++;
+      }
+  }
+
+
+
+
+  /*
+  //------------------------------------------------------------
+  // tell everybody new statueses
+  // (must do after 1st game of session)
+  //------------------------------------------------------------
+  for (int cc = 0; cc < maxConnections; cc++) {
+      if (ggs.allConnectionStatus[cc] != CONNECTION_UNUSED) {
+          playerConnection[cc].sendAllConnectionStatus();
+      }
+  }
+  //------------------------------------------------------------
+  // tell everybody that game is starting
+  //------------------------------------------------------------
+  for (int cc = 0; cc < maxConnections; cc++) {
+      if (ggs.allConnectionStatus[cc] != CONNECTION_UNUSED) {
+          playerConnection[cc].sendStartGame();
+      }
+  }
+*/
+  StartRound(ggs);
+
+}
+
+//****************************************************************
+// Start a round 
+//****************************************************************
+function StartRound (ggs) {
+
+//    Random randomGenerator = new Random();
+/*
+    //------------------------------------------------------------
+    // tell all players we're starting
+    //------------------------------------------------------------
+    for (int cc = 0; cc < ggs.maxPlayers; cc++) {
+        if (ggs.allConnectionStatus[cc] != CONNECTION_UNUSED) {
+            playerConnection[cc].sendStartRound();
+        }
+    }        
+*/
+
+    ggs.bRoundInProgress = true;
+
+    //------------------------------------------------------------
+    // first round, randomly choose who goes first
+    // (otherwise determined in PostRound())
+    //------------------------------------------------------------
+    if (ggs.firstRound) {
+        //let rr = randomGenerator.nextInt(ggs.GetNumberPlayersStillIn());
+        const random = Math.floor(Math.random() * ggs.GetNumberPlayersStillIn());
+        let temp = 0;
+        for (let cc = 0; cc < ggs.maxConnections; cc++) {
+            if (ggs.allConnectionStatus[cc] == CONNECTION_PLAYER_IN) {
+                if (random == temp) {
+                    ggs.whosTurn = cc;
+                    console.log ('server.js: StartRound: randomly picked whosTurn = ' + cc);
+                    break;
+                }
+                temp++;
+            }
+        }
+    }
+/*
+    //------------------------------------------------------------
+    // tell all players who goes first
+    //------------------------------------------------------------
+    for (int cc = 0; cc < ggs.maxPlayers; cc++) {
+        if (ggs.allConnectionStatus[cc] != CONNECTION_UNUSED) {
+            playerConnection[cc].sendGoesFirst(ggs.whosTurn);
+        }
+    }      
+*/    
+    //------------------------------------------------------------
+    // roll the dice for all players
+    //------------------------------------------------------------
+    for (let cc = 0; cc < ggs.maxConnections; cc++) {
+        if (ggs.allConnectionStatus[cc] == CONNECTION_PLAYER_IN) {
+            for (let j = 0; j < 5; j++) {
+                const random = Math.floor(Math.random() * 6) + 1;
+                //int r = randomGenerator.nextInt(6) + 1;
+                ggs.dice[cc][j] = random;
+                ggs.bDiceHidden[cc][j] = true;
+              }
+        }
+    }
+/*    
+    //------------------------------------------------------------
+    // send dice to all players
+    //------------------------------------------------------------
+    for (int cc = 0; cc < ggs.maxPlayers; cc++) {
+        if (ggs.allConnectionStatus[cc] != CONNECTION_UNUSED) {
+            playerConnection[cc].sendAllDice();
+        }
+    }
+    
+    //------------------------------------------------------------
+    // send sticks to everybody
+    //------------------------------------------------------------
+    for (int cc = 0; cc < ggs.maxConnections; cc++) {
+        if (ggs.allConnectionStatus[cc] != CONNECTION_UNUSED) {
+            playerConnection[cc].sendAllSticks();
+        }
+    }      
+
+    //if (ggs.firstRound && (ggs.GetNumberPlayersStillIn() > 2)) {
+    if (ggs.GetNumberPlayersStillIn() > 2) {
+        //------------------------------------------------------------
+        // tell player who goes first to get direction
+        // (we'll send start bidding message when we receive direction)
+        //------------------------------------------------------------
+        if (ggs.GetNumberPlayersStillIn() > 2) {
+            playerConnection[ggs.whosTurn].sendGetDirection();
+        }
+    } else {
+        //------------------------------------------------------------
+        // don't need to get direction
+        // send start bidding message to all players
+        //------------------------------------------------------------
+        for (int cc = 0; cc < ggs.maxPlayers; cc++) {
+            if (ggs.allConnectionStatus[cc] != CONNECTION_UNUSED) {
+                playerConnection[cc].sendStartBidding();
+            }
+        }        
+    }
+*/
+
+    //------------------------------------------------------------
+    // initialize bidding, and send it to everybody
+    //------------------------------------------------------------
+    ggs.numBids = 0;
+    for (let i = 0; i < ggs.maxBids; i++) {
+        ggs.allBids[i].InitDudoBid();
+    }
+
+//    for (let cc = 0; cc < ggs.maxPlayers; cc++) {
+//        if (ggs.allConnectionStatus[cc] == CONNECTION_UNUSED) {
+//            continue;
+//        }
+//        playerConnection[cc].sendBid(cc);
+//    }
+
+    //------------------------------------------------------------
+    // flip bool after first round
+    //------------------------------------------------------------
+    if (ggs.firstRound) {
+        ggs.firstRound = false;
+    }
+}
+
+//****************************************************************
+// End of round processing 
+//****************************************************************
+function PostRound(ggs) {
+    //------------------------------------------------------------
+    // player who lost doubt gets a stick, are they out?
+    // determine who goes next
+    // and if palofijo
+    //------------------------------------------------------------
+    ggs.allSticks[ggs.doubtLoser]++;
+    
+    if (ggs.allSticks[ggs.doubtLoser] == ggs.maxSticks) {
+        // out! winner of doubt inherits first bid
+        ggs.allConnectionStatus[ggs.doubtLoser] = CONNECTION_PLAYER_OUT;
+        ggs.numPlayers--;
+        ggs.whosTurn = ggs.doubtWinner;
+        ggs.bPaloFijoRound = false;
+    } else {
+        // not out, loser of doubt goes first next round
+        ggs.whosTurn = ggs.doubtLoser;
+        // see if palofijo
+        if (ggs.bPaloFijoAllowed) {
+            if (ggs.allSticks[ggs.doubtLoser] == ggs.maxSticks - 1) {
+                ggs.bPaloFijoRound = true;
+            }
+        }
+    }
+    
+    //------------------------------------------------------------
+    // was there a winner?
+    //------------------------------------------------------------
+    if (ggs.numPlayers == 1) {
+      const msg = ggs.allParticipantNames[ggs.doubtWinner] + ' WINS !!';
+      io.emit('gameWinner', msg);
+        // yes
+        //for (int cc = 0; cc < ggs.maxConnections; cc++) {
+        //    if (ggs.allConnectionStatus[cc] != CONNECTION_UNUSED) {
+        //        playerConnection[cc].sendShowCongratsWinnerDlg(cc);
+        //    }
+        //}
+    } else {
+        // no, send connectionStatus (with names)
+        //for (int cc = 0; cc < maxConnections; cc++) {
+        //    if (ggs.allConnectionStatus[cc] != CONNECTION_UNUSED) {
+        //        playerConnection[cc].sendAllConnectionStatus();
+        //    }
+        //}
+        StartRound();
+    }
+}

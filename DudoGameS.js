@@ -1,6 +1,6 @@
-import React, { useEffect, useState, useRef } from 'react';
-import { useParams, useLocation } from 'react-router-dom';
-import { DudoBid} from "./DudoBid.js";
+//import React, { useEffect, useState, useRef } from 'react';
+//import { useParams, useLocation } from 'react-router-dom';
+import { DudoBid } from './DudoBidS.js';
 
 // connectionStatus codes
 // &&& these are more like player status codes
@@ -12,6 +12,7 @@ const CONNECTION_OBSERVER = 0;
 export class DudoGame {
 
     maxConnections;
+    allConnectionID = [];
     allConnectionStatus = [];
         
     // game parameters
@@ -96,9 +97,18 @@ export class DudoGame {
         for (let i = 0; i < 6; i++) {
             this.bDiceHidden[i] = new Array(5);
         }
+        
         this.bRoundInProgress = false;
 
+        this.firstRound = true;
         this.whosTurn = -1;
+    }
+
+    //************************************************************
+    // initialize game parameters
+    //************************************************************
+    initGameParms (sticks) {
+        this.maxSticks = sticks;
     }
 
     //************************************************************
@@ -156,8 +166,8 @@ export class DudoGame {
     // figure out doubt result
     //************************************************************
     getDoubtResult () {
-        this.whoDoubted = this.allBids[this.numBids - 1].player;
-        this.whoGotDoubted = this.allBids[this.numBids - 2].player;
+        this.whoDoubted = this.allBids[this.numBids - 1].playerIndex;
+        this.whoGotDoubted = this.allBids[this.numBids - 2].playerIndex;
         //--------------------------------------------------------
         // doubted paso
         //--------------------------------------------------------
@@ -229,6 +239,7 @@ export class DudoGame {
                 for (let cc = 0; cc < this.maxPlayers; cc++) {
                     if (this.allConnectionStatus[cc] == CONNECTION_PLAYER_IN) {
                         for (let j = 0; j < 5; j++) {
+                            const thisDie = this.dice[cc][j];
                             if ((this.dice[cc][j] == this.doubtOfWhat)|| this.dice[cc][j] == 1){
                                 this.doubtCount ++;
                             }
@@ -594,9 +605,9 @@ export class DudoGame {
     parseBid(s) {
         const sSplit = s.split(" ");
         let len = sSplit.length;
-        if (len == 3) {
+        if (len === 3) {
             this.parsedHowMany = parseInt(sSplit[0]);  
-            if (sSplit[2].equals("aces")) {
+            if (sSplit[2] === "aces") {
                 this.parsedOfWhat = 1;
             } else {
                 this.parsedOfWhat = parseInt(sSplit[2]);
@@ -652,62 +663,6 @@ export class DudoGame {
             return true;
         } else {
             return false;
-        }
-    }
-}
-
-
-class DudoBid {
-    
-    text;
-    player;
-    howMany;
-    ofWhat;
-    bPaso;
-    bDudo;
-    bDiceHidden = [];
-    bShakeShow;
-    howManyShaken;
-    bWhichShaken = [];
-  
-    //****************************************************************
-    // constructor
-    //****************************************************************
-    constructor() {
-        this.text = "";
-        this.player = 0;
-        this.howMany = -1;
-        this.OfWhat = -1;
-        this.bPaso = false;
-        this.bDudo = false;
-        this.bShakeShow = false;
-  
-        this.bDiceHidden = new Array[5];
-        this.bWhichShaken = new Array[5];
-        for (let i=0; i < 5; i++) {
-            this.bDiceHidden[i] = false;
-            this.bWhichShaken[i] = false;
-        }
-    }
-  
-    //****************************************************************
-    // Initialize (same as constructor)
-    //****************************************************************
-  
-    InitDudoBid() {
-        this.text = "";
-        this.player = 0;
-        this.howMany = -1;
-        this.OfWhat = -1;
-        this.bPaso = false;
-        this.bDudo = false;
-        this.bShakeShow = false;
-  
-        this.bDiceHidden = new Array[5];
-        this.bWhichShaken = new Array[5];
-        for (let i=0; i < 5; i++) {
-            this.bDiceHidden[i] = false;
-            this.bWhichShaken[i] = false;
         }
     }
 }

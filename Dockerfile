@@ -8,8 +8,8 @@ WORKDIR /usr/src/app
 COPY package*.json ./
 RUN npm install
 
-# 3) Copy over our backend code (including server.js)
-COPY server.js ./
+# Step 3: Copy backend code
+COPY server.js DudoGameS.js DudoBidS.js ./
 
 # 4) Build the React app (client)
 #    - Step into /usr/src/app/client
@@ -21,12 +21,16 @@ RUN npm install
 COPY client/ ./
 
 # Run the React build process
+ENV GENERATE_SOURCEMAP=true
 RUN npm run build
 
 # 5) Move the built React files into the /usr/src/app/build folder
 WORKDIR /usr/src/app
 RUN mkdir build && cp -r /usr/src/app/client/build/* build
 
-# 6) Expose the port & start the server
+# 6) Expose ports for app and debugger
 EXPOSE 8080
-CMD ["node", "server.js"]
+EXPOSE 9229
+
+# 7) Start Node.js in inspect mode
+CMD ["node", "--inspect=0.0.0.0:9229", "server.js"]
