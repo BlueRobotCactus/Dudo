@@ -1,6 +1,6 @@
 // NOTE: This class is duplicated in both server and client.
 // If you update it here, update the other copy too.
-
+'use strict';
 export class DudoBid {
   text;
   playerIndex;

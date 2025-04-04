@@ -1,3 +1,5 @@
+'use strict';
+
 // client/src/socket.js
 import { io } from 'socket.io-client';
 

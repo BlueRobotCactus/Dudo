@@ -1,5 +1,5 @@
-//import React, { useEffect, useState, useRef } from 'react';
-//import { useParams, useLocation } from 'react-router-dom';
+'use strict';
+
 import { DudoBid } from './DudoBidS.js';
 
 // connectionStatus codes
@@ -51,6 +51,12 @@ export class DudoGame {
     possibleBids = [];
     numPossibleBids;
 
+    result = new DoubtResult;
+    bWinnerRound;
+
+    bWinnerGame;
+    whoWonGame;
+/*
     // results of the doubt
     doubtedText;
     whoDoubted;              
@@ -63,12 +69,11 @@ export class DudoGame {
     doubtLoserOut;
     doubtWasPaso;
     doubtPasoWasThere;
-    
+*/    
     //****************************************************************
     // constructor
     //****************************************************************
     constructor() {
-
         this.numPlayers = 0;
         this.maxPlayers = 6;
         this.allSticks = [];
@@ -97,11 +102,90 @@ export class DudoGame {
         for (let i = 0; i < 6; i++) {
             this.bDiceHidden[i] = new Array(5);
         }
-        
-        this.bRoundInProgress = false;
+        // force the shape to be 6 by 5
+//        for (let i=0; i<6; i++) {
+//            for (let j=0; j<5; j++) {
+//                this.dice[i][j] = -1;
+//                this.dice[i][j] = -1;
+//            }
+//        }
 
-        this.firstRound = true;
+        this.bRoundInProgress = false;
+        this.bWinnerRound = false;
+        this.bWinnerGame = false;
+
         this.whosTurn = -1;
+    }
+
+    //************************************************************
+    // Fill up this instance of DudoGame from
+    // the instance passed from the server
+    //************************************************************
+    AssignGameState(state) {
+
+        console.log('DudoGameC: Entering AssignGameSate()');
+
+        this.maxConnections = state.maxConnections;
+        for (let i=0; i<state.maxConnections; i++) {
+            this.allConnectionStatus[i] = state.allConnectionStatus[i];
+            this.allConnectionID[i] = state.allConnectionID[i];
+        }
+        this.bPasoAllowed = state.bPasoAllowed;
+        this.bPaloFijoAllowed = state.bPaloFijoAllowed;
+        this.bPaloFijoRound = state.bPaloFijoRound;
+
+
+        this.maxPlayers = state.maxPlayers;
+        this.numPlayers = state.numPlayers;
+
+        this.allParticipantNames.length = 0;
+        for (let i=0; i<state.maxPlayers; i++) {
+            this.allParticipantNames[i] = state.allParticipantNames[i];
+        }
+
+        this.numBids = state.numBids;
+        this.maxBids = state.maxBids;
+        this.allBids.length = 0;
+        for (let i=0; i<state.numBids; i++) {
+            this.allBids[i] = state.allBids[i];
+        }
+
+        this.maxSticks = state.maxSticks;
+        this.allSticks.length = 0;
+        for (let i=0; i<state.maxSticks; i++) {
+            this.allSticks[i] = state.allSticks[i];
+        }
+
+        this.firstRound = state.firstRound;
+        this.whichDirection = state.whichDirection;
+        this.bRoundInProgress = state.bRoundInProgress;
+        this.goesFirst = state.goesFirst;
+        this.whosTurn = state.whosTurn;
+        this.whosTurnPrev = state.whosTurnPrev;
+        this.whosTurnNext = state.whosTurnNext;
+        
+        for (let i=0; i<state.numPlayers; i++) {
+            for (let j=0; j<5; j++) {
+                this.dice[i][j] = state.dice[i][j];
+                this.bDiceHidden[i][j] = state.bDiceHidden[i][j];
+            }
+        }
+
+        this.bWinnerGame = state.bWinnerGame;
+        this.bWinnerRound = state.bWinnerRound;
+        this.whoWonGame = state.whoWonGame;
+
+        this.result.doubtedText = state.result.doubtedText;
+        this.result.whoDoubted = state.result.whoDoubted;
+        this.result.whoGotDoubted = state.result.whoGotDoubted;
+        this.result.doubtHowMany = state.result.doubtHowMany;
+        this.result.doubtOfWhat = state.result.doubtOfWhat;
+        this.result.doubtLoser = state.result.doubtLoser;
+        this.result.doubtWinner = state.result.doubtWinner;
+        this.result.doubtCount = state.result.doubtCount;
+        this.result.doubtLoserOut = state.result.doubtLoserOut;
+        this.result.doubtWasPaso = state.result.doubtWasPaso;
+        this.result.doubtPasoWasThere = state.result.doubtPasoWasThere;
     }
 
     //************************************************************
@@ -166,24 +250,25 @@ export class DudoGame {
     // figure out doubt result
     //************************************************************
     getDoubtResult () {
-        this.whoDoubted = this.allBids[this.numBids - 1].playerIndex;
-        this.whoGotDoubted = this.allBids[this.numBids - 2].playerIndex;
+        this.result.doubtedText = this.allBids[this.numBids - 2].text;
+        this.result.whoDoubted = this.allBids[this.numBids - 1].playerIndex;
+        this.result.whoGotDoubted = this.allBids[this.numBids - 2].playerIndex;
         //--------------------------------------------------------
         // doubted paso
         //--------------------------------------------------------
-        if (this.allBids[this.numBids - 2].paso) {
-            this.doubtWasPaso = true;
-            this.doubtHowMany = 0;
-            this.doubtOfWhat = 0;
+        if (this.allBids[this.numBids - 2].bPaso) {
+            this.result.doubtWasPaso = true;
+            this.result.doubtHowMany = 0;
+            this.result.doubtOfWhat = 0;
             if (this.hasPaso()) {
-                this.doubtLoser = this.whoDoubted;
-                this.doubtWinner = this.whoGotDoubted;
-                this.doubtPasoWasThere = true;
+                this.result.doubtLoser = this.result.whoDoubted;
+                this.result.doubtWinner = this.result.whoGotDoubted;
+                this.result.doubtPasoWasThere = true;
             }
             else {
-                this.doubtLoser = this.whoGotDoubted;
-                this.doubtWinner = this.whoDoubted;
-                this.doubtPasoWasThere = false;
+                this.result.doubtLoser = this.result.whoGotDoubted;
+                this.result.doubtWinner = this.result.whoDoubted;
+                this.result.doubtPasoWasThere = false;
             }
             return;
         }
@@ -191,19 +276,19 @@ export class DudoGame {
         //------------------------------------------------------------
         // doubted npon-paso bid
         //------------------------------------------------------------
-        this.doubtHowMany = this.allBids[this.numBids - 2].howMany;
-        this.doubtOfWhat = this.allBids[this.numBids - 2].ofWhat;
+        this.result.doubtHowMany = this.allBids[this.numBids - 2].howMany;
+        this.result.doubtOfWhat = this.allBids[this.numBids - 2].ofWhat;
         if (this.bPaloFijoRound) {
             //--------------------------------------------------------
             // palo fijo, aces are not wild
             //--------------------------------------------------------
-            this.doubtWasPaso = false;
-            this.doubtCount = 0;
+            this.result.doubtWasPaso = false;
+            this.result.doubtCount = 0;
             for (let cc = 0; cc < this.maxPlayers; cc++) {
                 if (this.allConnectionStatus[cc] == CONNECTION_PLAYER_IN) {
                     for (let j = 0; j < 5; j++) {
-                        if (this.dice[cc][j] == this.doubtOfWhat) {
-                            this.doubtCount++;
+                        if (this.dice[cc][j] == this.result.doubtOfWhat) {
+                            this.result.doubtCount++;
                         }
                     }
                 }
@@ -213,35 +298,34 @@ export class DudoGame {
             //--------------------------------------------------------
             // regular round
             //--------------------------------------------------------
-            if (this.doubtOfWhat == 1) {
+            if (this.result.doubtOfWhat == 1) {
                 //----------------------------------------------------
                 // doubted aces, or palofijo round
                 // i.e. don't count aces as wildcards
                 //----------------------------------------------------
-                this.doubtWasPaso = false;
-                this.doubtCount = 0;
+                this.result.doubtWasPaso = false;
+                this.result.doubtCount = 0;
                 for (let cc = 0; cc < this.maxPlayers; cc++) {
                     if (this.allConnectionStatus[cc] == CONNECTION_PLAYER_IN) {
                         for (let j = 0; j < 5; j++) {
-                            if (this.dice[cc][j] == this.doubtOfWhat) {
-                                this.doubtCount++;
+                            if (this.dice[cc][j] == this.result.doubtOfWhat) {
+                                this.result.doubtCount++;
                             }
                         }
                     }
                 }
             }
-            if (this.doubtOfWhat != 1) {
+            if (this.result.doubtOfWhat != 1) {
                 //----------------------------------------------------
                 // doubted non-aces
                 //----------------------------------------------------
-                this.doubtWasPaso = false;
-                this.doubtCount = 0;
+                this.result.doubtWasPaso = false;
+                this.result.doubtCount = 0;
                 for (let cc = 0; cc < this.maxPlayers; cc++) {
                     if (this.allConnectionStatus[cc] == CONNECTION_PLAYER_IN) {
                         for (let j = 0; j < 5; j++) {
-                            const thisDie = this.dice[cc][j];
-                            if ((this.dice[cc][j] == this.doubtOfWhat)|| this.dice[cc][j] == 1){
-                                this.doubtCount ++;
+                            if ((this.dice[cc][j] == this.result.doubtOfWhat)|| this.dice[cc][j] == 1){
+                                this.result.doubtCount ++;
                             }
                         }
                     }
@@ -253,23 +337,23 @@ export class DudoGame {
         //------------------------------------------------------------
         // determine winner and loser
         //------------------------------------------------------------
-        if (this.doubtCount < this.doubtHowMany) {
+        if (this.result.doubtCount < this.result.doubtHowMany) {
             // the bid is not there
-            this.doubtLoser = this.whoGotDoubted;
-            this.doubtWinner = this.whoDoubted;
+            this.result.doubtLoser = this.result.whoGotDoubted;
+            this.result.doubtWinner = this.result.whoDoubted;
         } else {
             // the bid is there
-            this.doubtLoser = this.whoDoubted;
-            this.doubtWinner = this.whoGotDoubted;
+            this.result.doubtLoser = this.result.whoDoubted;
+            this.result.doubtWinner = this.result.whoGotDoubted;
         }
 
         //------------------------------------------------------------
         // is the loser out?
         //------------------------------------------------------------
-        if (this.allSticks[this.doubtLoser] == this.maxSticks - 1) {
-            this.doubtLoserOut = true;
+        if (this.allSticks[this.result.doubtLoser] == this.maxSticks - 1) {
+            this.result.doubtLoserOut = true;
         } else {
-            this.doubtLoserOut = false;
+            this.result.doubtLoserOut = false;
         }
     }
 
@@ -328,6 +412,9 @@ export class DudoGame {
     // Populate possible bid list REGULAR
     //****************************************************************
     PopulateBidListRegular() {
+
+        console.log('DudoGameC: Entering PopulateBidListRegular()');
+        
         //------------------------------------------------------------
         // initialize possible bid list
         //------------------------------------------------------------
@@ -356,7 +443,7 @@ export class DudoGame {
         // get and parse current bid
         // (parsed into parsedHowMany and parsedOfWhat)
         //------------------------------------------------------------
-        if (this.allBids[this.numBids - 1].paso) {
+        if (this.allBids[this.numBids - 1].bPaso) {
             let lastNonPaso = this.FindLastNonPasoBid();
             this.parseBid(this.allBids[lastNonPaso].text);
         } else {
@@ -365,20 +452,20 @@ export class DudoGame {
 
         //------------------------------------------------------------
         // special case:  opening aces bid, then all PASOs
-        // no double plus one, only simple top
+        // no double plus one, only simple top bid
         //------------------------------------------------------------
-        if (this.allBids[this.numBids - 1].paso) {
+        if (this.allBids[this.numBids - 1].bPaso) {
             if (this.parsedOfWhat == 1) {
                 if (this.FindLastNonPasoBid() == 0) {
                     for (let i = 0; i < (5 * this.GetNumberPlayersStillIn()) - this.parsedHowMany; i++) {
                         // list non-aces first
                         for (let j = 1; j < 6; j++) {
-                            this.possibleBids[this.numPossibleBids] = (this.parsedHowMany + 1 + i).toString+ " - ";
-                            this.possibleBids[this.numPossibleBids] += (j + 1).toString;
+                            this.possibleBids[this.numPossibleBids] = (this.parsedHowMany + 1 + i).toString() + " - ";
+                            this.possibleBids[this.numPossibleBids] += (j + 1).toString();
                             this.numpossibleBids++;
                         }
                         // then put aces after
-                        this.possibleBids[this.numPossibleBids] = (this.parsedHowMany + 1 + i).toString + " - ";
+                        this.possibleBids[this.numPossibleBids] = (this.parsedHowMany + 1 + i).toString() + " - ";
                         this.possibleBids[this.numPossibleBids] += "aces";
                         this.numpossibleBids++;
                     }
@@ -396,19 +483,19 @@ export class DudoGame {
             //--------------------------------------------------------
             // baja de aces bids
             for (let i = 0; i < (this.parsedHowMany / 2); i++) {
-                this.possibleBids[this.numPossibleBids] = ((this.parsedHowMany) / 2 + (this.parsedHowMany) % 2 + i).toString + " - ";
+                this.possibleBids[this.numPossibleBids] = ((this.parsedHowMany) / 2 + (this.parsedHowMany) % 2 + i).toString() + " - ";
                 this.possibleBids[this.numPossibleBids] += "aces";
                 this.numPossibleBids++;
             }
             // same level bids
             // list non-aces first
             for (let i = 0; i < 6 - this.parsedOfWhat; i++) {
-                this.possibleBids[this.numPossibleBids] = (this.parsedHowMany).toString + " - ";
-                this.possibleBids[this.numPossibleBids] += (this.parsedOfWhat + 1 + i).toString;
+                this.possibleBids[this.numPossibleBids] = (this.parsedHowMany).toString() + " - ";
+                this.possibleBids[this.numPossibleBids] += (this.parsedOfWhat + 1 + i).toString();
                 this.numPossibleBids++;
             }
             // then put aces after
-            this.possibleBids[this.numPossibleBids] = (this.parsedHowMany).toString + " - ";
+            this.possibleBids[this.numPossibleBids] = (this.parsedHowMany).toString() + " - ";
             this.possibleBids[this.numPossibleBids] += "aces";
             this.numPossibleBids++;
             
@@ -416,12 +503,12 @@ export class DudoGame {
             for (let howMany = 0; howMany < (5 * this.GetNumberPlayersStillIn()) - this.parsedHowMany; howMany++) {
                 // list non-aces first
                 for (let j = 1; j < 6; j++) {
-                    this.possibleBids[this.numPossibleBids] = (this.parsedHowMany + 1 + howMany).toString + " - ";
-                    this.possibleBids[this.numPossibleBids] += (j + 1).toString;
+                    this.possibleBids[this.numPossibleBids] = (this.parsedHowMany + 1 + howMany).toString() + " - ";
+                    this.possibleBids[this.numPossibleBids] += (j + 1).toString();
                     this.numPossibleBids++;
                 }
                 // then put aces after
-                this.possibleBids[this.numPossibleBids] = (this.parsedHowMany + 1 + howMany).toString + " - ";
+                this.possibleBids[this.numPossibleBids] = (this.parsedHowMany + 1 + howMany).toString() + " - ";
                 this.possibleBids[this.numPossibleBids] += "aces";
                 this.numPossibleBids++;
             }
@@ -434,12 +521,12 @@ export class DudoGame {
                 for (let i = 0; i < (5 * this.GetNumberPlayersStillIn()) - this.parsedHowMany; i++) {
                     // list non-aces first
                     for (let j = 1; j < 6; j++) {
-                        this.possibleBids[this.numPossibleBids] = (this.parsedHowMany + 1 + i).toString + " - ";
-                        this.possibleBids[this.numPossibleBids] += (j + 1).toString;
+                        this.possibleBids[this.numPossibleBids] = (this.parsedHowMany + 1 + i).toString() + " - ";
+                        this.possibleBids[this.numPossibleBids] += (j + 1).toString();
                         this.numPossibleBids++;
                     }
                     // then put aces after
-                    this.possibleBids[this.numPossibleBids] = (this.parsedHowMany + 1 + i).toString + " - ";
+                    this.possibleBids[this.numPossibleBids] = (this.parsedHowMany + 1 + i).toString() + " - ";
                     this.possibleBids[this.numPossibleBids] += "aces";
                     this.numPossibleBids++;
                 }
@@ -450,7 +537,7 @@ export class DudoGame {
                     if (numAces > 5 * this.GetNumberPlayersStillIn()) {
                         break;
                     }
-                    this.possibleBids[this.numPossibleBids] = (numAces).toString + " - ";
+                    this.possibleBids[this.numPossibleBids] = (numAces).toString() + " - ";
                     this.possibleBids[this.numPossibleBids] += "aces";
                     this.numPossibleBids++;
                 }
@@ -504,7 +591,7 @@ export class DudoGame {
         // get and parse current bid
         // (parsed into parsedHowMany and parsedOfWhat)
         //------------------------------------------------------------
-        if (this.allBids[this.numBids - 1].paso) {
+        if (this.allBids[this.numBids - 1].bPaso) {
             let lastNonPaso = this.FindLastNonPasoBid();
             this.parseBid(this.allBids[lastNonPaso].text);
         } else {
@@ -522,24 +609,24 @@ export class DudoGame {
                 //--------------------------------------------------------
                 // same level bids
                 for (let i = 0; i < 6 - this.parsedOfWhat; i++) {
-                    this.possibleBids[this.numPossibleBids] = (this.parsedHowMany).toString + " - ";
-                    this.possibleBids[this.numPossibleBids] += (this.parsedOfWhat + 1 + i).toString;
+                    this.possibleBids[this.numPossibleBids] = (this.parsedHowMany).toString() + " - ";
+                    this.possibleBids[this.numPossibleBids] += (this.parsedOfWhat + 1 + i).toString();
                     this.numPossibleBids++;
                 }
                 // put aces after the rest (aces are highest in palofijo)
-                this.possibleBids[this.numPossibleBids] = (this.parsedHowMany).toString + " - ";
+                this.possibleBids[this.numPossibleBids] = (this.parsedHowMany).toString() + " - ";
                 this.possibleBids[this.numPossibleBids] += "aces";
                 this.numPossibleBids++;
 
                 // next level bids
                 for (let i = 0; i < (5 * this.GetNumberPlayersStillIn()) - this.parsedHowMany; i++) {
                     for (let j = 1; j < 6; j++) {
-                        this.possibleBids[this.numPossibleBids] = (this.parsedHowMany + 1 + i).toString + " - ";
+                        this.possibleBids[this.numPossibleBids] = (this.parsedHowMany + 1 + i).toString() + " - ";
                         this.possibleBids[this.numPossibleBids] += (j + 1);
                         this.numPossibleBids++;
                     }
                     // aces on top
-                    this.possibleBids[this.numPossibleBids] = (this.parsedHowMany + 1 + i).toString + " - ";
+                    this.possibleBids[this.numPossibleBids] = (this.parsedHowMany + 1 + i).toString() + " - ";
                     this.possibleBids[this.numPossibleBids] += "aces";
                     this.numPossibleBids++;
                 }
@@ -549,19 +636,19 @@ export class DudoGame {
                 //--------------------------------------------------------
                 // raise aces bid
                 for (let i = 0; i < this.parsedHowMany - 1; i++) {
-                    this.possibleBids[this.numPossibleBids] = ((this.parsedHowMany) + 1 + i).toString + " - ";
+                    this.possibleBids[this.numPossibleBids] = ((this.parsedHowMany) + 1 + i).toString() + " - ";
                     this.possibleBids[this.numPossibleBids] += "aces";
                     this.numPossibleBids++;
                 }
                 // next level bids
                 for (let i = 0; i < (5 * this.GetNumberPlayersStillIn()) - this.parsedHowMany; i++) {
                     for (let j = 1; j < 6; j++) {
-                        this.possibleBids[this.numPossibleBids] = (this.parsedHowMany + 1 + i).toString + " - ";
+                        this.possibleBids[this.numPossibleBids] = (this.parsedHowMany + 1 + i).toString() + " - ";
                         this.possibleBids[this.numPossibleBids] += (j + 1);
                         this.numPossibleBids++;
                     }
                     // aces on top
-                    this.possibleBids[this.numPossibleBids] = (this.parsedHowMany + 1 + i).toString + " - ";
+                    this.possibleBids[this.numPossibleBids] = (this.parsedHowMany + 1 + i).toString() + " - ";
                     this.possibleBids[this.numPossibleBids] += "aces";
                     this.numPossibleBids++;
                 }
@@ -588,17 +675,54 @@ export class DudoGame {
             //--------------------------------------------------------
             this.numPossibleBids = 0;
             for (let i = this.parsedHowMany; i < this.GetNumberPlayersStillIn() * 5; i++) {
-                this.possibleBids[this.numPossibleBids] = (i + 1).toString + " - ";
+                this.possibleBids[this.numPossibleBids] = (i + 1).toString() + " - ";
                 if (this.parsedOfWhat == 1) {
                     this.possibleBids[this.numPossibleBids] += "aces";
                 } else {
-                    this.possibleBids[this.numPossibleBids] += (this.parsedOfWhat).toString;
+                    this.possibleBids[this.numPossibleBids] += (this.parsedOfWhat).toString();
                 }
                 this.numPossibleBids++;
             }
         }
     }
 
+    //****************************************************************
+    // Populate possible bid with PASO and DUDO
+    //****************************************************************
+    PopulateBidListPasoDudo () {
+        var bImPaloFijo = this.IsPaloFijo(this.whosTurn);
+
+        // is PASO a valid bid?
+        var bPasoValidBid;
+        if (this.bPasoAllowed) {
+            if (this.bPaloFijoRound) {
+                if (bImPaloFijo) {
+                    bPasoValidBid = true;
+                } else {
+                    bPasoValidBid = false;
+                }
+            } else {
+                bPasoValidBid = true;
+            }
+        } else {
+            bPasoValidBid = false;
+        }
+        // overridding everything is, no paso on first bid
+        if (this.numBids == 0) {
+            bPasoValidBid = false;
+        }
+        // if paso is valid, put it at the beginning of the array
+        if (bPasoValidBid) {
+            this.possibleBids.unshift("PASO");
+        }
+
+        // add DOUBT
+        this.possibleBids.push("DOUBT")
+
+        // get final array length
+        this.numPossibleBids = this.possibleBids.length;
+
+}
     //****************************************************************
     // Parse the bid string into integers
     //****************************************************************
@@ -621,7 +745,7 @@ export class DudoGame {
     //****************************************************************
     FindLastNonPasoBid () {
         for (let i = this.numBids - 2; i >= 0; i--) {
-            if (!this.allBids[i].paso) {
+            if (!this.allBids[i].bPaso) {
                 return i;
             }
         }
@@ -664,6 +788,34 @@ export class DudoGame {
         } else {
             return false;
         }
+    }
+}
+
+class DoubtResult {
+    doubtedText;
+    whoDoubted;              
+    whoGotDoubted;           
+    doubtHowMany;
+    doubtOfWhat;
+    doubtLoser;
+    doubtWinner;
+    doubtCount;
+    doubtLoserOut;
+    doubtWasPaso;
+    doubtPasoWasThere;
+
+    init() {
+        let doubtedText = undefined;
+        let whoDoubted = undefined;              
+        let whoGotDoubted = undefined;           
+        let doubtHowMany = undefined;
+        let doubtOfWhat = undefined;
+        let doubtLoser = undefined;
+        let doubtWinner = undefined;
+        let doubtCount = undefined;
+        let doubtLoserOut = undefined;
+        let doubtWasPaso = undefined;
+        let doubtPasoWasThere = undefined;
     }
 }
 

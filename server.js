@@ -1,3 +1,5 @@
+'use strict';
+
 import { DudoGame } from './DudoGameS.js';
 import { DudoBid } from './DudoBidS.js';
 import { CONNECTION_UNUSED, CONNECTION_PLAYER_IN, CONNECTION_PLAYER_OUT, CONNECTION_OBSERVER } from './DudoGameS.js';
@@ -27,6 +29,8 @@ const io = new Server(server, {
 app.use(cors());
 app.use(express.json());
 
+var theGame;
+
 // Serve all the static files in the React app's build folder
 app.use(express.static(path.join(__dirname, 'client', 'build')));
 
@@ -47,7 +51,7 @@ const lobbies = {
   */
 };
 
-var theGame = new DudoGame();
+//var theGame = new DudoGame();
 
 // ******************************
 // Socket.IO setup
@@ -144,7 +148,7 @@ io.on('connection', (socket) => {
       // Glenn ported this from java code
       // **********************************
 
-//      lobby.game = new DudoGame();
+      theGame = new DudoGame();
       lobby.game = theGame;
       lobby.game.bRoundInProgress = true;
       lobby.game.whosTurn = 0;
@@ -236,21 +240,21 @@ io.on('connection', (socket) => {
     ggs.allBids[ptr].playerName = name;
     if ((bidText !=="PASO") && (bidText !=="DOUBT")) {
       ggs.parseBid(bidText);
-        ggs.allBids[ptr].howMany = ggs.parsedHowMany;
-        ggs.allBids[ptr].ofWhat = ggs.parsedOfWhat;
-        ggs.allBids[ptr].paso = false;
-        ggs.allBids[ptr].dudo = false;
-        //ggs.allBids[ptr].shakeShow = myShowShake;   //&&& take care of this
+      ggs.allBids[ptr].howMany = ggs.parsedHowMany;
+      ggs.allBids[ptr].ofWhat = ggs.parsedOfWhat;
+      ggs.allBids[ptr].paso = false;
+      ggs.allBids[ptr].dudo = false;
+      //ggs.allBids[ptr].shakeShow = myShowShake;   //&&& take care of this
     }
     if (bidText === "PASO") {
-        ggs.allBids[ptr].paso = true;
-        ggs.allBids[ptr].dudo = false;
-        ggs.allBids[ptr].shakeShow = false;
+      ggs.allBids[ptr].paso = true;
+      ggs.allBids[ptr].dudo = false;
+      ggs.allBids[ptr].shakeShow = false;
     }
     if (bidText === "DOUBT") {
-        ggs.allBids[ptr].paso = false;
-        ggs.allBids[ptr].dudo = true;
-        ggs.allBids[ptr].shakeShow = false;
+      ggs.allBids[ptr].paso = false;
+      ggs.allBids[ptr].dudo = true;
+      ggs.allBids[ptr].shakeShow = false;
     }
     ggs.numBids++;
 
@@ -286,7 +290,7 @@ io.on('connection', (socket) => {
 
 
     io.to(lobbyId).emit('gameStateUpdate', lobby.game);
-    console.log("server.js: emitting 'gameStateUpdate'");
+    console.log("server.js: socket.on('bid'): emitting 'gameStateUpdate'");
 
   });
 
@@ -305,9 +309,6 @@ io.on('connection', (socket) => {
       console.log('Player attempted to doubt out of turn.');
       return;
     }
-
-
-
 
     console.log(`Player ${currentPlayer.name} DOUBTED in lobby ${lobbyId}. Game ends.`);
 
@@ -433,10 +434,6 @@ function StartGame (ggs) {
           ggs.numPlayers++;
       }
   }
-
-
-
-
   /*
   //------------------------------------------------------------
   // tell everybody new statueses
@@ -476,7 +473,7 @@ function StartRound (ggs) {
         }
     }        
 */
-
+    ggs.result.init();
     ggs.bRoundInProgress = true;
 
     //------------------------------------------------------------
@@ -594,31 +591,42 @@ function PostRound(ggs) {
     // determine who goes next
     // and if palofijo
     //------------------------------------------------------------
-    ggs.allSticks[ggs.doubtLoser]++;
+    ggs.allSticks[ggs.result.doubtLoser]++;
     
-    if (ggs.allSticks[ggs.doubtLoser] == ggs.maxSticks) {
+    if (ggs.allSticks[ggs.result.doubtLoser] == ggs.maxSticks) {
         // out! winner of doubt inherits first bid
-        ggs.allConnectionStatus[ggs.doubtLoser] = CONNECTION_PLAYER_OUT;
+        ggs.allConnectionStatus[ggs.result.doubtLoser] = CONNECTION_PLAYER_OUT;
         ggs.numPlayers--;
-        ggs.whosTurn = ggs.doubtWinner;
+        ggs.whosTurn = ggs.result.doubtWinner;
         ggs.bPaloFijoRound = false;
     } else {
         // not out, loser of doubt goes first next round
-        ggs.whosTurn = ggs.doubtLoser;
+        ggs.whosTurn = ggs.result.doubtLoser;
         // see if palofijo
         if (ggs.bPaloFijoAllowed) {
-            if (ggs.allSticks[ggs.doubtLoser] == ggs.maxSticks - 1) {
+            if (ggs.allSticks[ggs.result.doubtLoser] == ggs.maxSticks - 1) {
                 ggs.bPaloFijoRound = true;
             }
         }
     }
     
+    ggs.bWinnerRound = true;
+/*
     //------------------------------------------------------------
     // was there a winner?
     //------------------------------------------------------------
     if (ggs.numPlayers == 1) {
-      const msg = ggs.allParticipantNames[ggs.doubtWinner] + ' WINS !!';
-      io.emit('gameWinner', msg);
+      ggs.bWinnerGame = true;
+      ggs.whoWon = ggs.result.doubtWinner;
+    }
+
+
+//      const msg = ggs.allParticipantNames[ggs.doubtWinner] + ' WINS !!';
+//      io.to(lobbyId).emit('gameWinnergameStateUpdate', lobby.game);
+//      io.met('updateGameState', msg);
+//      io.to(lobbyId).emit('gameStateUpdate', lobby.game);
+//      console.log("server.js: socket.on('bid'): emitting 'gameStateUpdate'");
+  
         // yes
         //for (int cc = 0; cc < ggs.maxConnections; cc++) {
         //    if (ggs.allConnectionStatus[cc] != CONNECTION_UNUSED) {
@@ -634,4 +642,5 @@ function PostRound(ggs) {
         //}
         StartRound();
     }
+    */
 }

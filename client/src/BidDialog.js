@@ -1,3 +1,5 @@
+'use strict';
+
 import React, { useState } from 'react';
 
 function BidDialog({ open, onClose, onSubmit, bids, defaultBid, makeBidString, yourTurnString, style }) {

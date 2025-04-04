@@ -46,6 +46,14 @@ React UI:
     this will fire up another brower instance; close the first one, use this one
 
 //---------------------------------------
+// GIT
+//---------------------------------------
+git status
+git add --all
+git commit -m "my desription"
+git push origin main  
+
+//---------------------------------------
 // GENERAL INFO
 //---------------------------------------
 OUR PROJECT NAME IS:

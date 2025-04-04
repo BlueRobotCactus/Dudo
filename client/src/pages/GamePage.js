@@ -67,7 +67,7 @@ import BidDialog from '../BidDialog';
     setGameState(data);
     ggc.AssignGameState(data);
 
-          // is it my turn to bid?
+    // is it my turn to bid?
     const whosTurnSocketId = ggc.allConnectionID[ggc.whosTurn];
     const stringSocketId = String(window.mySocketId);
     if (whosTurnSocketId.toString() === stringSocketId) {
@@ -190,7 +190,7 @@ useEffect(() => {
 //             Trigger:  [gameState, lobbyPlayers, isMyTurn, screenSize]
 //************************************************************
 useEffect(() => {
-    console.log("GamePage: useEffect [[gameState, lobbyPlayers, isMyTurn, screenSize]] Draw on canvas");
+    console.log("GamePage: useEffect [gameState, lobbyPlayers, isMyTurn, screenSize] Draw on canvas");
 
     const canvas = canvasRef.current;
     const ctx = canvas.getContext('2d');
@@ -220,6 +220,25 @@ useEffect(() => {
     ggc.PopulateBidListPasoDudo();
     setPossibleBids(ggc.possibleBids || []);
 
+    // did somebody win the game?
+    if (ggc.bWinnerGame) {
+      const winnerName = ggc.allParticipantNames[ggc.whoWonGame];
+      ctx.fillText(winnerName + " won the game !!", 20, 800);
+    }
+    
+    // did somebody win the round?
+    if (ggc.bWinnerRound) {
+      const s1 = ggc.allParticipantNames[ggc.result.whoDoubted];
+      const s2 = ggc.allParticipantNames[ggc.result.whoGotDoubted];
+      const s3 = s2 + "'s bid was " + ggc.result.doubtedText;
+      const s4 = "There were " + ggc.result.doubtCount;
+      const s5 = ggc.allParticipantNames[ggc.result.doubtLoser] + " got the stick";
+      ctx.fillText(s1 + " doubted " + s2, 20, 800);
+      ctx.fillText(s3, 20, 820);
+      ctx.fillText(s4, 20, 840);
+      ctx.fillText(s5, 20, 860);
+    }
+    
     // Display cup up image
     const cupDown = new Image(); 
     cupDown.src = "/images/CupDown.jpg"
