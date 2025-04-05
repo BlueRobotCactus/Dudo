@@ -361,13 +361,11 @@ export class DudoGame {
     //************************************************************
     hasPaso() {
         // int array of frequencies of each of the six numbers
-        let freq = new Array[6];
-        for (let i = 0; i < 6; i++) {
-            freq[i] = 0;
-        }
+        let freq = Array(6).fill(0);
+
         // populate frequences of each die
         for (let i = 0; i < 5; i++) {
-            let die = this.dice[this.whoGotDoubted][i]; 
+            let die = this.dice[this.result.whoGotDoubted][i]; 
             freq[die - 1]++;
         }
 

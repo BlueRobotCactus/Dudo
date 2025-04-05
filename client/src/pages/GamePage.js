@@ -232,34 +232,43 @@ useEffect(() => {
     
     // did somebody win the round?
     if (ggc.bWinnerRound) {
-      const s1 = ggc.allParticipantNames[ggc.result.whoDoubted];
-      const s2 = ggc.allParticipantNames[ggc.result.whoGotDoubted];
-      const s3 = s2 + "'s bid was " + ggc.result.doubtedText;
-      const s4 = "There were " + ggc.result.doubtCount;
-      const s5 = ggc.allParticipantNames[ggc.result.doubtLoser] + " got the stick";
-      //ctx.fillText(s1 + " doubted " + s2, 20, 800);
-      //ctx.fillText(s3, 20, 820);
-      //ctx.fillText(s4, 20, 840);
-      //ctx.fillText(s5, 20, 860);
 
-      let msg = s1 + " doubted " + s2;
-      msg += "\n";
-      msg += s3;
-      msg += "\n";
-      msg += s4;
-      msg += "\n";
-      msg += s5;
+      // prepare strings to say what happened
+      let s1 = "";  // who doubted whom
+      let s2 = "";  // what the bid was
+      let s3 = "";  // result of doubt
+      let s4 = "";  // who got the stick
+      s1 = ggc.allParticipantNames[ggc.result.whoDoubted];
+      s1 += " doubted ";
+      s1 += ggc.allParticipantNames[ggc.result.whoGotDoubted];
 
-      if (ggc.result.doubtLoserOut) {
-        msg += ", so he is OUT";
+      if (ggc.result.doubtWasPaso) {
+        // PASO
+        s2 = ggc.allParticipantNames[ggc.result.whoGotDoubted] + " bid PASO";
+        if (ggc.result.doubtPasoWasThere) {
+            s3 = ggc.allParticipantNames[ggc.result.whoGotDoubted] + " has the PASO";
+        } else {
+            s3 = ggc.allParticipantNames[ggc.result.whoGotDoubted] + " does not have the PASO";
+        }
+      } else {
+        // non-PASO
+        s2 = ggc.allParticipantNames[ggc.result.whoGotDoubted] + "'s bid was " + ggc.result.doubtedText;
+        s3 = (ggc.result.doubtCount == 1 ? "There is " : "There are ") + ggc.result.doubtCount;
       }
+      s4 = ggc.allParticipantNames[ggc.result.doubtLoser] + " got the stick";
+      if (ggc.result.doubtLoserOut) {
+        s4 += ", so he is OUT";
+      }
+
+      let msg = s1 + "\n" + s2 + "\n" + s3 + "\n" + s4; 
 
       if (ggc.bWinnerGame) {
         msg += "\n\n" + ggc.allParticipantNames[ggc.whoWonGame] + " WINS THE GAME!!";
       }
+
+      // show the string in message box
       setPopupMessage(msg);
       setShowPopup(true);
-
     }
     
     // Display cup up image

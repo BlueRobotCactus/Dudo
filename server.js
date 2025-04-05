@@ -242,18 +242,18 @@ io.on('connection', (socket) => {
       ggs.parseBid(bidText);
       ggs.allBids[ptr].howMany = ggs.parsedHowMany;
       ggs.allBids[ptr].ofWhat = ggs.parsedOfWhat;
-      ggs.allBids[ptr].paso = false;
-      ggs.allBids[ptr].dudo = false;
+      ggs.allBids[ptr].bPaso = false;
+      ggs.allBids[ptr].bDudo = false;
       //ggs.allBids[ptr].shakeShow = myShowShake;   //&&& take care of this
     }
     if (bidText === "PASO") {
-      ggs.allBids[ptr].paso = true;
-      ggs.allBids[ptr].dudo = false;
+      ggs.allBids[ptr].bPaso = true;
+      ggs.allBids[ptr].bDudo = false;
       ggs.allBids[ptr].shakeShow = false;
     }
     if (bidText === "DOUBT") {
-      ggs.allBids[ptr].paso = false;
-      ggs.allBids[ptr].dudo = true;
+      ggs.allBids[ptr].bPaso = false;
+      ggs.allBids[ptr].bDudo = true;
       ggs.allBids[ptr].shakeShow = false;
     }
     ggs.numBids++;
