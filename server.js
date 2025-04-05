@@ -611,16 +611,14 @@ function PostRound(ggs) {
     }
     
     ggs.bWinnerRound = true;
-/*
+
     //------------------------------------------------------------
     // was there a winner?
     //------------------------------------------------------------
     if (ggs.numPlayers == 1) {
       ggs.bWinnerGame = true;
-      ggs.whoWon = ggs.result.doubtWinner;
-    }
-
-
+      ggs.whoWonGame = ggs.result.doubtWinner;
+    
 //      const msg = ggs.allParticipantNames[ggs.doubtWinner] + ' WINS !!';
 //      io.to(lobbyId).emit('gameWinnergameStateUpdate', lobby.game);
 //      io.met('updateGameState', msg);
@@ -642,5 +640,4 @@ function PostRound(ggs) {
         //}
         StartRound();
     }
-    */
 }

@@ -3,6 +3,7 @@ import { useParams, useLocation } from 'react-router-dom';
 import socket from '../socket';
 import { DudoGame } from '../DudoGameC.js'
 import BidDialog from '../BidDialog';
+import PopupDialog from '../PopupDialog';
 
   //************************************************************
   // GamePage function
@@ -31,6 +32,9 @@ import BidDialog from '../BidDialog';
     const [isMyTurn, setIsMyTurn] = useState(false);
     const [whosTurnName, setWhosTurnName] = useState('');
     
+    const [showPopup, setShowPopup] = useState(false);
+    const [popupMessage, setPopupMessage] = useState('');
+
     // Refs
     const canvasRef = useRef(null);
 
@@ -233,10 +237,29 @@ useEffect(() => {
       const s3 = s2 + "'s bid was " + ggc.result.doubtedText;
       const s4 = "There were " + ggc.result.doubtCount;
       const s5 = ggc.allParticipantNames[ggc.result.doubtLoser] + " got the stick";
-      ctx.fillText(s1 + " doubted " + s2, 20, 800);
-      ctx.fillText(s3, 20, 820);
-      ctx.fillText(s4, 20, 840);
-      ctx.fillText(s5, 20, 860);
+      //ctx.fillText(s1 + " doubted " + s2, 20, 800);
+      //ctx.fillText(s3, 20, 820);
+      //ctx.fillText(s4, 20, 840);
+      //ctx.fillText(s5, 20, 860);
+
+      let msg = s1 + " doubted " + s2;
+      msg += "\n";
+      msg += s3;
+      msg += "\n";
+      msg += s4;
+      msg += "\n";
+      msg += s5;
+
+      if (ggc.result.doubtLoserOut) {
+        msg += ", so he is OUT";
+      }
+
+      if (ggc.bWinnerGame) {
+        msg += "\n\n" + ggc.allParticipantNames[ggc.whoWonGame] + " WINS THE GAME!!";
+      }
+      setPopupMessage(msg);
+      setShowPopup(true);
+
     }
     
     // Display cup up image
@@ -260,7 +283,7 @@ useEffect(() => {
     const die3 = ggc.dice[myIndex][2].toString();
     const die4 = ggc.dice[myIndex][3].toString();
     const die5 = ggc.dice[myIndex][4].toString();
-    ctx.fillText(die1 + die2 + die3 + die4 + die4, 520, 120);
+    ctx.fillText(die1 + die2 + die3 + die4 + die5, 520, 120);
 
     /*
     // Display turn queue
@@ -343,6 +366,13 @@ return (
         />
       </>
     )}
+
+    <PopupDialog
+      open={showPopup}
+      message={popupMessage}
+      onClose={() => setShowPopup(false)}
+    />
+
   </div>
 );
 
