@@ -270,6 +270,12 @@ export class DudoGame {
                 this.result.doubtWinner = this.result.whoDoubted;
                 this.result.doubtPasoWasThere = false;
             }
+            if (this.allSticks[this.result.doubtLoser] == this.maxSticks - 1) {
+                this.result.doubtLoserOut = true;
+            } else {
+                this.result.doubtLoserOut = false;
+            }
+                
             return;
         }
 
@@ -479,8 +485,9 @@ export class DudoGame {
             // Non-aces bid
             //--------------------------------------------------------
             // baja de aces bids
-            for (let i = 0; i < (this.parsedHowMany / 2); i++) {
-                this.possibleBids[this.numPossibleBids] = ((this.parsedHowMany) / 2 + (this.parsedHowMany) % 2 + i).toString() + " - ";
+            for (let i = 0; i < Math.floor(this.parsedHowMany / 2); i++) {
+                const temp = Math.floor(this.parsedHowMany / 2) + (this.parsedHowMany) % 2 + i;
+                this.possibleBids[this.numPossibleBids] = temp.toString() + " - ";
                 this.possibleBids[this.numPossibleBids] += "aces";
                 this.numPossibleBids++;
             }

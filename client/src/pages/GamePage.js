@@ -35,33 +35,16 @@ import PopupDialog from '../PopupDialog';
     const [showPopup, setShowPopup] = useState(false);
     const [popupMessage, setPopupMessage] = useState('');
 
+    const [imagesReady, setImagesReady] = useState(false);
+
     // Refs
     const canvasRef = useRef(null);
-
+    const cupImageRef = useRef(null);
+    const diceImagesRef = useRef({});
     
-    // derived values
-//    const currentTurnIndex = gameState?.currentTurnIndex || 0;
-//    const currentPlayer = lobbyPlayers[currentTurnIndex] || {};
-//    const isMyTurn = currentPlayer.id === mySocketId;
-
-//      const currentTurnIndex = gameState.whosTurn;
-//      const currentPlayer = gameState.alllobbyPlayers[currentTurnIndex];
-//    const isMyTurn = currentPlayer.id === mySocketId;
-
-    /*
-    // turn queue calc
-    let turnQueue = [];
-    if (lobbyPlayers.length > 0) {
-      for (let i = 1; i < lobbyPlayers.length; i++) {
-        const nextPlayerIndex = (currentTurnIndex + i) % lobbyPlayers.length;
-        turnQueue.push(lobbyPlayers[nextPlayerIndex]);
-      }
-    }
-  */
-
-  const handleGameStarted = (data) => {
-    console.log("GamePage: entering function: handleGameStarted");
-  };
+    const handleGameStarted = (data) => {
+      console.log("GamePage: entering function: handleGameStarted");
+    };
 
   //************************************************************
   // function handleGameStateUpdate
@@ -114,7 +97,6 @@ import PopupDialog from '../PopupDialog';
     }
   }, []);
   
-
   //************************************************************
   // useEffect:  Turn listeners on 
   //             Trigger: [lobbyId]
@@ -152,6 +134,39 @@ import PopupDialog from '../PopupDialog';
     return () => window.removeEventListener('resize', updateScreenSize);
   }, []);
 
+
+  //************************************************************
+  // useEffect:  load images
+  //             Trigger: []
+  //************************************************************
+  useEffect(() => {
+
+  let loaded = 0;
+  const totalToLoad = 7;
+
+  const imgCupDown = new Image();
+  imgCupDown.src = '/images/CupDown.jpg';
+  imgCupDown.onload = () => {
+    cupImageRef.current = imgCupDown;
+    loaded++;
+  };
+
+  const diceImgs = {};
+  for (let i = 1; i <= 6; i++) {
+    const imgDice = new Image();
+    imgDice.src = `/images/Dice${i}.jpg`;
+    imgDice.onload = () => {
+      loaded++;
+      if (loaded === totalToLoad) {
+        diceImagesRef.current = diceImgs;
+        setImagesReady(true);  // ✅ signal everything's loaded
+      }
+    };
+    diceImgs[i] = imgDice;
+  }
+}, []);
+
+
 //************************************************************
 // useEffect:  ask server to send lobby data with callback
 //             Trigger:  [lobbyID]
@@ -165,7 +180,6 @@ useEffect(() => {
     setLobbyPlayers(lobby.players);
 
     ggc.AssignGameState(lobby.game);
-
 
     // is it my turn to bid?
     const whosTurnSocketId = ggc.allConnectionID[ggc.whosTurn];
@@ -184,8 +198,6 @@ useEffect(() => {
     const index = ggc.allConnectionID.indexOf(stringSocketId);
     setMyIndex(index);
     setMyName (ggc.allParticipantNames[index]);
-
-
   });
 }, [lobbyId]);
   
@@ -194,8 +206,19 @@ useEffect(() => {
 //             Trigger:  [gameState, lobbyPlayers, isMyTurn, screenSize]
 //************************************************************
 useEffect(() => {
-    console.log("GamePage: useEffect [gameState, lobbyPlayers, isMyTurn, screenSize] Draw on canvas");
+    console.log("GamePage: useEffect [gameState, lobbyPlayers, isMyTurn, screenSize, imagesReady] Draw on canvas");
 
+    //-------------------------------------------
+    // wait for images to be loaded
+    //-------------------------------------------
+    if (!imagesReady) {
+      console.log("GamePage: useEffect IMAGES ARE NOT LOADED YET");
+      return;
+    }
+
+    //-------------------------------------------
+    // prepare canvas
+    //-------------------------------------------
     const canvas = canvasRef.current;
     const ctx = canvas.getContext('2d');
 
@@ -207,30 +230,47 @@ useEffect(() => {
     ctx.fillStyle = 'blue';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // Draw text
+    //-------------------------------------------
+    // draw some text
+    //-------------------------------------------
     ctx.fillStyle = 'black';
     ctx.font = '24px Arial';
     ctx.fillText('Game Lobby: ' + lobbyId, 20, 40);
 
     if (!gameState?.bRoundInProgress) {
-        //if (!gameState?.isStarted) {
         ctx.fillText('Game not active or just ended.', 20, 80);
       return;
     }
 
+    // Display your name
+    ctx.fillText(`Your name: ${myName} (id = ${mySocketId})`, 20, 80);
+
+    // Display current turn
+    ctx.fillText(`Current turn: ${whosTurnName}`, 20, 120);
+    ctx.fillText(isMyTurn ? "It's YOUR turn to bid!" : `Waiting for ${whosTurnName}...`, 20, 160);
+
     ggc.AssignGameState(gameState);
 
-    ggc.PopulateBidListRegular();
-    ggc.PopulateBidListPasoDudo();
-    setPossibleBids(ggc.possibleBids || []);
+    //-------------------------------------------
+    // my turn?
+    //-------------------------------------------
+    if (isMyTurn) {
+      ggc.PopulateBidListRegular();
+      ggc.PopulateBidListPasoDudo();
+      setPossibleBids(ggc.possibleBids || []);
+    }
 
+    //-------------------------------------------
     // did somebody win the game?
+    //-------------------------------------------
     if (ggc.bWinnerGame) {
       const winnerName = ggc.allParticipantNames[ggc.whoWonGame];
       ctx.fillText(winnerName + " won the game !!", 20, 800);
     }
     
+    //-------------------------------------------
     // did somebody win the round?
+    //-------------------------------------------
     if (ggc.bWinnerRound) {
 
       // prepare strings to say what happened
@@ -257,7 +297,7 @@ useEffect(() => {
       }
       s4 = ggc.allParticipantNames[ggc.result.doubtLoser] + " got the stick";
       if (ggc.result.doubtLoserOut) {
-        s4 += ", so he is OUT";
+        s4 += ", and is OUT";
       }
 
       let msg = s1 + "\n" + s2 + "\n" + s3 + "\n" + s4; 
@@ -270,46 +310,43 @@ useEffect(() => {
       setPopupMessage(msg);
       setShowPopup(true);
     }
+
+    //-------------------------------------------
+    // Display cup and dice images
+    //-------------------------------------------
+    if (cupImageRef.current) {
+      ctx.drawImage(cupImageRef.current, 20, 200, 100, 140);
+    }
+
+    const diceImages = diceImagesRef.current;
+
+    for (let i = 0; i < 5; i++) {
+      const value = ggc.dice[myIndex][i];
+      const isHidden = ggc.bDiceHidden[myIndex][i];
     
-    // Display cup up image
-    const cupDown = new Image(); 
-    cupDown.src = "/images/CupDown.jpg"
-    cupDown.onload = () => {
-      ctx.drawImage(cupDown, 20, 200, 100, 140);
-    };
-
-    // Display your name
-    ctx.fillText(`Your name: ${myName} (id = ${mySocketId})`, 20, 80);
-
-    // Display current turn
-    ctx.fillText(`Current turn: ${whosTurnName}`, 20, 120);
-    ctx.fillText(isMyTurn ? "It's YOUR turn to bid!" : `Waiting for ${whosTurnName}...`, 20, 160);
-
-    // Display dice  400 120
-    ctx.fillText('Your dice:', 400, 120);
-    const die1 = ggc.dice[myIndex][0].toString();
-    const die2 = ggc.dice[myIndex][1].toString();
-    const die3 = ggc.dice[myIndex][2].toString();
-    const die4 = ggc.dice[myIndex][3].toString();
-    const die5 = ggc.dice[myIndex][4].toString();
-    ctx.fillText(die1 + die2 + die3 + die4 + die5, 520, 120);
-
-    /*
-    // Display turn queue
-    ctx.fillText('Next players:', 20, 200);
-    turnQueue.forEach((p, index) => {
-      ctx.fillText(`${index + 1}. ${p.id === mySocketId ? 'You' : p.name}`, 40, 230 + index * 30);
-    });
-*/
-
+      if (!isHidden && diceImages[value]) {
+        ctx.drawImage(diceImages[value], 520 + i * 60, 100, 50, 50);
+      } else {
+        ctx.fillStyle = 'gray';
+        ctx.fillRect(520 + i * 60, 100, 50, 50);
+        ctx.fillStyle = 'white';
+        ctx.font = '28px Arial';
+        ctx.fillText('?', 520 + i * 60 + 18, 132);
+      }
+    }
+    
+    //-------------------------------------------
     // Display (or not) bid UI
+    //-------------------------------------------
     if (isMyTurn) {
       setShowDialog(true);
     } else {
       setShowDialog(false); // optional: auto-close when it's no longer their turn
     }
 
+    //-------------------------------------------
     // Display bid history
+    //-------------------------------------------
     ctx.fillText("Bidding History", 300, 460);
     if (ggc.numBids === 0) {
       ctx.fillText("(no bids yet)", 300, 480);
@@ -321,25 +358,23 @@ useEffect(() => {
         ctx.fillText(`${name}:  ${bid}`, 300, 480 + i*20);
       }
     }
-  }, [gameState, lobbyPlayers, isMyTurn, screenSize]);
+  }, [gameState, lobbyPlayers, isMyTurn, screenSize, imagesReady]);
 
 
 //************************************************************
 //  Handlers
 //************************************************************
-/*
-  const handleBid = () => {
-    console.log("GamePage: entering function: handleBid()");
-
-    // Instead of directly socket.emit, show the dialog
-    setShowDialog(true);
-  };
-*/
   const handleDoubt = () => socket.emit('doubt', { lobbyId });
 
   const handleBidSubmit = (bid) => {
     console.log("GamePage: entering function: handleBidSubmit()");
     console.log("GamePage; selected bid:", bid);
+
+    if (bid === "theDefaultBid") {
+      console.log("GamePage: bid was default 'myDefaultBid', not submitting");
+      return; // Do nothing — BidDialog stays open
+    }
+
     // Close the dialog
     setShowDialog(false);
 
@@ -357,18 +392,12 @@ return (
     
     {isMyTurn && (
       <>
-        {/*
-        <div style={{ position: 'absolute', bottom: '20px', width: '100%', textAlign: 'center' }}>
-          <button onClick={handleBid} style={{ marginRight: '10px', padding: '15px', fontSize: '18px' }}>Bid</button>
-          <button onClick={handleDoubt} style={{ padding: '15px', fontSize: '18px' }}>Doubt</button>
-        </div>
-        */}
         <BidDialog
           open={showDialog}
           onClose={() => setShowDialog(false)}
           onSubmit={handleBidSubmit}
           bids={possibleBids}
-          defaultBid="hamm"
+          defaultBid="theDefaultBid"
           makeBidString="Please select your bid:"
           yourTurnString="It's your turn!"
           style={{ left: 400, top: 160, position: 'absolute', zIndex: 1000 }}

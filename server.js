@@ -2,7 +2,9 @@
 
 import { DudoGame } from './DudoGameS.js';
 import { DudoBid } from './DudoBidS.js';
+
 import { CONNECTION_UNUSED, CONNECTION_PLAYER_IN, CONNECTION_PLAYER_OUT, CONNECTION_OBSERVER } from './DudoGameS.js';
+
 import express from 'express';
 import path from 'path';
 import http from 'http';
@@ -278,7 +280,7 @@ io.on('connection', (socket) => {
     }
 
 
-    console.log(`Player ${currentPlayer.name} made a BID in lobby ${lobbyId}`);
+    console.log(`Player ${currentPlayer.name} BID ${bidText} in lobby ${lobbyId}`);
 
     // Move to the next turn
     lobby.game.whosTurn = (whosTurn + 1) % lobby.players.length;
@@ -514,7 +516,7 @@ function StartRound (ggs) {
                 const random = Math.floor(Math.random() * 6) + 1;
                 //int r = randomGenerator.nextInt(6) + 1;
                 ggs.dice[cc][j] = random;
-                ggs.bDiceHidden[cc][j] = true;
+                ggs.bDiceHidden[cc][j] = false;
               }
         }
     }
