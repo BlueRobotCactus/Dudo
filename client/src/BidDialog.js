@@ -2,15 +2,16 @@
 
 import React, { useState } from 'react';
 
-function BidDialog({ open, onClose, onSubmit, bids, defaultBid, makeBidString, yourTurnString, style }) {
+function BidDialog({ open, onClose, onSubmit, bids, defaultBid, makeBidString, yourTurnString, specialPasoString, style }) {
   const [selectedBid, setSelectedBid] = useState(defaultBid || '');
 
   if (!open) return null;
 
   return (
-    <div className="fixed" style={style}>
+    <div style={style}>
       <div className="bg-white p-6 rounded shadow-lg w-96">
         <h2 className="text-lg font-semibold mb-2">{yourTurnString}</h2>
+        <p className="mb-4">{specialPasoString}</p>
         <p className="mb-4">{makeBidString}</p>
         <select
           value={selectedBid}

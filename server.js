@@ -252,6 +252,7 @@ io.on('connection', (socket) => {
       ggs.allBids[ptr].bPaso = true;
       ggs.allBids[ptr].bDudo = false;
       ggs.allBids[ptr].shakeShow = false;
+      ggs.allPasoUsed[index] = true;
     }
     if (bidText === "DOUBT") {
       ggs.allBids[ptr].bPaso = false;
@@ -278,9 +279,6 @@ io.on('connection', (socket) => {
       ggs.getDoubtResult();
       PostRound(ggs);
     }
-
-
-    console.log(`Player ${currentPlayer.name} BID ${bidText} in lobby ${lobbyId}`);
 
     // Move to the next turn
     lobby.game.whosTurn = (whosTurn + 1) % lobby.players.length;
@@ -569,6 +567,9 @@ function StartRound (ggs) {
         ggs.allBids[i].InitDudoBid();
     }
 
+    for (let i = 0; i < ggs.maxPlayers; i++) {
+        ggs.allPasoUsed[i] = false;
+    }
 //    for (let cc = 0; cc < ggs.maxPlayers; cc++) {
 //        if (ggs.allConnectionStatus[cc] == CONNECTION_UNUSED) {
 //            continue;

@@ -256,7 +256,7 @@ useEffect(() => {
     //-------------------------------------------
     if (isMyTurn) {
       ggc.PopulateBidListRegular();
-      ggc.PopulateBidListPasoDudo();
+      ggc.PopulateBidListPasoDudo(myIndex);
       setPossibleBids(ggc.possibleBids || []);
     }
 
@@ -322,23 +322,20 @@ useEffect(() => {
 
     for (let i = 0; i < 5; i++) {
       const value = ggc.dice[myIndex][i];
-      const isHidden = ggc.bDiceHidden[myIndex][i];
-    
-      if (!isHidden && diceImages[value]) {
-        ctx.drawImage(diceImages[value], 520 + i * 60, 100, 50, 50);
-      } else {
-        ctx.fillStyle = 'gray';
-        ctx.fillRect(520 + i * 60, 100, 50, 50);
-        ctx.fillStyle = 'white';
-        ctx.font = '28px Arial';
-        ctx.fillText('?', 520 + i * 60 + 18, 132);
-      }
+      ctx.drawImage(diceImages[value], 21 + i*20, 350, 18, 18);
     }
     
     //-------------------------------------------
     // Display (or not) bid UI
     //-------------------------------------------
     if (isMyTurn) {
+
+      let foo = 3;
+      console.log(`foo text is ${ggc.numPlayers}`);
+
+
+
+
       setShowDialog(true);
     } else {
       setShowDialog(false); // optional: auto-close when it's no longer their turn
@@ -347,15 +344,15 @@ useEffect(() => {
     //-------------------------------------------
     // Display bid history
     //-------------------------------------------
-    ctx.fillText("Bidding History", 300, 460);
+    ctx.fillText("Bidding History", 20, 460);
     if (ggc.numBids === 0) {
-      ctx.fillText("(no bids yet)", 300, 480);
+      ctx.fillText("(no bids yet)", 20, 480);
     }
     if (ggc.numBids > 0) {
       for (let i=0; i<ggc.numBids; i++) {
         const name = ggc.allBids[i].playerName;
         const bid = ggc.allBids[i].text;
-        ctx.fillText(`${name}:  ${bid}`, 300, 480 + i*20);
+        ctx.fillText(`${name}:  ${bid}`, 20, 480 + i*20);
       }
     }
   }, [gameState, lobbyPlayers, isMyTurn, screenSize, imagesReady]);
@@ -387,7 +384,7 @@ useEffect(() => {
 //  Render
 //************************************************************
 return (
-  <div style={{ textAlign: 'center', padding: '0', margin: '0' }}>
+  <div style={{ position: 'relative', textAlign: 'center', padding: '0', margin: '0' }}>
     <canvas ref={canvasRef} style={{ display: 'block' }} />
     
     {isMyTurn && (
@@ -398,9 +395,18 @@ return (
           onSubmit={handleBidSubmit}
           bids={possibleBids}
           defaultBid="theDefaultBid"
-          makeBidString="Please select your bid:"
-          yourTurnString="It's your turn!"
-          style={{ left: 400, top: 160, position: 'absolute', zIndex: 1000 }}
+          makeBidString="Select your bid"
+          yourTurnString={
+            ggc.allBids && ggc.allBids.length > 0 && ggc.numBids > 0
+              ? `The bid to you is ${ggc.allBids[ggc.numBids-1].text}`
+              : 'You bid first'
+          }
+          specialPasoString={
+            ggc.allBids && ggc.allBids.length > 1 && ggc.numBids > 1 && ggc.allBids[ggc.numBids-1].text == "PASO"
+              ? `Doubt the PASO or top the bid ${ggc.allBids[ggc.FindLastNonPasoBid()].text}`
+              : ''
+          }
+          style={{ left: 140, top: 200, position: 'absolute', zIndex: 1000 }}
         />
       </>
     )}

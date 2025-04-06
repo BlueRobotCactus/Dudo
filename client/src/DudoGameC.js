@@ -25,6 +25,7 @@ export class DudoGame {
     maxPlayers;
     allParticipantNames = [];
     allSticks = [];
+    allPasoUsed = [];
     
     numBids;
     maxBids;
@@ -56,20 +57,7 @@ export class DudoGame {
 
     bWinnerGame;
     whoWonGame;
-/*
-    // results of the doubt
-    doubtedText;
-    whoDoubted;              
-    whoGotDoubted;           
-    doubtHowMany;
-    doubtOfWhat;
-    doubtLoser;
-    doubtWinner;
-    doubtCount;
-    doubtLoserOut;
-    doubtWasPaso;
-    doubtPasoWasThere;
-*/    
+
     //****************************************************************
     // constructor
     //****************************************************************
@@ -102,13 +90,6 @@ export class DudoGame {
         for (let i = 0; i < 6; i++) {
             this.bDiceHidden[i] = new Array(5);
         }
-        // force the shape to be 6 by 5
-//        for (let i=0; i<6; i++) {
-//            for (let j=0; j<5; j++) {
-//                this.dice[i][j] = -1;
-//                this.dice[i][j] = -1;
-//            }
-//        }
 
         this.bRoundInProgress = false;
         this.bWinnerRound = false;
@@ -134,13 +115,13 @@ export class DudoGame {
         this.bPaloFijoAllowed = state.bPaloFijoAllowed;
         this.bPaloFijoRound = state.bPaloFijoRound;
 
-
         this.maxPlayers = state.maxPlayers;
         this.numPlayers = state.numPlayers;
 
         this.allParticipantNames.length = 0;
         for (let i=0; i<state.maxPlayers; i++) {
             this.allParticipantNames[i] = state.allParticipantNames[i];
+            this.allPasoUsed[i] = state.allPasoUsed[i];
         }
 
         this.numBids = state.numBids;
@@ -693,7 +674,7 @@ export class DudoGame {
     //****************************************************************
     // Populate possible bid with PASO and DUDO
     //****************************************************************
-    PopulateBidListPasoDudo () {
+    PopulateBidListPasoDudo (myIndex) {
         var bImPaloFijo = this.IsPaloFijo(this.whosTurn);
 
         // is PASO a valid bid?
@@ -715,6 +696,11 @@ export class DudoGame {
         if (this.numBids == 0) {
             bPasoValidBid = false;
         }
+        // can't paso twice in the same wound
+        if (this.allPasoUsed[myIndex]) {
+            bPasoValidBid = false;
+        }
+        
         // if paso is valid, put it at the beginning of the array
         if (bPasoValidBid) {
             this.possibleBids.unshift("PASO");
