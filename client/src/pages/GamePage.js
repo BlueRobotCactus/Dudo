@@ -149,6 +149,49 @@ import PopupDialog from '../PopupDialog';
   //             Trigger: []
   //************************************************************
   useEffect(() => {
+    console.log("GamePage: useEffect [] load images");
+  
+    let loaded = 0;
+    const totalToLoad = 7;
+    const diceImgs = {};
+  
+    const checkIfDone = () => {
+      loaded++;
+      console.log(`Image loaded: ${loaded}/${totalToLoad}`);
+      if (loaded === totalToLoad) {
+        diceImagesRef.current = diceImgs;
+        setImagesReady(true);
+        console.log("All images loaded. Setting imagesReady = true");
+      }
+    };
+  
+    // Load cup image
+    const imgCupDown = new Image();
+    imgCupDown.src = '/images/CupDown.jpg';
+    imgCupDown.onload = () => {
+      cupImageRef.current = imgCupDown;
+      checkIfDone();
+    };
+    imgCupDown.onerror = (e) => {
+      console.error("Failed to load CupDown.jpg", e);
+    };
+  
+    // Load dice images
+    for (let i = 1; i <= 6; i++) {
+      const imgDice = new Image();
+      imgDice.src = `/images/Dice${i}.jpg`;
+      imgDice.onload = () => {
+        diceImgs[i] = imgDice;
+        checkIfDone();
+      };
+      imgDice.onerror = (e) => {
+        console.error(`Failed to load Dice${i}.jpg`, e);
+      };
+    }
+  }, []);
+  
+/*
+  useEffect(() => {
 
   let loaded = 0;
   const totalToLoad = 7;
@@ -174,7 +217,7 @@ import PopupDialog from '../PopupDialog';
     diceImgs[i] = imgDice;
   }
 }, []);
-
+*/
 
 //************************************************************
 // useEffect:  ask server to send lobby data with callback
@@ -316,7 +359,7 @@ useEffect(() => {
     // palofijo?
     //-------------------------------------------
     if (ggc.bPaloFijoRound) {
-      ctx.fillText('PALO FIJO', 20, 800);
+      ctx.fillText('PALO FIJO', 20, 460);
     }
   
     //-------------------------------------------
@@ -382,11 +425,6 @@ useEffect(() => {
     console.log("GamePage: entering function: handleBidSubmit()");
     console.log("GamePage; selected bid:", bid);
 
-    if (bid === "theDefaultBid") {
-      console.log("GamePage: bid was default 'myDefaultBid', not submitting");
-      return; // Do nothing — BidDialog stays open
-    }
-
     // Close the dialog
     setShowDialog(false);
 
@@ -409,7 +447,6 @@ return (
           onClose={() => setShowDialog(false)}
           onSubmit={handleBidSubmit}
           bids={possibleBids}
-          defaultBid="theDefaultBid"
           makeBidString="Select your bid"
           yourTurnString={
             ggc.allBids && ggc.allBids.length > 0 && ggc.numBids > 0
