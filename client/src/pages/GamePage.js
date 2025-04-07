@@ -198,17 +198,7 @@ useEffect(() => {
     } else {
       setIsMyTurn (false);
     }
-/*
-    if (isMyTurn) {
-      if (ggc.bPaloFijoRound) {
-        ggc.PopulateBidListPaloFijo();
-      } else {
-        ggc.PopulateBidListRegular();
-      }
-      ggc.PpulateBidListPasoDudo();
-      setPossibleBids(ggc.possibleBids || []);
-    }
-*/
+
     setWhosTurnName(ggc.allParticipantNames[ggc.whosTurn]);
     const index = ggc.allConnectionID.indexOf(stringSocketId);
     setMyIndex(index);
@@ -245,6 +235,8 @@ useEffect(() => {
     ctx.fillStyle = 'blue';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
+    ggc.AssignGameState(gameState);
+
     //-------------------------------------------
     // draw some text
     //-------------------------------------------
@@ -268,11 +260,16 @@ useEffect(() => {
     const sticks = ggc.allSticks[myIndex];
     ctx.fillText(`Number of sticks: ${sticks}`, 20, 200);
 
-    ggc.AssignGameState(gameState);
-
     //-------------------------------------------
     // Display cup and dice images
     //-------------------------------------------
+
+    ctx.fillStyle = 'white'
+    ctx.fillRect(10, 240, 120, 173);
+    ctx.lineWidth = 2;
+    ctx.fillStyle = 'black'
+    ctx.strokeRect(8, 238, 124, 177);
+
     if (cupImageRef.current) {
       ctx.drawImage(cupImageRef.current, 20, 240, 100, 140);
     }
@@ -281,7 +278,7 @@ useEffect(() => {
 
     for (let i = 0; i < 5; i++) {
       const value = ggc.dice[myIndex][i];
-      ctx.drawImage(diceImages[value], 21 + i*20, 390, 18, 18);
+      ctx.drawImage(diceImages[value], 15 + i*23, 390, 18, 18);
     }
 
     //-------------------------------------------

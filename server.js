@@ -395,7 +395,7 @@ function StartGame (ggs) {
 
   ggs.firstRound = true;
   ggs.bPaloFijoRound = false;
-  
+
   //------------------------------------------------------------
   // give everybody no sticks
   //------------------------------------------------------------
@@ -457,8 +457,7 @@ function StartRound (ggs) {
         }
     }        
 */
-    ggs.bWinnerRound = false; //chatgpt
-
+    ggs.bWinnerRound = false; 
     ggs.result.init();
     //    ggs.bWinnerRound = false;
     ggs.bRoundInProgress = true;
@@ -583,6 +582,8 @@ function PostRound(ggs) {
     // determine who goes next
     // and if palofijo
     //------------------------------------------------------------
+    ggs.bPaloFijoRound = false;
+
     ggs.allSticks[ggs.result.doubtLoser]++;
     
     if (ggs.allSticks[ggs.result.doubtLoser] == ggs.maxSticks) {
