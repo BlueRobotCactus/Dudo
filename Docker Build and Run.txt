@@ -53,6 +53,9 @@ git add --all
 git commit -m "my desription"
 git push origin main  
 
+to throw away changes since last push:
+git reset --hard HEAD
+
 //---------------------------------------
 // GENERAL INFO
 //---------------------------------------
