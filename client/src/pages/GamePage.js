@@ -62,12 +62,21 @@ import PopupDialog from '../PopupDialog';
     } else {
       setIsMyTurn (false);
     }
+
+    console.log ("bPaloFijoRound is ${ggc.bPaloFijoRound}");
+
     if (isMyTurn) {
-      ggc.PopulateBidListRegular();
-      ggc.PpulateBidListPasoDudo();
+      if (ggc.bPaloFijoRound) {
+        ggc.PopulateBidListPaloFijo();
+      } else {
+        ggc.PopulateBidListRegular();
+      }
+      ggc.PopulateBidListPasoDudo();
       setPossibleBids(ggc.possibleBids || []);
     }
+
     setWhosTurnName(ggc.allParticipantNames[ggc.whosTurn]);
+    // could just use ggc.whosTurn instead of index?
     const index = ggc.allConnectionID.indexOf(stringSocketId);
     setMyIndex (index);
     setMyName (ggc.allParticipantNames[index]);
@@ -189,11 +198,17 @@ useEffect(() => {
     } else {
       setIsMyTurn (false);
     }
+/*
     if (isMyTurn) {
-      ggc.PopulateBidListRegular();
+      if (ggc.bPaloFijoRound) {
+        ggc.PopulateBidListPaloFijo();
+      } else {
+        ggc.PopulateBidListRegular();
+      }
       ggc.PpulateBidListPasoDudo();
       setPossibleBids(ggc.possibleBids || []);
     }
+*/
     setWhosTurnName(ggc.allParticipantNames[ggc.whosTurn]);
     const index = ggc.allConnectionID.indexOf(stringSocketId);
     setMyIndex(index);
@@ -249,25 +264,64 @@ useEffect(() => {
     ctx.fillText(`Current turn: ${whosTurnName}`, 20, 120);
     ctx.fillText(isMyTurn ? "It's YOUR turn to bid!" : `Waiting for ${whosTurnName}...`, 20, 160);
 
+    // Display number of sticks
+    const sticks = ggc.allSticks[myIndex];
+    ctx.fillText(`Number of sticks: ${sticks}`, 20, 200);
+
     ggc.AssignGameState(gameState);
+
+    //-------------------------------------------
+    // Display cup and dice images
+    //-------------------------------------------
+    if (cupImageRef.current) {
+      ctx.drawImage(cupImageRef.current, 20, 240, 100, 140);
+    }
+
+    const diceImages = diceImagesRef.current;
+
+    for (let i = 0; i < 5; i++) {
+      const value = ggc.dice[myIndex][i];
+      ctx.drawImage(diceImages[value], 21 + i*20, 390, 18, 18);
+    }
+
+    //-------------------------------------------
+    // Display bid history
+    //-------------------------------------------
+    ctx.fillText("Bidding History", 20, 500);
+    if (ggc.numBids === 0) {
+      ctx.fillText("(no bids yet)", 20, 520);
+    }
+    if (ggc.numBids > 0) {
+      for (let i=0; i<ggc.numBids; i++) {
+        const name = ggc.allBids[i].playerName;
+        const bid = ggc.allBids[i].text;
+        ctx.fillText(`${name}:  ${bid}`, 20, 520 + i*20);
+      }
+    }
 
     //-------------------------------------------
     // my turn?
     //-------------------------------------------
+
+    console.log ("bPaloFijoRound is ${ggc.bPaloFijoRound}");
+
     if (isMyTurn) {
-      ggc.PopulateBidListRegular();
-      ggc.PopulateBidListPasoDudo(myIndex);
+      if (ggc.bPaloFijoRound) {
+        ggc.PopulateBidListPaloFijo();
+      } else {
+        ggc.PopulateBidListRegular();
+      }
+      ggc.PopulateBidListPasoDudo();
       setPossibleBids(ggc.possibleBids || []);
     }
 
     //-------------------------------------------
-    // did somebody win the game?
+    // palofijo?
     //-------------------------------------------
-    if (ggc.bWinnerGame) {
-      const winnerName = ggc.allParticipantNames[ggc.whoWonGame];
-      ctx.fillText(winnerName + " won the game !!", 20, 800);
+    if (ggc.bPaloFijoRound) {
+      ctx.fillText('PALO FIJO', 20, 800);
     }
-    
+  
     //-------------------------------------------
     // did somebody win the round?
     //-------------------------------------------
@@ -306,54 +360,20 @@ useEffect(() => {
         msg += "\n\n" + ggc.allParticipantNames[ggc.whoWonGame] + " WINS THE GAME!!";
       }
 
+      setIsMyTurn(false);   //chatgpt
+
       // show the string in message box
       setPopupMessage(msg);
       setShowPopup(true);
-    }
-
-    //-------------------------------------------
-    // Display cup and dice images
-    //-------------------------------------------
-    if (cupImageRef.current) {
-      ctx.drawImage(cupImageRef.current, 20, 200, 100, 140);
-    }
-
-    const diceImages = diceImagesRef.current;
-
-    for (let i = 0; i < 5; i++) {
-      const value = ggc.dice[myIndex][i];
-      ctx.drawImage(diceImages[value], 21 + i*20, 350, 18, 18);
     }
     
     //-------------------------------------------
     // Display (or not) bid UI
     //-------------------------------------------
     if (isMyTurn) {
-
-      let foo = 3;
-      console.log(`foo text is ${ggc.numPlayers}`);
-
-
-
-
       setShowDialog(true);
     } else {
       setShowDialog(false); // optional: auto-close when it's no longer their turn
-    }
-
-    //-------------------------------------------
-    // Display bid history
-    //-------------------------------------------
-    ctx.fillText("Bidding History", 20, 460);
-    if (ggc.numBids === 0) {
-      ctx.fillText("(no bids yet)", 20, 480);
-    }
-    if (ggc.numBids > 0) {
-      for (let i=0; i<ggc.numBids; i++) {
-        const name = ggc.allBids[i].playerName;
-        const bid = ggc.allBids[i].text;
-        ctx.fillText(`${name}:  ${bid}`, 20, 480 + i*20);
-      }
     }
   }, [gameState, lobbyPlayers, isMyTurn, screenSize, imagesReady]);
 
@@ -361,8 +381,6 @@ useEffect(() => {
 //************************************************************
 //  Handlers
 //************************************************************
-  const handleDoubt = () => socket.emit('doubt', { lobbyId });
-
   const handleBidSubmit = (bid) => {
     console.log("GamePage: entering function: handleBidSubmit()");
     console.log("GamePage; selected bid:", bid);
@@ -406,7 +424,7 @@ return (
               ? `Doubt the PASO or top the bid ${ggc.allBids[ggc.FindLastNonPasoBid()].text}`
               : ''
           }
-          style={{ left: 140, top: 200, position: 'absolute', zIndex: 1000 }}
+          style={{ left: 140, top: 240, position: 'absolute', zIndex: 1000 }}
         />
       </>
     )}
@@ -414,7 +432,10 @@ return (
     <PopupDialog
       open={showPopup}
       message={popupMessage}
-      onClose={() => setShowPopup(false)}
+      onClose={() => {
+        setShowPopup(false);
+        socket.emit('nextRound', { lobbyId, index: myIndex })
+      }}
     />
 
   </div>

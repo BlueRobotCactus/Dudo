@@ -31,6 +31,7 @@ const io = new Server(server, {
 app.use(cors());
 app.use(express.json());
 
+// THE DudoGame object
 var theGame;
 
 // Serve all the static files in the React app's build folder
@@ -53,7 +54,9 @@ const lobbies = {
   */
 };
 
-//var theGame = new DudoGame();
+// hear back arrays
+let hearbackNextRound;
+
 
 // ******************************
 // Socket.IO setup
@@ -146,10 +149,6 @@ io.on('connection', (socket) => {
 
       console.log(`Game started in lobby: ${lobbyId}`);
 
-      // **********************************
-      // Glenn ported this from java code
-      // **********************************
-
       theGame = new DudoGame();
       lobby.game = theGame;
       lobby.game.bRoundInProgress = true;
@@ -172,13 +171,8 @@ io.on('connection', (socket) => {
 
       StartGame(lobby.game);
 
-      // END GLENN STUFF **********************************
-
       // Emit to all players in the lobby
-
-      const myJSON = JSON.stringify(lobby.game);
-
-
+      //&&& do we need this?
       io.to(lobbyId).emit('gameStarted', {
         lobbyId,
         gameState: lobby.game,
@@ -267,62 +261,48 @@ io.on('connection', (socket) => {
     const lobby = lobbies[lobbyId];
     if (!lobby || !lobby.game || !lobby.game.bRoundInProgress) return;
 
-    const whosTurn = lobby.game.whosTurn;
-    const currentPlayer = lobby.players[whosTurn];
-    //if (currentPlayer.id !== socket.id) {
-    if (currentPlayer.id.toString() !== socket.id.toString()) {
-        console.log('Player attempted to bid out of turn.');
-      return;
-    }
-
     if (bidText === "DOUBT") {
+      // process doubt
       ggs.getDoubtResult();
-      PostRound(ggs);
-    }
 
-    // Move to the next turn
-    lobby.game.whosTurn = (whosTurn + 1) % lobby.players.length;
+      PostRound(ggs);
+
+      //StartRound(ggs);  chatgpt
+
+    } else {
+      // Move to the next turn
+      lobby.game.whosTurnPrev = lobby.game.whosTurn;
+      lobby.game.whosTurn = lobby.game.getWhosTurnNext();
+      //lobby.game.whosTurn = (lobby.game.whosTurn + 1) % lobby.players.length;
+    }
 
     // Broadcast new game state
-
-    //&&&
-    const myJSON = JSON.stringify(lobby.game);
-
-
     io.to(lobbyId).emit('gameStateUpdate', lobby.game);
     console.log("server.js: socket.on('bid'): emitting 'gameStateUpdate'");
-
   });
 
   //************************************************************
   // socket.on
-  // PROCESS THE DOUBT
-  //&&& do we need this?
+  // hear back from client: 'nextRound'
   //************************************************************
-  socket.on('doubt', ({ lobbyId }) => {
+  socket.on('nextRound', ({ lobbyId, index }) => {
     const lobby = lobbies[lobbyId];
-    if (!lobby || !lobby.game || !lobby.game.bRoundInProgress) return;
 
-    const whosTurn = lobby.game.whosTurn;
-    const currentPlayer = lobby.players[whosTurn];
-    if (currentPlayer.id !== socket.id) {
-      console.log('Player attempted to doubt out of turn.');
-      return;
+    hearbackNextRound[index] = true;
+    let okToGo = true;
+    for (let i=0; i<hearbackNextRound.length; i++) {
+      if (hearbackNextRound[i] == false) {
+        okToGo = false;
+        break;
+      }
     }
-
-    console.log(`Player ${currentPlayer.name} DOUBTED in lobby ${lobbyId}. Game ends.`);
-
-    // End the game
-    lobby.game.bRoundInProgress = false;
-    io.to(lobbyId).emit('gameOver', {
-      message: `${currentPlayer.name} ended the game by doubting!`,
-      finalGameState: lobby.game,
-    });
-    console.log("server.js: emitting 'gameOver'");
-
+    if (okToGo) {
+      StartRound(lobby.game);   // => resets bWinnerRound = false
+      io.to(lobbyId).emit('gameStateUpdate', lobby.game);
+    }
   });
-
-  //************************************************************
+  
+    //************************************************************
   // socket.on
   // DISCONNECT
   //************************************************************
@@ -434,6 +414,10 @@ function StartGame (ggs) {
           ggs.numPlayers++;
       }
   }
+
+  // &&& set direction for now
+  ggs.whichDirection = 0;
+
   /*
   //------------------------------------------------------------
   // tell everybody new statueses
@@ -473,8 +457,13 @@ function StartRound (ggs) {
         }
     }        
 */
+    ggs.bWinnerRound = false; //chatgpt
+
     ggs.result.init();
+    //    ggs.bWinnerRound = false;
     ggs.bRoundInProgress = true;
+
+    hearbackNextRound = Array(ggs.numPlayers).fill(false);
 
     //------------------------------------------------------------
     // first round, randomly choose who goes first
@@ -641,6 +630,5 @@ function PostRound(ggs) {
         //        playerConnection[cc].sendAllConnectionStatus();
         //    }
         //}
-        StartRound();
     }
 }

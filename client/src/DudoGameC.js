@@ -70,7 +70,7 @@ export class DudoGame {
         }
 
         // default game parameters
-        this.maxSticks = 1;
+        this.maxSticks = 3;
         this.bPasoAllowed = true;
         this.bPaloFijoAllowed = true;
         this.bPaloFijoRound =  false;
@@ -180,12 +180,10 @@ export class DudoGame {
     // figure out who goes next
     //************************************************************
     getWhosTurnNext () {
-        this.whosTurnPrev = this.whosTurn;
-        
         if (this.whichDirection == 0) {
-            this.whosTurn = this.getPlayerToLeft(this.whosTurn);
+            return this.getPlayerToLeft(this.whosTurn);
         } else {
-            this.whosTurn = this.getPlayerToRight(this.whosTurn);
+            return this.getPlayerToRight(this.whosTurn);
         }
     }
 
@@ -546,13 +544,15 @@ export class DudoGame {
     //****************************************************************
     // Populate possible bid list PALOFIJO
     //****************************************************************
-    PopulateBidListPaloFijo(bImPaloFijo) {
+    PopulateBidListPaloFijo() {
+
+        console.log('DudoGameC: Entering PopulateBidListPaloFijo()');
+        
         //------------------------------------------------------------
         // initialize possible bid list
         //------------------------------------------------------------
-        for (let i = 0; i < this.GetNumberPlayersStillIn() * 5 * 6 + 2; i++) {
-            this.possibleBids[i] = "";
-        }
+        this.possibleBids.length = 0;
+        this.numPossibleBids = 0;
         
         //------------------------------------------------------------
         // special case of first bid
@@ -586,7 +586,12 @@ export class DudoGame {
         //------------------------------------------------------------
         // generate (and count) possible bids
         //------------------------------------------------------------
-        if (bImPaloFijo) {
+        if (this.IsPaloFijo(this.whosTurn)) {
+            //--------------------------------------------------------
+            // I am PaloFijo
+            // I can change the bid
+            //--------------------------------------------------------
+
             this.numPossibleBids = 0;
             if (this.parsedOfWhat != 1) {
                 //--------------------------------------------------------
@@ -656,7 +661,7 @@ export class DudoGame {
         } else {
             //--------------------------------------------------------
             // I'm not palofijo
-            // I can only raise of doubt
+            // I can only raise or doubt
             //--------------------------------------------------------
             this.numPossibleBids = 0;
             for (let i = this.parsedHowMany; i < this.GetNumberPlayersStillIn() * 5; i++) {
@@ -674,14 +679,13 @@ export class DudoGame {
     //****************************************************************
     // Populate possible bid with PASO and DUDO
     //****************************************************************
-    PopulateBidListPasoDudo (myIndex) {
-        var bImPaloFijo = this.IsPaloFijo(this.whosTurn);
+    PopulateBidListPasoDudo () {
 
         // is PASO a valid bid?
         var bPasoValidBid;
         if (this.bPasoAllowed) {
             if (this.bPaloFijoRound) {
-                if (bImPaloFijo) {
+                if (this.IsPaloFijo(this.whosTurn)) {
                     bPasoValidBid = true;
                 } else {
                     bPasoValidBid = false;
@@ -697,13 +701,14 @@ export class DudoGame {
             bPasoValidBid = false;
         }
         // can't paso twice in the same wound
-        if (this.allPasoUsed[myIndex]) {
+        if (this.allPasoUsed[this.whosTurn]) {
             bPasoValidBid = false;
         }
-        
+
         // if paso is valid, put it at the beginning of the array
         if (bPasoValidBid) {
-            this.possibleBids.unshift("PASO");
+            //this.possibleBids.unshift("PASO");
+            this.possibleBids.push("PASO");
         }
 
         // add DOUBT
