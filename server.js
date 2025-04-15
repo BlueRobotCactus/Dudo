@@ -502,7 +502,7 @@ function StartRound (ggs) {
                 const random = Math.floor(Math.random() * 6) + 1;
                 //int r = randomGenerator.nextInt(6) + 1;
                 ggs.dice[cc][j] = random;
-                ggs.bDiceHidden[cc][j] = false;
+                ggs.bDiceHidden[cc][j] = true;
               }
         }
     }

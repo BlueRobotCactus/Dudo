@@ -42,6 +42,7 @@ import PopupDialog from '../PopupDialog';
     const cupDownImageRef = useRef(null);
     const cupUpImageRef = useRef(null);
     const diceImagesRef = useRef({});
+    const diceHiddenImageRef = useRef({});
     
     const handleGameStarted = (data) => {
       console.log("GamePage: entering function: handleGameStarted");
@@ -63,8 +64,6 @@ import PopupDialog from '../PopupDialog';
     } else {
       setIsMyTurn (false);
     }
-
-    console.log ("bPaloFijoRound is ${ggc.bPaloFijoRound}");
 
     if (isMyTurn) {
       if (ggc.bPaloFijoRound) {
@@ -153,7 +152,7 @@ import PopupDialog from '../PopupDialog';
     console.log("GamePage: useEffect [] load images");
   
     let loaded = 0;
-    const totalToLoad = 8;  // cup down, cup up, 6 dice
+    const totalToLoad = 9;  // cup down, cup up, 6 dice, hidden die
     const diceImgs = {};
   
     const checkIfDone = () => {
@@ -200,37 +199,20 @@ import PopupDialog from '../PopupDialog';
         console.error(`Failed to load Dice${i}.jpg`, e);
       };
     }
+
+    // Hidden die image
+    const imgDiceHidden = new Image();
+    imgDiceHidden.src = '/images/DiceHidden.jpg';
+    imgDiceHidden.onload = () => {
+      diceHiddenImageRef.current = imgDiceHidden;
+      checkIfDone();
+    };
+    imgDiceHidden.onerror = (e) => {
+      console.error("Failed to load DiceHidden.jpg", e);
+    };
+  
   }, []);
   
-/*
-  useEffect(() => {
-
-  let loaded = 0;
-  const totalToLoad = 7;
-
-  const imgCupDown = new Image();
-  imgCupDown.src = '/images/CupDown.jpg';
-  imgCupDown.onload = () => {
-    cupImageRef.current = imgCupDown;
-    loaded++;
-  };
-
-  const diceImgs = {};
-  for (let i = 1; i <= 6; i++) {
-    const imgDice = new Image();
-    imgDice.src = `/images/Dice${i}.jpg`;
-    imgDice.onload = () => {
-      loaded++;
-      if (loaded === totalToLoad) {
-        diceImagesRef.current = diceImgs;
-        setImagesReady(true);  // ✅ signal everything's loaded
-      }
-    };
-    diceImgs[i] = imgDice;
-  }
-}, []);
-*/
-
 //************************************************************
 // useEffect:  ask server to send lobby data with callback
 //             Trigger:  [lobbyID]
@@ -319,6 +301,53 @@ useEffect(() => {
     // Display cup and dice images
     //-------------------------------------------
 
+    const offset = 80;
+
+    for (let p=0; p<ggc.numPlayers; p++) {
+      // draw and fill rectangle for player
+      ctx.fillStyle = 'white'
+      ctx.fillRect(20, 240 + p*offset, 290, 66);
+
+      if (p == ggc.whosTurn) {
+        ctx.lineWidth = 4;
+        ctx.strokeStyle = 'red'
+      } else {
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = 'black'
+      }
+      ctx.strokeRect(20, 240 + p*offset, 290, 66);
+      ctx.strokeStyle = 'black'
+
+      // draw cup
+      if (cupDownImageRef.current) {
+        ctx.drawImage(cupDownImageRef.current, 25, 245 + p*offset, 40, 56);
+      }
+
+      // draw dice under cup
+      const diceImages = diceImagesRef.current;
+      for (let i = 0; i < 5; i++) {
+
+        if (p == myIndex) {
+          const value = ggc.dice[myIndex][i];
+          ctx.drawImage(diceImages[value], 70 + i*23, 278 + p*offset, 18, 18);
+        } else {
+          if (ggc.bDiceHidden[myIndex][i]) {
+            ctx.drawImage(diceHiddenImageRef.current, 70 + i*23, 278 + p*offset, 18, 18);
+          } else {
+            // draw them "on the table" 
+//            const value = ggc.dice[myIndex][i];
+//            ctx.drawImage(diceImages[value], 70 + i*23, 278 + p*offset, 18, 18);
+          }
+        }
+      }
+
+      // draw name
+      ctx.fillStyle = 'black'
+      ctx.font = '24px Arial';
+      ctx.fillText(`${ggc.allParticipantNames[p]}`, 70, 268 + p*offset);
+    }
+
+    /*
     ctx.fillStyle = 'white'
     ctx.fillRect(10, 240, 120, 173);
     ctx.lineWidth = 2;
@@ -335,28 +364,26 @@ useEffect(() => {
       const value = ggc.dice[myIndex][i];
       ctx.drawImage(diceImages[value], 15 + i*23, 390, 18, 18);
     }
+*/
 
     //-------------------------------------------
     // Display bid history
     //-------------------------------------------
-    ctx.fillText("Bidding History", 20, 500);
+    ctx.fillText("Bidding History", 330, 500);
     if (ggc.numBids === 0) {
-      ctx.fillText("(no bids yet)", 20, 520);
+      ctx.fillText("(no bids yet)", 330, 520);
     }
     if (ggc.numBids > 0) {
       for (let i=0; i<ggc.numBids; i++) {
         const name = ggc.allBids[i].playerName;
         const bid = ggc.allBids[i].text;
-        ctx.fillText(`${name}:  ${bid}`, 20, 520 + i*20);
+        ctx.fillText(`${name}:  ${bid}`, 330, 520 + i*20);
       }
     }
 
     //-------------------------------------------
     // my turn?
     //-------------------------------------------
-
-    console.log ("bPaloFijoRound is ${ggc.bPaloFijoRound}");
-
     if (isMyTurn) {
       if (ggc.bPaloFijoRound) {
         ggc.PopulateBidListPaloFijo();
@@ -470,7 +497,7 @@ return (
               ? `Doubt the PASO or top the bid ${ggc.allBids[ggc.FindLastNonPasoBid()].text}`
               : ''
           }
-          style={{ left: 140, top: 240, position: 'absolute', zIndex: 1000 }}
+          style={{ left: 330, top: 240, position: 'absolute', zIndex: 1000 }}
         />
       </>
     )}
