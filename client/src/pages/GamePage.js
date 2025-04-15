@@ -39,7 +39,8 @@ import PopupDialog from '../PopupDialog';
 
     // Refs
     const canvasRef = useRef(null);
-    const cupImageRef = useRef(null);
+    const cupDownImageRef = useRef(null);
+    const cupUpImageRef = useRef(null);
     const diceImagesRef = useRef({});
     
     const handleGameStarted = (data) => {
@@ -108,7 +109,7 @@ import PopupDialog from '../PopupDialog';
   
   //************************************************************
   // useEffect:  Turn listeners on 
-  //             Trigger: [lobbyId]
+  //             Trigger: []
   //************************************************************
   useEffect(() => {
     console.log("GamePage: useEffect [lobbyId] socket.on");
@@ -122,7 +123,7 @@ import PopupDialog from '../PopupDialog';
       socket.off('gameStateUpdate', handleGameStateUpdate);
       socket.off('gameOver', handleGameOver);
     };
-  }, [lobbyId]); 
+  }, []); 
 
   //************************************************************
   // useEffect:  Handle window resize
@@ -152,7 +153,7 @@ import PopupDialog from '../PopupDialog';
     console.log("GamePage: useEffect [] load images");
   
     let loaded = 0;
-    const totalToLoad = 7;
+    const totalToLoad = 8;  // cup down, cup up, 6 dice
     const diceImgs = {};
   
     const checkIfDone = () => {
@@ -165,15 +166,26 @@ import PopupDialog from '../PopupDialog';
       }
     };
   
-    // Load cup image
+    // Load cup down image
     const imgCupDown = new Image();
     imgCupDown.src = '/images/CupDown.jpg';
     imgCupDown.onload = () => {
-      cupImageRef.current = imgCupDown;
+      cupDownImageRef.current = imgCupDown;
       checkIfDone();
     };
     imgCupDown.onerror = (e) => {
       console.error("Failed to load CupDown.jpg", e);
+    };
+
+    // Load cup up image
+    const imgCupUp = new Image();
+    imgCupUp.src = '/images/CupUp.jpg';
+    imgCupUp.onload = () => {
+      cupUpImageRef.current = imgCupUp;
+      checkIfDone();
+    };
+    imgCupUp.onerror = (e) => {
+      console.error("Failed to load CupUp.jpg", e);
     };
   
     // Load dice images
@@ -313,8 +325,8 @@ useEffect(() => {
     ctx.fillStyle = 'black'
     ctx.strokeRect(8, 238, 124, 177);
 
-    if (cupImageRef.current) {
-      ctx.drawImage(cupImageRef.current, 20, 240, 100, 140);
+    if (cupDownImageRef.current) {
+      ctx.drawImage(cupDownImageRef.current, 20, 240, 100, 140);
     }
 
     const diceImages = diceImagesRef.current;
