@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 
-function BidDialog({ open, onClose, onSubmit, bids, defaultBid, makeBidString, yourTurnString, specialPasoString, style }) {
+function BidDlg({ open, onClose, onSubmit, bids, defaultBid, makeBidString, yourTurnString, specialPasoString, style }) {
   const [selectedBid, setSelectedBid] = useState(defaultBid || bids[0] || '');
 
   // Update selected bid if bids array changes
@@ -45,4 +45,4 @@ function BidDialog({ open, onClose, onSubmit, bids, defaultBid, makeBidString, y
   );
 }
 
-export default BidDialog;
+export default BidDlg;

@@ -712,7 +712,9 @@ export class DudoGame {
         }
 
         // add DOUBT
-        this.possibleBids.push("DOUBT")
+        if (this.numBids > 0) {
+            this.possibleBids.push("DOUBT")
+        }
 
         // get final array length
         this.numPossibleBids = this.possibleBids.length;

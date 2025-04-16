@@ -2,8 +2,10 @@ import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useLocation } from 'react-router-dom';
 import socket from '../socket';
 import { DudoGame } from '../DudoGameC.js'
-import BidDialog from '../BidDialog';
+import BidDlg from '../BidDlg';
 import PopupDialog from '../PopupDialog';
+import ShowShakeDlg from '../ShowShakeDlg.js';
+import ConfirmBidDlg from '../ConfirmBidDlg.js';
 
   //************************************************************
   // GamePage function
@@ -22,7 +24,6 @@ import PopupDialog from '../PopupDialog';
       width: window.innerWidth,
       height: window.innerHeight,
     });
-    const [showDialog, setShowDialog] = useState(false);
     const [ggc] = useState(() => new DudoGame());
     const [possibleBids, setPossibleBids] = useState([]);
 
@@ -32,8 +33,13 @@ import PopupDialog from '../PopupDialog';
     const [isMyTurn, setIsMyTurn] = useState(false);
     const [whosTurnName, setWhosTurnName] = useState('');
     
+    const [bidDlg, setBidDlg] = useState(false);
+    const [thisBid, setThisBid] = useState('');
     const [showPopup, setShowPopup] = useState(false);
     const [popupMessage, setPopupMessage] = useState('');
+    const [showShakeDlg, setShowShakeDlg] = useState(false);
+    const [confirmBidDlg, setConfirmBidDlg] = useState(false);
+    const [confirmMessage, setConfirmMessage] = useState('');
 
     const [imagesReady, setImagesReady] = useState(false);
 
@@ -89,6 +95,58 @@ import PopupDialog from '../PopupDialog';
     console.log("GamePage: entering function: handleGameOver");
     alert(data.message);
   };
+
+
+  //************************************************************
+  //  function handle BidOK
+  //************************************************************
+  const handleBidOK = (bid) => {
+    console.log("GamePage: entering function: handleBidOK()");
+    console.log("GamePage; selected bid:", bid);
+    setThisBid (bid);
+
+    // Close the dialog
+    setBidDlg(false);
+
+    // see about shake and show
+    setShowShakeDlg(true);
+  };
+
+  //************************************************************
+  // functions handle Yes, No from ShowShakeDlg
+  //************************************************************
+  const handleShowShakeYes = () => {
+    // Close the dialog
+    setShowShakeDlg(false);
+
+    // confirm the bid
+    setConfirmMessage ('Your bid is:\n' + thisBid + ', Show and Shake\n\nSubmit this bid?');
+    setConfirmBidDlg(true);
+  };
+
+  const handleShowShakeNo = () => {
+    // Close the dialog
+    setShowShakeDlg(false);
+
+    // confirm the bid
+    setConfirmMessage ('Your bid is:\n' + thisBid + '\n\nSubmit this bid?');
+    setConfirmBidDlg(true);
+  };
+
+  //************************************************************
+  // functions handle Yes, No from ConfirmBidDlg
+  //************************************************************
+  const handleConfirmBidYes = () => {
+    setConfirmBidDlg(false);
+
+    // Now send the bid to the server
+    socket.emit('bid', { lobbyId, bidText: thisBid, index: myIndex, name: myName });
+  };
+
+  const handleConfirmBidNo = () => {
+    setConfirmBidDlg(false);
+  };
+
 
   //************************************************************
   // useEffect:  Get socket my socket id
@@ -450,70 +508,67 @@ useEffect(() => {
     // Display (or not) bid UI
     //-------------------------------------------
     if (isMyTurn) {
-      setShowDialog(true);
+      setBidDlg(true);
     } else {
-      setShowDialog(false); // optional: auto-close when it's no longer their turn
+      setBidDlg(false); // optional: auto-close when it's no longer their turn
     }
   }, [gameState, lobbyPlayers, isMyTurn, screenSize, imagesReady]);
 
 
-//************************************************************
-//  Handlers
-//************************************************************
-  const handleBidSubmit = (bid) => {
-    console.log("GamePage: entering function: handleBidSubmit()");
-    console.log("GamePage; selected bid:", bid);
+  //************************************************************
+  //  Render
+  //************************************************************
+  return (
+    <div style={{ position: 'relative', textAlign: 'center', padding: '0', margin: '0' }}>
+      <canvas ref={canvasRef} style={{ display: 'block' }} />
+      
+      {isMyTurn && (
+        <>
+          <BidDlg
+            open={bidDlg}
+            onClose={() => setBidDlg(false)}
+            onSubmit={handleBidOK}
+            bids={possibleBids}
+            makeBidString="Select your bid"
+            yourTurnString={
+              ggc.allBids && ggc.allBids.length > 0 && ggc.numBids > 0
+                ? `The bid to you is ${ggc.allBids[ggc.numBids-1].text}`
+                : 'You bid first'
+            }
+            specialPasoString={
+              ggc.allBids && ggc.allBids.length > 1 && ggc.numBids > 1 && ggc.allBids[ggc.numBids-1].text == "PASO"
+                ? `Doubt the PASO or top the bid ${ggc.allBids[ggc.FindLastNonPasoBid()].text}`
+                : ''
+            }
+            style={{ left: 330, top: 240, position: 'absolute', zIndex: 1000 }}
+          />
+        </>
+      )}
 
-    // Close the dialog
-    setShowDialog(false);
+      <PopupDialog
+        open={showPopup}
+        message={popupMessage}
+        onClose={() => {
+          setShowPopup(false);
+          socket.emit('nextRound', { lobbyId, index: myIndex })
+        }}
+      />
 
-    // Now send the chosen bid to the server if needed
-    socket.emit('bid', { lobbyId, bidText: bid, index: myIndex, name: myName });
-};
+      <ShowShakeDlg
+            open={showShakeDlg}
+            message="Do you want to show and shake?"
+            onYes={handleShowShakeYes}
+            onNo={handleShowShakeNo}
+          />
 
-
-//************************************************************
-//  Render
-//************************************************************
-return (
-  <div style={{ position: 'relative', textAlign: 'center', padding: '0', margin: '0' }}>
-    <canvas ref={canvasRef} style={{ display: 'block' }} />
-    
-    {isMyTurn && (
-      <>
-        <BidDialog
-          open={showDialog}
-          onClose={() => setShowDialog(false)}
-          onSubmit={handleBidSubmit}
-          bids={possibleBids}
-          makeBidString="Select your bid"
-          yourTurnString={
-            ggc.allBids && ggc.allBids.length > 0 && ggc.numBids > 0
-              ? `The bid to you is ${ggc.allBids[ggc.numBids-1].text}`
-              : 'You bid first'
-          }
-          specialPasoString={
-            ggc.allBids && ggc.allBids.length > 1 && ggc.numBids > 1 && ggc.allBids[ggc.numBids-1].text == "PASO"
-              ? `Doubt the PASO or top the bid ${ggc.allBids[ggc.FindLastNonPasoBid()].text}`
-              : ''
-          }
-          style={{ left: 330, top: 240, position: 'absolute', zIndex: 1000 }}
-        />
-      </>
-    )}
-
-    <PopupDialog
-      open={showPopup}
-      message={popupMessage}
-      onClose={() => {
-        setShowPopup(false);
-        socket.emit('nextRound', { lobbyId, index: myIndex })
-      }}
-    />
-
-  </div>
-);
-
+      <ConfirmBidDlg
+            open={confirmBidDlg}
+            message={confirmMessage}
+            onYes={handleConfirmBidYes}
+            onNo={handleConfirmBidNo}
+      />
+    </div>
+  );
 }
 
 export default GamePage;
