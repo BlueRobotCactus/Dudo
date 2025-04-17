@@ -115,7 +115,7 @@ import ConfirmBidDlg from '../ConfirmBidDlg.js';
     //-------------------------------------------
     myShowShakeRef.current = false;
     let bFound = false;
-    if (bid != "PASO" && bid != "DUDO") {
+    if (bid != "PASO" && bid != "DOUBT") {
     // does player have any of hidden dice of what they bid?
       ggc.parseBid(bid);
       for (let i = 0; i < 5; i++) {
@@ -136,9 +136,13 @@ import ConfirmBidDlg from '../ConfirmBidDlg.js';
         setShowShakeDlg(true);
       } else {
       // if not, ask if they want to confirm the bid
-        setConfirmMessage ('Your bid is:\n' + thisBid + '\n\nSubmit this bid?');
+        setConfirmMessage ('Your bid is:\n' + bid + '\n\nSubmit this bid?');
         setConfirmBidDlg(true);
       }
+    }
+    if (bid == "PASO" || bid == "DOUBT") {
+      setConfirmMessage ('Your bid is:\n' + bid + '\n\nSubmit this bid?');
+      setConfirmBidDlg(true);
     }
   };
 
@@ -186,8 +190,11 @@ import ConfirmBidDlg from '../ConfirmBidDlg.js';
 
   const handleConfirmBidNo = () => {
     setConfirmBidDlg(false);
+    setThisBid('');
+    myShowShakeRef.current = false;
+    setBidDlg(true); // start over
   };
-
+  
 
   //************************************************************
   // useEffect:  Get socket my socket id
@@ -356,6 +363,9 @@ useEffect(() => {
       console.log("GamePage: useEffect IMAGES ARE NOT LOADED YET");
       return;
     }
+
+    // set this every time in case it has changed
+    setMySocketId(window.mySocketId);
 
     //-------------------------------------------
     // prepare canvas
