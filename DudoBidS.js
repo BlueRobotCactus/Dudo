@@ -23,6 +23,7 @@ export class DudoBid {
     this.bPaso = false;
     this.bDudo = false;
     this.bShakeShow = false;
+    this.howManyShaken = 0;
 
     this.bDiceHidden = Array(5).fill(false);
     this.bWhichShaken = Array(5).fill(false);
@@ -37,7 +38,8 @@ export class DudoBid {
     this.bPaso = false;
     this.bDudo = false;
     this.bShakeShow = false;
-
+    this.howManyShaken = 0;
+    
     this.bDiceHidden = Array(5).fill(false);
     this.bWhichShaken = Array(5).fill(false);
   }

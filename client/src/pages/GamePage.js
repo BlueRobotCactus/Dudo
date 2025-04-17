@@ -49,6 +49,7 @@ import ConfirmBidDlg from '../ConfirmBidDlg.js';
     const cupUpImageRef = useRef(null);
     const diceImagesRef = useRef({});
     const diceHiddenImageRef = useRef({});
+    const myShowShakeRef = useRef(false);
     
     const handleGameStarted = (data) => {
       console.log("GamePage: entering function: handleGameStarted");
@@ -103,19 +104,50 @@ import ConfirmBidDlg from '../ConfirmBidDlg.js';
   const handleBidOK = (bid) => {
     console.log("GamePage: entering function: handleBidOK()");
     console.log("GamePage; selected bid:", bid);
+
     setThisBid (bid);
 
     // Close the dialog
     setBidDlg(false);
 
-    // see about shake and show
-    setShowShakeDlg(true);
+    //-------------------------------------------
+    // can they show and shake?
+    //-------------------------------------------
+    myShowShakeRef.current = false;
+    let bFound = false;
+    if (bid != "PASO" && bid != "DUDO") {
+    // does player have any of hidden dice of what they bid?
+      ggc.parseBid(bid);
+      for (let i = 0; i < 5; i++) {
+          if (ggc.bDiceHidden[myIndex][i]) {
+              if (ggc.dice[myIndex][i] == ggc.parsedOfWhat) {
+                  bFound = true;
+              }
+              if (!ggc.bPaloFijoRound) {
+                  // aces wild if not palofijo
+                  if (ggc.dice[myIndex][i] == 1) {
+                      bFound = true;
+                  }
+              }
+          }
+      }
+      // if so, ask if they want to show and shake
+      if (bFound) {
+        setShowShakeDlg(true);
+      } else {
+      // if not, ask if they want to confirm the bid
+        setConfirmMessage ('Your bid is:\n' + thisBid + '\n\nSubmit this bid?');
+        setConfirmBidDlg(true);
+      }
+    }
   };
 
   //************************************************************
   // functions handle Yes, No from ShowShakeDlg
   //************************************************************
   const handleShowShakeYes = () => {
+    myShowShakeRef.current = true;
+
     // Close the dialog
     setShowShakeDlg(false);
 
@@ -125,6 +157,8 @@ import ConfirmBidDlg from '../ConfirmBidDlg.js';
   };
 
   const handleShowShakeNo = () => {
+    myShowShakeRef.current = false;
+
     // Close the dialog
     setShowShakeDlg(false);
 
@@ -140,7 +174,14 @@ import ConfirmBidDlg from '../ConfirmBidDlg.js';
     setConfirmBidDlg(false);
 
     // Now send the bid to the server
-    socket.emit('bid', { lobbyId, bidText: thisBid, index: myIndex, name: myName });
+    socket.emit('bid', {
+      lobbyId,
+      bidText: thisBid,
+      bidShakeShow: myShowShakeRef.current,
+      index: myIndex,
+      name: myName,
+    });
+    
   };
 
   const handleConfirmBidNo = () => {
@@ -359,12 +400,16 @@ useEffect(() => {
     // Display cup and dice images
     //-------------------------------------------
 
-    const offset = 80;
+    const offset = 110;
 
     for (let p=0; p<ggc.numPlayers; p++) {
-      // draw and fill rectangle for player
+      // draw and fill rectangles for player
       ctx.fillStyle = 'white'
-      ctx.fillRect(20, 240 + p*offset, 290, 66);
+      ctx.fillRect(20, 240 + p*offset, 170, 66);
+      ctx.fillStyle = 'blue'
+      ctx.fillRect(20, 306 + p*offset, 170, 28);
+      ctx.strokeStyle = 'black'
+      ctx.strokeRect(20, 306 + p*offset, 170, 28);
 
       if (p == ggc.whosTurn) {
         ctx.lineWidth = 4;
@@ -373,29 +418,32 @@ useEffect(() => {
         ctx.lineWidth = 2;
         ctx.strokeStyle = 'black'
       }
-      ctx.strokeRect(20, 240 + p*offset, 290, 66);
+      ctx.strokeRect(20, 240 + p*offset, 170, 66 + 28);
       ctx.strokeStyle = 'black'
+      ctx.lineWidth = 2;
 
       // draw cup
       if (cupDownImageRef.current) {
         ctx.drawImage(cupDownImageRef.current, 25, 245 + p*offset, 40, 56);
       }
 
-      // draw dice under cup
+      // draw dice
       const diceImages = diceImagesRef.current;
-      for (let i = 0; i < 5; i++) {
 
-        if (p == myIndex) {
-          const value = ggc.dice[myIndex][i];
-          ctx.drawImage(diceImages[value], 70 + i*23, 278 + p*offset, 18, 18);
-        } else {
-          if (ggc.bDiceHidden[myIndex][i]) {
-            ctx.drawImage(diceHiddenImageRef.current, 70 + i*23, 278 + p*offset, 18, 18);
+      for (let i = 0; i < 5; i++) {
+        const value = ggc.dice[p][i];
+        if (ggc.bDiceHidden[p][i]) {
+          // hidden dice in upper box
+          if (p == myIndex) {
+            // if me, show the die
+            ctx.drawImage(diceImages[value], 70 + i*23, 278 + p*offset, 18, 18);
           } else {
-            // draw them "on the table" 
-//            const value = ggc.dice[myIndex][i];
-//            ctx.drawImage(diceImages[value], 70 + i*23, 278 + p*offset, 18, 18);
+            // if not me, show the empty box
+            ctx.drawImage(diceHiddenImageRef.current, 70 + i*23, 278 + p*offset, 18, 18);
           }
+        } else {
+          // shown dice in bottom box
+          ctx.drawImage(diceImages[value], 70 + i*23, 278 + p*offset + 33, 18, 18);
         }
       }
 
@@ -427,15 +475,15 @@ useEffect(() => {
     //-------------------------------------------
     // Display bid history
     //-------------------------------------------
-    ctx.fillText("Bidding History", 330, 500);
+    ctx.fillText("Bidding History", 210, 500);
     if (ggc.numBids === 0) {
-      ctx.fillText("(no bids yet)", 330, 520);
+      ctx.fillText("(no bids yet)", 210, 520);
     }
     if (ggc.numBids > 0) {
       for (let i=0; i<ggc.numBids; i++) {
         const name = ggc.allBids[i].playerName;
         const bid = ggc.allBids[i].text;
-        ctx.fillText(`${name}:  ${bid}`, 330, 520 + i*20);
+        ctx.fillText(`${name}:  ${bid}`, 210, 520 + i*20);
       }
     }
 
@@ -540,7 +588,7 @@ useEffect(() => {
                 ? `Doubt the PASO or top the bid ${ggc.allBids[ggc.FindLastNonPasoBid()].text}`
                 : ''
             }
-            style={{ left: 330, top: 240, position: 'absolute', zIndex: 1000 }}
+            style={{ left: 210, top: 240, position: 'absolute', zIndex: 1000 }}
           />
         </>
       )}

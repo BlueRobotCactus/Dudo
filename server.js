@@ -224,7 +224,7 @@ io.on('connection', (socket) => {
   // socket.on
   // PROCESS THE BID
   //************************************************************
-  socket.on('bid', ({ lobbyId, bidText, index, name }) => {
+  socket.on('bid', ({ lobbyId, bidText, bidShakeShow, index, name }) => {
 
     //-------------------------------------------------
     // add this bid to the bid array
@@ -240,20 +240,63 @@ io.on('connection', (socket) => {
       ggs.allBids[ptr].ofWhat = ggs.parsedOfWhat;
       ggs.allBids[ptr].bPaso = false;
       ggs.allBids[ptr].bDudo = false;
-      //ggs.allBids[ptr].shakeShow = myShowShake;   //&&& take care of this
+      ggs.allBids[ptr].bShakeShow = bidShakeShow;
     }
     if (bidText === "PASO") {
       ggs.allBids[ptr].bPaso = true;
       ggs.allBids[ptr].bDudo = false;
-      ggs.allBids[ptr].shakeShow = false;
+      ggs.allBids[ptr].bShakeShow = false;
       ggs.allPasoUsed[index] = true;
     }
     if (bidText === "DOUBT") {
       ggs.allBids[ptr].bPaso = false;
       ggs.allBids[ptr].bDudo = true;
-      ggs.allBids[ptr].shakeShow = false;
+      ggs.allBids[ptr].bShakeShow = false;
     }
     ggs.numBids++;
+
+    //----------------------------------------------------
+    // show and shake?
+    //----------------------------------------------------
+    ptr = ggs.numBids - 1;
+    if (ggs.allBids[ptr].bShakeShow) {
+        ggs.allBids[ptr].howManyShaken = 0;
+        for (let i = 0; i < 5; i++) {
+            ggs.allBids[ptr].bWhichShaken[i] = true;
+            ggs.allBids[ptr].bDiceHidden[i] = ggs.bDiceHidden[index][i];
+            if (ggs.bDiceHidden[index][i]) {
+                let die = ggs.dice[index][i];
+                if (ggs.bPaloFijoRound) {
+                    if (die == ggs.allBids[ptr].ofWhat) {
+                        // they just showed this one, don't shake it
+                        ggs.allBids[ptr].howManyShaken++;
+                        ggs.allBids[ptr].bWhichShaken[i] = false;
+                        ggs.allBids[ptr].bDiceHidden[i] = false;
+                        ggs.bDiceHidden[index][i] = false;
+                    }
+                    
+                } else {
+                    if ((die == ggs.allBids[ptr].ofWhat) || (die == 1)) {
+                        // they just showed this one, don't shake it
+                        ggs.allBids[ptr].howManyShaken++;
+                        ggs.allBids[ptr].bWhichShaken[i] = false;
+                        ggs.allBids[ptr].bDiceHidden[i] = false;
+                        ggs.bDiceHidden[index][i] = false;
+                    }
+                }
+            } else {
+                // die already showing, don't shake it
+                ggs.allBids[ptr].bWhichShaken[i] = false;
+            }
+        }
+        // shake
+        for (let i = 0; i < 5; i++) {
+            if (ggs.allBids[ptr].bWhichShaken[i]) {
+                const random = Math.floor(Math.random() * 6) + 1;
+                ggs.dice[ggs.allBids[ptr].playerIndex][i] = random;
+            }
+        }
+    }
 
     //-------------------------------------------------
     // keep going
@@ -302,7 +345,7 @@ io.on('connection', (socket) => {
     }
   });
   
-    //************************************************************
+  //************************************************************
   // socket.on
   // DISCONNECT
   //************************************************************
@@ -503,7 +546,7 @@ function StartRound (ggs) {
                 //int r = randomGenerator.nextInt(6) + 1;
                 ggs.dice[cc][j] = random;
                 ggs.bDiceHidden[cc][j] = true;
-              }
+            }
         }
     }
 /*    
