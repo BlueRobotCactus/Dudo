@@ -639,7 +639,7 @@ function PostRound(ggs) {
         // not out, loser of doubt goes first next round
         ggs.whosTurn = ggs.result.doubtLoser;
         // see if palofijo
-        if (ggs.bPaloFijoAllowed) {
+        if (ggs.bPaloFijoAllowed && ggs.GetNumberPlayersStillIn() > 2) {
             if (ggs.allSticks[ggs.result.doubtLoser] == ggs.maxSticks - 1) {
                 ggs.bPaloFijoRound = true;
             }
