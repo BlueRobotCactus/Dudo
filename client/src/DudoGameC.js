@@ -70,7 +70,7 @@ export class DudoGame {
         }
 
         // default game parameters
-        this.maxSticks = 3;
+        this.maxSticks = 1;
         this.bPasoAllowed = true;
         this.bPaloFijoAllowed = true;
         this.bPaloFijoRound =  false;
@@ -133,7 +133,7 @@ export class DudoGame {
 
         this.maxSticks = state.maxSticks;
         this.allSticks.length = 0;
-        for (let i=0; i<state.maxSticks; i++) {
+        for (let i=0; i<state.allSticks.length; i++) {
             this.allSticks[i] = state.allSticks[i];
         }
 
@@ -145,7 +145,7 @@ export class DudoGame {
         this.whosTurnPrev = state.whosTurnPrev;
         this.whosTurnNext = state.whosTurnNext;
         
-        for (let i=0; i<state.numPlayers; i++) {
+        for (let i=0; i<state.maxPlayers; i++) {
             for (let j=0; j<5; j++) {
                 this.dice[i][j] = state.dice[i][j];
                 this.bDiceHidden[i][j] = state.bDiceHidden[i][j];

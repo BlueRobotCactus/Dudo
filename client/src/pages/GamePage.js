@@ -6,6 +6,7 @@ import BidDlg from '../BidDlg';
 import PopupDialog from '../PopupDialog';
 import ShowShakeDlg from '../ShowShakeDlg.js';
 import ConfirmBidDlg from '../ConfirmBidDlg.js';
+import { CONNECTION_UNUSED, CONNECTION_PLAYER_IN, CONNECTION_PLAYER_OUT, CONNECTION_OBSERVER } from '../DudoGameC.js';
 
   //************************************************************
   // GamePage function
@@ -412,13 +413,21 @@ useEffect(() => {
 
     const offset = 110;
 
-    for (let p=0; p<ggc.numPlayers; p++) {
+    for (let p=0; p<ggc.maxConnections; p++) {
+      if (ggc.allConnectionStatus[p] == CONNECTION_UNUSED) {
+        continue;
+      }
+
       // draw and fill rectangles for player
-      ctx.fillStyle = 'white'
+      if (ggc.allConnectionStatus[p] == CONNECTION_PLAYER_OUT) {
+        ctx.fillStyle = 'lightgray';
+      } else {
+        ctx.fillStyle = 'white';
+      }
       ctx.fillRect(20, 240 + p*offset, 170, 66);
-      ctx.fillStyle = 'blue'
+      ctx.fillStyle = 'blue';
       ctx.fillRect(20, 306 + p*offset, 170, 28);
-      ctx.strokeStyle = 'black'
+      ctx.strokeStyle = 'black';
       ctx.strokeRect(20, 306 + p*offset, 170, 28);
 
       if (p == ggc.whosTurn) {
@@ -433,27 +442,34 @@ useEffect(() => {
       ctx.lineWidth = 2;
 
       // draw cup
-      if (cupDownImageRef.current) {
-        ctx.drawImage(cupDownImageRef.current, 25, 245 + p*offset, 40, 56);
+      if (ggc.allConnectionStatus[p] == CONNECTION_PLAYER_OUT) {
+        ctx.drawImage(cupUpImageRef.current, 25, 245 + p*offset, 40, 56);
+      } else {
+        if (cupDownImageRef.current) {
+          ctx.drawImage(cupDownImageRef.current, 25, 245 + p*offset, 40, 56);
+        }
       }
 
       // draw dice
-      const diceImages = diceImagesRef.current;
-
-      for (let i = 0; i < 5; i++) {
-        const value = ggc.dice[p][i];
-        if (ggc.bDiceHidden[p][i]) {
-          // hidden dice in upper box
-          if (p == myIndex) {
-            // if me, show the die
-            ctx.drawImage(diceImages[value], 70 + i*23, 278 + p*offset, 18, 18);
+      if (ggc.allConnectionStatus[p] == CONNECTION_PLAYER_OUT) {
+        // this player is out out; do nothing
+      } else {
+        const diceImages = diceImagesRef.current;
+        for (let i = 0; i < 5; i++) {
+          const value = ggc.dice[p][i];
+          if (ggc.bDiceHidden[p][i]) {
+            // hidden dice in upper box
+            if (p == myIndex) {
+              // if me, show the die
+              ctx.drawImage(diceImages[value], 70 + i*23, 278 + p*offset, 18, 18);
+            } else {
+              // if not me, show the empty box
+              ctx.drawImage(diceHiddenImageRef.current, 70 + i*23, 278 + p*offset, 18, 18);
+            }
           } else {
-            // if not me, show the empty box
-            ctx.drawImage(diceHiddenImageRef.current, 70 + i*23, 278 + p*offset, 18, 18);
+            // shown dice in bottom box
+            ctx.drawImage(diceImages[value], 70 + i*23, 278 + p*offset + 33, 18, 18);
           }
-        } else {
-          // shown dice in bottom box
-          ctx.drawImage(diceImages[value], 70 + i*23, 278 + p*offset + 33, 18, 18);
         }
       }
 
