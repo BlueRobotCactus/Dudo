@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useLocation } from 'react-router-dom';
-import socket from '../socket';
+import { useContext } from 'react';
+import { SocketContext } from '../SocketContext.js';
 import { DudoGame } from '../DudoGameC.js'
 import BidDlg from '../BidDlg';
 import PopupDialog from '../PopupDialog';
@@ -13,6 +14,9 @@ import { CONNECTION_UNUSED, CONNECTION_PLAYER_IN, CONNECTION_PLAYER_OUT, CONNECT
   //************************************************************
   function GamePage() {
     console.log("GamePage: entering GamePage ()");
+
+    // get our socket id
+    const { socket, socketId, connected } = useContext(SocketContext);
 
     // routing params
     const { lobbyId } = useParams();
@@ -29,7 +33,6 @@ import { CONNECTION_UNUSED, CONNECTION_PLAYER_IN, CONNECTION_PLAYER_OUT, CONNECT
     const [possibleBids, setPossibleBids] = useState([]);
 
     const [myIndex, setMyIndex] = useState(0);
-    const [mySocketId, setMySocketId] = useState();
     const [myName, setMyName] = useState('');
     const [isMyTurn, setIsMyTurn] = useState(false);
     const [whosTurnName, setWhosTurnName] = useState('');
@@ -52,9 +55,38 @@ import { CONNECTION_UNUSED, CONNECTION_PLAYER_IN, CONNECTION_PLAYER_OUT, CONNECT
     const diceHiddenImageRef = useRef({});
     const myShowShakeRef = useRef(false);
     
-    const handleGameStarted = (data) => {
+    const handleGameStarted = ({ lobbyId, gameState }) => {
       console.log("GamePage: entering function: handleGameStarted");
+      setGameState(gameState);
+      ggc.AssignGameState(gameState);
     };
+
+  //************************************************************
+  // useEffect:  Ask for latest game state on mount
+  //             Trigger: [socket, lobbyId]
+  //************************************************************
+  useEffect(() => {
+    if (socket && lobbyId) {
+      console.log("GamePage: requesting latest lobby/game state");
+      if (connected) {
+        socket.emit('getLobbyData', lobbyId, (lobby) => {
+          if (lobby && lobby.game) {
+            console.log("GamePage: received lobby/game after manual request");
+            setGameState(lobby.game);
+            ggc.AssignGameState(lobby.game);
+    
+            const stringSocketId = String(socketId);  //&&&
+            const index = ggc.allConnectionID.indexOf(stringSocketId);
+            setMyIndex (index);
+            setMyName (ggc.allParticipantNames[index]);
+        
+          } else {
+            console.warn("GamePage: Failed to get lobby/game data!");
+          }
+        });
+      }
+    }
+  }, [socket, lobbyId]);
 
   //************************************************************
   // function handleGameStateUpdate
@@ -66,7 +98,7 @@ import { CONNECTION_UNUSED, CONNECTION_PLAYER_IN, CONNECTION_PLAYER_OUT, CONNECT
 
     // is it my turn to bid?
     const whosTurnSocketId = ggc.allConnectionID[ggc.whosTurn];
-    const stringSocketId = String(window.mySocketId);
+    const stringSocketId = String(socketId);  //&&&
     if (whosTurnSocketId.toString() === stringSocketId) {
       setIsMyTurn (true);
     } else {
@@ -179,14 +211,15 @@ import { CONNECTION_UNUSED, CONNECTION_PLAYER_IN, CONNECTION_PLAYER_OUT, CONNECT
     setConfirmBidDlg(false);
 
     // Now send the bid to the server
-    socket.emit('bid', {
-      lobbyId,
-      bidText: thisBid,
-      bidShakeShow: myShowShakeRef.current,
-      index: myIndex,
-      name: myName,
-    });
-    
+    if (connected) {
+      socket?.emit('bid', {
+        lobbyId,
+        bidText: thisBid,
+        bidShakeShow: myShowShakeRef.current,
+        index: myIndex,
+        name: myName,
+      });
+    }
   };
 
   const handleConfirmBidNo = () => {
@@ -196,29 +229,17 @@ import { CONNECTION_UNUSED, CONNECTION_PLAYER_IN, CONNECTION_PLAYER_OUT, CONNECT
     setBidDlg(true); // start over
   };
   
-
-  //************************************************************
-  // useEffect:  Get socket my socket id
-  //             Trigger: []
-  //
-  //************************************************************
-  useEffect(() => {
-    console.log("GamePage: useEffect [] setMySocketId");
-    // Just read the global value (if you stored it like window.mySocketId)
-    if (window.mySocketId) {
-      setMySocketId(window.mySocketId);
-    } else {
-      // OR, fallback: check directly from socket.id
-      setMySocketId(socket.id);
-    }
-  }, []);
-  
   //************************************************************
   // useEffect:  Turn listeners on 
-  //             Trigger: []
+  //             Trigger: [socket]
   //************************************************************
   useEffect(() => {
-    console.log("GamePage: useEffect [lobbyId] socket.on");
+    if (!socket || !connected) {
+      console.log("GamePage: socket not ready yet, skipping socket.on setup");
+      return;
+    }
+  
+    console.log("GamePage: useEffect [] registering socket listeners");
 
     socket.on('gameStarted', handleGameStarted);
     socket.on('gameStateUpdate', handleGameStateUpdate);
@@ -229,7 +250,7 @@ import { CONNECTION_UNUSED, CONNECTION_PLAYER_IN, CONNECTION_PLAYER_OUT, CONNECT
       socket.off('gameStateUpdate', handleGameStateUpdate);
       socket.off('gameOver', handleGameOver);
     };
-  }, []); 
+  }, [socket, connected]); 
 
   //************************************************************
   // useEffect:  Handle window resize
@@ -327,29 +348,59 @@ import { CONNECTION_UNUSED, CONNECTION_PLAYER_IN, CONNECTION_PLAYER_OUT, CONNECT
 useEffect(() => {
   console.log("GamePage: useEffect [lobbyId] 'getLobbyData' with callback");
 
-  socket.emit('getLobbyData', lobbyId, (lobby) => {
-    console.log ("GamePage.js: useEffect callback from getLobbyData");
-    setGameState(lobby.game);
-    setLobbyPlayers(lobby.players);
-
-    ggc.AssignGameState(lobby.game);
-
-    // is it my turn to bid?
-    const whosTurnSocketId = ggc.allConnectionID[ggc.whosTurn];
-    const stringSocketId = String(window.mySocketId);
-    if (whosTurnSocketId.toString() === stringSocketId) {
-      setIsMyTurn (true);
-    } else {
-      setIsMyTurn (false);
-    }
-
-    setWhosTurnName(ggc.allParticipantNames[ggc.whosTurn]);
-    const index = ggc.allConnectionID.indexOf(stringSocketId);
-    setMyIndex(index);
-    setMyName (ggc.allParticipantNames[index]);
-  });
+  if (connected) {
+    socket?.emit('getLobbyData', lobbyId, (lobby) => {
+      console.log ("GamePage.js: useEffect callback from getLobbyData");
+      setGameState(lobby.game);
+      setLobbyPlayers(lobby.players);
+  
+      ggc.AssignGameState(lobby.game);
+  
+      // is it my turn to bid?
+      const whosTurnSocketId = ggc.allConnectionID[ggc.whosTurn];
+      const stringSocketId = String(socketId);
+      if (whosTurnSocketId.toString() === stringSocketId) {
+        setIsMyTurn (true);
+      } else {
+        setIsMyTurn (false);
+      }
+  
+      setWhosTurnName(ggc.allParticipantNames[ggc.whosTurn]);
+  
+      const index = ggc.allConnectionID.indexOf(stringSocketId);
+      setMyIndex(index);
+      setMyName (ggc.allParticipantNames[index]);
+    });
+  }
 }, [lobbyId]);
   
+//************************************************************
+// useEffect:  socket re-connect
+//             Trigger:  [socket, lobbyId, myName]
+//************************************************************
+useEffect(() => {
+  if (!socket) {
+    console.log("GamePage: socket not ready yet, skipping connect handler setup");
+    return;
+  }
+
+  function handleReconnect() {
+    if (lobbyId && myName) {
+      console.log("GamePage: socket reconnected, rejoining lobby");
+      if (connected) socket.emit('rejoinLobby', { lobbyId, playerName: myName });
+    }
+  }
+
+  console.log("GamePage: setting up socket.on('connect') for reconnect handling");
+  socket.on('connect', handleReconnect);
+
+  return () => {
+    console.log("GamePage: cleaning up socket.on('connect')");
+    socket.off('connect', handleReconnect);
+  };
+}, [socket, lobbyId, myName]);
+
+
 //************************************************************
 // useEffect:  Draw on canvas
 //             Trigger:  [gameState, lobbyPlayers, isMyTurn, screenSize]
@@ -364,9 +415,6 @@ useEffect(() => {
       console.log("GamePage: useEffect IMAGES ARE NOT LOADED YET");
       return;
     }
-
-    // set this every time in case it has changed
-    setMySocketId(window.mySocketId);
 
     //-------------------------------------------
     // prepare canvas
@@ -397,7 +445,7 @@ useEffect(() => {
     }
 
     // Display your name
-    ctx.fillText(`Your name: ${myName} (id = ${mySocketId})`, 20, 80);
+    ctx.fillText(`Your name: ${myName} (id = ${socketId})`, 20, 80);
 
     // Display current turn
     ctx.fillText(`Current turn: ${whosTurnName}`, 20, 120);
@@ -586,7 +634,7 @@ useEffect(() => {
     } else {
       setBidDlg(false); // optional: auto-close when it's no longer their turn
     }
-  }, [gameState, lobbyPlayers, isMyTurn, screenSize, imagesReady]);
+  }, [gameState, lobbyPlayers, isMyTurn, screenSize, imagesReady, socketId]);
 
 
   //************************************************************

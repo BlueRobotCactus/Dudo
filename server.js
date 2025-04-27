@@ -31,9 +31,6 @@ const io = new Server(server, {
 app.use(cors());
 app.use(express.json());
 
-// THE DudoGame object
-var theGame;
-
 // Serve all the static files in the React app's build folder
 app.use(express.static(path.join(__dirname, 'client', 'build')));
 
@@ -72,12 +69,13 @@ io.on('connection', (socket) => {
   //************************************************************
   socket.on('createLobby', (hostName, callback) => {
     const lobbyId = uuidv4();
+    const newGame = new DudoGame();
     lobbies[lobbyId] = {
       id: lobbyId,
       host: hostName,
       hostSocketId: socket.id,
       players: [{ id: socket.id, name: hostName }],
-      game: { bRoundInProgress: false }, // We'll store game data here
+      game: newGame,
     };
 
     socket.join(lobbyId);
@@ -149,33 +147,32 @@ io.on('connection', (socket) => {
 
       console.log(`Game started in lobby: ${lobbyId}`);
 
-      theGame = new DudoGame();
-      lobby.game = theGame;
-      lobby.game.bRoundInProgress = true;
-      lobby.game.whosTurn = 0;
+      const ggs = lobby.game;
+      ggs.bRoundInProgress = true;
+      ggs.whosTurn = 0;
 
       // init connnection stuff from java - &&& fix up later
-      lobby.game.maxConnections = 10;  // &&&for now
+      ggs.maxConnections = 10;  // &&&for now
       for (let i=0; i<lobby.game.maxConnections; i++) {
-        lobby.game.allConnectionStatus[i] = CONNECTION_UNUSED;
+        ggs.allConnectionStatus[i] = CONNECTION_UNUSED;
       }
 
       // load player names from lobby
-      lobby.game.numPlayers = lobby.players.length;
+      ggs.numPlayers = lobby.players.length;
       for (let i=0; i<lobby.players.length; i++) {
-        lobby.game.allParticipantNames[i] = lobby.players[i].name;
+        ggs.allParticipantNames[i] = lobby.players[i].name;
         // deal with connection status later (player vs. observer)
-        lobby.game.allConnectionStatus[i] = CONNECTION_PLAYER_IN;
-        lobby.game.allConnectionID[i] = lobby.players[i].id;
+        ggs.allConnectionStatus[i] = CONNECTION_PLAYER_IN;
+        ggs.allConnectionID[i] = lobby.players[i].id;
       }
 
-      StartGame(lobby.game);
+      StartGame(ggs);
 
       // Emit to all players in the lobby
       //&&& do we need this?
       io.to(lobbyId).emit('gameStarted', {
         lobbyId,
-        gameState: lobby.game,
+        gameState: ggs,
       });
       console.log("server.js: emitting 'gameStarted'");
     }
@@ -216,8 +213,32 @@ io.on('connection', (socket) => {
       io.to(lobbyId).emit('lobbyData', lobby);
     }
 
-    // Update list
     io.emit('lobbiesList', getLobbiesList());
+  });
+
+  //************************************************************
+  // socket.on
+  // REJOIN LOBBY (after re-connect)
+  //************************************************************
+  socket.on('rejoinLobby', ({ lobbyId, playerName }) => {
+
+    const lobby = lobbies[lobbyId];
+    if (!lobby) return;                 // stale tab or wrong id
+
+    // replace or add this player entry
+    const idx = lobby.players.findIndex(p => p.name === playerName);
+    if (idx !== -1) {
+      lobby.players[idx].id = socket.id;  // swap old id → new id
+      console.log("server.js: 'rejoinLobby' swapping old id -> new id for index " + idx);
+    } else {
+      lobby.players.push({ id: socket.id, name: playerName });
+      console.log("server.js: 'rejoinLobby' adding a player " + playerName);
+    }
+
+    socket.join(lobbyId);               // (re)enter the room
+    io.to(lobbyId).emit('lobbyData', lobby); // let everyone refresh
+
+    io.emit('lobbiesList', getLobbiesList());    
   });
 
   //************************************************************
@@ -225,11 +246,12 @@ io.on('connection', (socket) => {
   // PROCESS THE BID
   //************************************************************
   socket.on('bid', ({ lobbyId, bidText, bidShakeShow, index, name }) => {
+    const lobby = lobbies[lobbyId];
+    const ggs = lobby.game;
 
     //-------------------------------------------------
     // add this bid to the bid array
     //-------------------------------------------------
-    const ggs = theGame;
     let ptr = ggs.numBids;
     ggs.allBids[ptr].text = bidText;
     ggs.allBids[ptr].playerIndex = index;
@@ -301,7 +323,6 @@ io.on('connection', (socket) => {
     //-------------------------------------------------
     // keep going
     //-------------------------------------------------
-    const lobby = lobbies[lobbyId];
     if (!lobby || !lobby.game || !lobby.game.bRoundInProgress) return;
 
     if (bidText === "DOUBT") {

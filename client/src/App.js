@@ -15,12 +15,12 @@ import LobbyPage from './pages/LobbyPage';
 import GamePage from './pages/GamePage';
 
 function App() {
-  // Initialize from localStorage, or empty if nothing's there
+  // Initialize from localStorage, or empty string if nothing
   const [playerName, setPlayerName] = useState(
     () => localStorage.getItem('playerName') || ''
   );
 
-  // Helper to keep both localStorage and state in sync
+  // Helper to update localStorage and state
   const savePlayerName = (name) => {
     localStorage.setItem('playerName', name);
     setPlayerName(name);
@@ -32,18 +32,15 @@ function App() {
         <Route
           path="/"
           element={
-            // If no name, go to EnterNamePage
             playerName
               ? <LandingPage playerName={playerName} />
               : <Navigate to="/enter-name" />
           }
         />
-
         <Route
           path="/enter-name"
           element={<EnterNamePage onNameSubmitted={savePlayerName} />}
         />
-
         <Route path="/lobby/:lobbyId" element={<LobbyPage />} />
         <Route path="/game/:lobbyId" element={<GamePage />} />
       </Routes>

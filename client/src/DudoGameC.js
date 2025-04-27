@@ -52,7 +52,7 @@ export class DudoGame {
     possibleBids = [];
     numPossibleBids;
 
-    result = new DoubtResult;
+    result = new DoubtResult();
     bWinnerRound;
 
     bWinnerGame;
@@ -106,6 +106,12 @@ export class DudoGame {
 
         console.log('DudoGameC: Entering AssignGameSate()');
 
+        // Guard against invalid state
+        if (!state || typeof state !== 'object' || Object.keys(state).length === 0) {
+            console.error('AssignGameState: Received invalid or empty state:', state);
+            return;
+        }
+
         this.maxConnections = state.maxConnections;
         for (let i=0; i<state.maxConnections; i++) {
             this.allConnectionStatus[i] = state.allConnectionStatus[i];
@@ -144,7 +150,7 @@ export class DudoGame {
         this.whosTurn = state.whosTurn;
         this.whosTurnPrev = state.whosTurnPrev;
         this.whosTurnNext = state.whosTurnNext;
-        
+
         for (let i=0; i<state.maxPlayers; i++) {
             for (let j=0; j<5; j++) {
                 this.dice[i][j] = state.dice[i][j];

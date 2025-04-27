@@ -1,30 +1,41 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import socket from '../socket'; // The shared socket instance
+import { useContext } from 'react';
+import { SocketContext } from '../SocketContext.js';
 
 function LandingPage({ playerName }) {
   const navigate = useNavigate();
   const [lobbies, setLobbies] = useState([]);
 
+  // get our socket id
+  const { socket, connected } = useContext(SocketContext);
+  
   // Fetch the lobbies once the component mounts
   useEffect(() => {
+    if (!connected) {
+      console.log("LandingPage: socket not connected yet");
+      return;
+    }
+  
+    console.log("LandingPage: socket is connected, setting up lobbies");
+  
     fetch('/api/lobbies')
       .then((res) => res.json())
       .then((data) => setLobbies(data))
       .catch((err) => console.error(err));
-
-    // Listen for updates from the server
+  
     socket.on('lobbiesList', (updatedList) => {
       setLobbies(updatedList);
     });
-
-    // Clean up event listener on unmount
+  
     return () => {
       socket.off('lobbiesList');
     };
-  }, []);
-
+  }, [connected, socket]);
+  
   const handleCreateLobby = () => {
+    if (!connected) return;
+    
     if (!playerName) {
       alert('No player name found.');
       return;
@@ -70,7 +81,9 @@ function LandingPage({ playerName }) {
         <button onClick={handleChangeName}>Change Name</button>
       </h1>
 
-      <button onClick={handleCreateLobby}>Create Lobby</button>
+      <button onClick={handleCreateLobby} disabled={!connected}>
+        Create Lobby
+      </button>
 
       <h2>Available Lobbies (v2)</h2>
       {lobbies.length === 0 && <p>No lobbies yet</p>}

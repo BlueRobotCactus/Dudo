@@ -1,11 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import { useLocation, useParams, useNavigate } from 'react-router-dom';
-import socket from '../socket'; // Use shared socket instance
+import { useContext } from 'react';
+import { SocketContext } from '../SocketContext.js';
 
 function LobbyPage() {
   const { lobbyId } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
+
+  // get our socket id
+  const { socket, socketId, connected } = useContext(SocketContext);
 
   // The user’s name passed from LandingPage (for display + server logic)
   const playerName = location.state?.playerName || '';
@@ -14,6 +18,13 @@ function LobbyPage() {
   const [lobbyData, setLobbyData] = useState({ players: [] });
 
   useEffect(() => {
+    // 0. Make sure socket is ready
+    if (!socket || !connected) {
+      console.log('LobbyPage: socket not connected yet');
+      return;
+    }
+    console.log("LobbyPage: setting up socket handlers");
+
     // 1. Get initial lobby data
     socket.emit('getLobbyData', lobbyId, (data) => {
       if (data && !data.error) {
@@ -46,10 +57,11 @@ function LobbyPage() {
       socket.off('lobbyData', handleLobbyData);
       socket.off('gameStarted', handleGameStarted);
     };
-  }, [lobbyId, navigate]);
+  }, [socket, connected, lobbyId, navigate]);
 
   // Determine if you're host by comparing your socket.id to the stored hostSocketId
-  const isHost = lobbyData.hostSocketId === socket.id;
+//&&&  const isHost = lobbyData.hostSocketId === socket.id;
+  const isHost = lobbyData.hostSocketId === socketId;
 
   // Host sees "Your Lobby", others see "HostName's Lobby"
   const lobbyTitle = isHost
@@ -58,12 +70,12 @@ function LobbyPage() {
 
   // Click: Host starts game
   const handleStartGame = () => {
-    socket.emit('startGame', lobbyId);
+    if (connected) socket.emit('startGame', lobbyId);
   };
 
   // Click: Leave Lobby
   const handleLeaveLobby = () => {
-    socket.emit('leaveLobby', { playerName, lobbyId });
+    if (connected) socket.emit('leaveLobby', { playerName, lobbyId });
     navigate('/');
   };
 
@@ -81,7 +93,9 @@ function LobbyPage() {
       </ul>
 
       {isHost && (
-        <button onClick={handleStartGame}>Start Game</button>
+        <button onClick={handleStartGame} disabled={!connected}>
+          Start Game
+        </button>
       )}
 
       <button onClick={handleLeaveLobby} style={{ marginTop: '10px' }}>
