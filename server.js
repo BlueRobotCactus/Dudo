@@ -3,7 +3,8 @@
 import { DudoGame } from './DudoGameS.js';
 import { DudoBid } from './DudoBidS.js';
 
-import { CONNECTION_UNUSED, CONNECTION_PLAYER_IN, CONNECTION_PLAYER_OUT, CONNECTION_OBSERVER } from './DudoGameS.js';
+import { CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYER_LEFT,
+  CONN_PLAYER_IN_DISCONN, CONN_PLAYER_OUT_DISCONN, CONN_OBSERVER_DISCONN } from './DudoGameS.js';
 
 import express from 'express';
 import path from 'path';
@@ -41,12 +42,8 @@ const lobbies = {
       id: lobbyId,
       host: 'Host Name',
       hostSocketId: 'socketID',
-      players: [{ id: 'socketID', name: 'PlayerName' }, ...],
-      game: {
-        bRoundInProgress: false,
-        whosTurn: 0, 
-        // other game-specific fields...
-      }
+      players: [{ id: 'socketID', name: 'PlayerName' }, ...], // matches with sockets that socket.io has in the room
+      game:  DudoGame object
     }
   */
 };
@@ -68,18 +65,32 @@ io.on('connection', (socket) => {
   // CREATE LOBBY
   //************************************************************
   socket.on('createLobby', (hostName, callback) => {
+
+    const ggs = new DudoGame();
+
+    ggs.maxConnections = 10;  // &&&for now
+    for (let i=0; i<ggs.maxConnections; i++) {
+      ggs.allConnectionStatus[i] = CONN_UNUSED;
+    }
+
     const lobbyId = uuidv4();
-    const newGame = new DudoGame();
     lobbies[lobbyId] = {
       id: lobbyId,
       host: hostName,
       hostSocketId: socket.id,
       players: [{ id: socket.id, name: hostName }],
-      game: newGame,
+      game: ggs,
     };
+
+    // add host to lobby
+    ggs.allParticipantNames[0] = hostName;
+    ggs.allConnectionID[0] = socket.id;
+    ggs.allConnectionStatus[0] = CONN_PLAYER_IN;
+    ggs.numPlayers = 1;
 
     socket.join(lobbyId);
     console.log(`Lobby created: ${lobbyId} by host: ${hostName}`);
+    console.log(`${hostName} joined lobby: ${lobbyId}`);
 
     // Respond back to creator
     if (callback) {
@@ -98,9 +109,37 @@ io.on('connection', (socket) => {
     const { lobbyId, playerName } = data;
     const lobby = lobbies[lobbyId];
     if (lobby) {
-      // Add new player
-      lobby.players.push({ id: socket.id, name: playerName });
-      socket.join(lobbyId);
+
+      // reconcile with DudoGame object
+      const ggs = lobby.game;
+      const index = ggs.allParticipantNames.indexOf(playerName);  // lookup by name
+      if (index == -1) {
+        // new player (not reconnecting); add him
+        lobby.players.push({ id: socket.id, name: playerName });
+        socket.join(lobbyId);
+
+        let len = ggs.allParticipantNames.length;
+        ggs.allParticipantNames[len] = playerName;
+        ggs.allConnectionID[len] = socket.id;
+        ggs.allConnectionStatus[len] = CONN_PLAYER_IN;
+        ggs.numPlayers = len + 1;
+      } else {
+
+        console.log ('joinLobby, PLAYER FOUND.THIS SHOULD NEVER HAPPEN, DELETE LATER &&&');
+
+        // player is in lobby, re-connect him
+        ggs.allConnectionID[index] = socket.id;
+
+        if (ggs.allConnectionStatus[index] == CONN_PLAYER_IN_DISCONN) {
+          ggs.allConnectionStatus[index] = CONN_PLAYER_IN;
+        }
+        if (ggs.allConnectionStatus[index] == CONN_PLAYER_OUT_DISCONN) {
+          ggs.allConnectionStatus[index] = CONN_PLAYER_OUT;
+        }
+        if (ggs.allConnectionStatus[index] == CONN_OBSERVER_DISCONN) {
+          ggs.allConnectionStatus[index] = CONN_OBSERVER;
+        }
+      }
 
       console.log(`${playerName} joined lobby: ${lobbyId}`);
 
@@ -142,6 +181,9 @@ io.on('connection', (socket) => {
     const lobby = lobbies[lobbyId];
     if (!lobby) return;
 
+    // for debugging:  show what sockets are actually in the room
+    io.in(lobbyId).fetchSockets().then(sockets => console.log(`Lobby ${lobbyId} has ${sockets.length} sockets:`, sockets.map(s => s.id)));
+
     // Only the host can start the game
     if (lobby.hostSocketId === socket.id) {
 
@@ -151,20 +193,17 @@ io.on('connection', (socket) => {
       ggs.bRoundInProgress = true;
       ggs.whosTurn = 0;
 
-      // init connnection stuff from java - &&& fix up later
-      ggs.maxConnections = 10;  // &&&for now
-      for (let i=0; i<lobby.game.maxConnections; i++) {
-        ggs.allConnectionStatus[i] = CONNECTION_UNUSED;
-      }
-
+    //&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
+/*      
       // load player names from lobby
       ggs.numPlayers = lobby.players.length;
       for (let i=0; i<lobby.players.length; i++) {
         ggs.allParticipantNames[i] = lobby.players[i].name;
         // deal with connection status later (player vs. observer)
-        ggs.allConnectionStatus[i] = CONNECTION_PLAYER_IN;
+        ggs.allConnectionStatus[i] = CONN_PLAYER_IN;
         ggs.allConnectionID[i] = lobby.players[i].id;
       }
+*/
 
       StartGame(ggs);
 
@@ -181,6 +220,7 @@ io.on('connection', (socket) => {
   //************************************************************
   // socket.on
   // LEAVE LOBBY
+  // (only from LobbyPage, never from GamePage)
   //************************************************************
   socket.on('leaveLobby', ({ playerName, lobbyId }) => {
     const lobby = lobbies[lobbyId];
@@ -190,6 +230,7 @@ io.on('connection', (socket) => {
     const playerIndex = lobby.players.findIndex((p) => p.id === socket.id);
     if (playerIndex === -1) return;
 
+    socket.leave(lobbyId);
     const [removedPlayer] = lobby.players.splice(playerIndex, 1);
 
     // If the removed player was the host
@@ -210,6 +251,7 @@ io.on('connection', (socket) => {
       }
     } else {
       // Non-host left
+      console.log(`${playerName} left lobby: ${lobbyId}`);
       io.to(lobbyId).emit('lobbyData', lobby);
     }
 
@@ -220,7 +262,7 @@ io.on('connection', (socket) => {
   // socket.on
   // REJOIN LOBBY (after re-connect)
   //************************************************************
-  socket.on('rejoinLobby', ({ lobbyId, playerName }) => {
+  socket.on('rejoinLobby', ({ lobbyId, playerName, id }, callback) => {
 
     const lobby = lobbies[lobbyId];
     if (!lobby) return;                 // stale tab or wrong id
@@ -231,14 +273,67 @@ io.on('connection', (socket) => {
       lobby.players[idx].id = socket.id;  // swap old id → new id
       console.log("server.js: 'rejoinLobby' swapping old id -> new id for index " + idx);
     } else {
+
+      // THIS SHOULD NEVER HAPPEN, REMOVE LATER
+
       lobby.players.push({ id: socket.id, name: playerName });
       console.log("server.js: 'rejoinLobby' adding a player " + playerName);
     }
+
+//&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
+    // reconcile with DudoGame object
+    const ggs = lobby.game;
+    const index = ggs.allParticipantNames.indexOf(playerName);  // lookup by name
+    if (index == -1) {
+
+      console.log ('rejoinLobby, PLAYER NOT FOUND. HIS SHOULD NEVER HAPPEN, DELETE LATER&&&');
+
+      // new player (not reconnecting); add him
+      lobby.players.push({ id: socket.id, name: playerName });
+      socket.join(lobbyId);
+
+      let len = ggs.allParticipantNames.length;
+      ggs.allParticipantNames[len] = playerName;
+      ggs.allConnectionID[len] = socket.id;
+      ggs.allConnectionStatus[len] = CONN_PLAYER_IN;
+      ggs.numPlayers = len + 1;
+    } else {
+      // player is in lobby, re-connect him
+      console.log ("server.js: 'rejoinLobby' resetting DudoGame for ", playerName);
+
+      ggs.allConnectionID[index] = id;
+
+      if (ggs.allConnectionStatus[index] == CONN_PLAYER_IN_DISCONN) {
+        ggs.allConnectionStatus[index] = CONN_PLAYER_IN;
+      }
+      if (ggs.allConnectionStatus[index] == CONN_PLAYER_OUT_DISCONN) {
+        ggs.allConnectionStatus[index] = CONN_PLAYER_OUT;
+      }
+      if (ggs.allConnectionStatus[index] == CONN_OBSERVER_DISCONN) {
+        ggs.allConnectionStatus[index] = CONN_OBSERVER;
+      }
+
+      // for debugging:  show what sockets are actually in the room
+      io.in(lobbyId).fetchSockets().then(sockets => console.log(`Lobby ${lobbyId} has ${sockets.length} sockets:`, sockets.map(s => s.id)));
+
+    }
+
+//&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
+
 
     socket.join(lobbyId);               // (re)enter the room
     io.to(lobbyId).emit('lobbyData', lobby); // let everyone refresh
 
     io.emit('lobbiesList', getLobbiesList());    
+
+    // Send back current lobby state via callback
+    if (callback) {
+      callback({
+        players: lobby.players,
+        game: lobby.game
+      });
+    }
+
   });
 
   //************************************************************
@@ -381,6 +476,21 @@ io.on('connection', (socket) => {
       if (playerIndex !== -1) {
         const [removedPlayer] = lobby.players.splice(playerIndex, 1);
 
+        // look for player in DuDoGame object, mark disconnected
+        const ggs = lobby.game;
+        const index = ggs.allParticipantNames.indexOf(removedPlayer.name);
+        if (index != -1) {
+          if (ggs.allConnectionStatus[index] == CONN_PLAYER_IN) {
+            ggs.allConnectionStatus[index] = CONN_PLAYER_IN_DISCONN;
+          }
+          if (ggs.allConnectionStatus[index] == CONN_PLAYER_OUT) {
+            ggs.allConnectionStatus[index] = CONN_PLAYER_OUT_DISCONN;
+          }
+          if (ggs.allConnectionStatus[index] == CONN_OBSERVER) {
+            ggs.allConnectionStatus[index] = CONN_OBSERVER_DISCONN;
+          }
+        }
+
         if (removedPlayer.id === lobby.hostSocketId) {
           // The host disconnected
           if (lobby.players.length > 0) {
@@ -467,17 +577,20 @@ function StartGame (ggs) {
       ggs.allSticks[i] = 0;
   }
 
+  //&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
+/*  
   //------------------------------------------------------------
   // put all players in
   // (must do after 1st game of session)
   //------------------------------------------------------------
   ggs.numPlayers = 0;
   for (let cc = 0; cc < ggs.maxConnections; cc++) {
-      if (ggs.allConnectionStatus[cc] != CONNECTION_UNUSED) {
-          ggs.allConnectionStatus[cc] = CONNECTION_PLAYER_IN;
+      if (ggs.allConnectionStatus[cc] != CONN_UNUSED) {
+          ggs.allConnectionStatus[cc] = CONN_PLAYER_IN;
           ggs.numPlayers++;
       }
   }
+*/
 
   // &&& set direction for now
   ggs.whichDirection = 0;
@@ -488,7 +601,7 @@ function StartGame (ggs) {
   // (must do after 1st game of session)
   //------------------------------------------------------------
   for (int cc = 0; cc < maxConnections; cc++) {
-      if (ggs.allConnectionStatus[cc] != CONNECTION_UNUSED) {
+      if (ggs.allConnectionStatus[cc] != CONN_UNUSED) {
           playerConnection[cc].sendAllConnectionStatus();
       }
   }
@@ -496,7 +609,7 @@ function StartGame (ggs) {
   // tell everybody that game is starting
   //------------------------------------------------------------
   for (int cc = 0; cc < maxConnections; cc++) {
-      if (ggs.allConnectionStatus[cc] != CONNECTION_UNUSED) {
+      if (ggs.allConnectionStatus[cc] != CONN_UNUSED) {
           playerConnection[cc].sendStartGame();
       }
   }
@@ -516,7 +629,7 @@ function StartRound (ggs) {
     // tell all players we're starting
     //------------------------------------------------------------
     for (int cc = 0; cc < ggs.maxPlayers; cc++) {
-        if (ggs.allConnectionStatus[cc] != CONNECTION_UNUSED) {
+        if (ggs.allConnectionStatus[cc] != CONN_UNUSED) {
             playerConnection[cc].sendStartRound();
         }
     }        
@@ -537,7 +650,7 @@ function StartRound (ggs) {
         const random = Math.floor(Math.random() * ggs.GetNumberPlayersStillIn());
         let temp = 0;
         for (let cc = 0; cc < ggs.maxConnections; cc++) {
-            if (ggs.allConnectionStatus[cc] == CONNECTION_PLAYER_IN) {
+            if (ggs.allConnectionStatus[cc] == CONN_PLAYER_IN) {
                 if (random == temp) {
                     ggs.whosTurn = cc;
                     console.log ('server.js: StartRound: randomly picked whosTurn = ' + cc);
@@ -552,7 +665,7 @@ function StartRound (ggs) {
     // tell all players who goes first
     //------------------------------------------------------------
     for (int cc = 0; cc < ggs.maxPlayers; cc++) {
-        if (ggs.allConnectionStatus[cc] != CONNECTION_UNUSED) {
+        if (ggs.allConnectionStatus[cc] != CONN_UNUSED) {
             playerConnection[cc].sendGoesFirst(ggs.whosTurn);
         }
     }      
@@ -561,7 +674,7 @@ function StartRound (ggs) {
     // roll the dice for all players
     //------------------------------------------------------------
     for (let cc = 0; cc < ggs.maxConnections; cc++) {
-        if (ggs.allConnectionStatus[cc] == CONNECTION_PLAYER_IN) {
+        if (ggs.allConnectionStatus[cc] == CONN_PLAYER_IN) {
             for (let j = 0; j < 5; j++) {
                 const random = Math.floor(Math.random() * 6) + 1;
                 //int r = randomGenerator.nextInt(6) + 1;
@@ -575,7 +688,7 @@ function StartRound (ggs) {
     // send dice to all players
     //------------------------------------------------------------
     for (int cc = 0; cc < ggs.maxPlayers; cc++) {
-        if (ggs.allConnectionStatus[cc] != CONNECTION_UNUSED) {
+        if (ggs.allConnectionStatus[cc] != CONN_UNUSED) {
             playerConnection[cc].sendAllDice();
         }
     }
@@ -584,7 +697,7 @@ function StartRound (ggs) {
     // send sticks to everybody
     //------------------------------------------------------------
     for (int cc = 0; cc < ggs.maxConnections; cc++) {
-        if (ggs.allConnectionStatus[cc] != CONNECTION_UNUSED) {
+        if (ggs.allConnectionStatus[cc] != CONN_UNUSED) {
             playerConnection[cc].sendAllSticks();
         }
     }      
@@ -604,7 +717,7 @@ function StartRound (ggs) {
         // send start bidding message to all players
         //------------------------------------------------------------
         for (int cc = 0; cc < ggs.maxPlayers; cc++) {
-            if (ggs.allConnectionStatus[cc] != CONNECTION_UNUSED) {
+            if (ggs.allConnectionStatus[cc] != CONN_UNUSED) {
                 playerConnection[cc].sendStartBidding();
             }
         }        
@@ -623,7 +736,7 @@ function StartRound (ggs) {
         ggs.allPasoUsed[i] = false;
     }
 //    for (let cc = 0; cc < ggs.maxPlayers; cc++) {
-//        if (ggs.allConnectionStatus[cc] == CONNECTION_UNUSED) {
+//        if (ggs.allConnectionStatus[cc] == CONN_UNUSED) {
 //            continue;
 //        }
 //        playerConnection[cc].sendBid(cc);
@@ -652,7 +765,7 @@ function PostRound(ggs) {
     
     if (ggs.allSticks[ggs.result.doubtLoser] == ggs.maxSticks) {
         // out! winner of doubt inherits first bid
-        ggs.allConnectionStatus[ggs.result.doubtLoser] = CONNECTION_PLAYER_OUT;
+        ggs.allConnectionStatus[ggs.result.doubtLoser] = CONN_PLAYER_OUT;
         ggs.numPlayers--;
         ggs.whosTurn = ggs.result.doubtWinner;
         ggs.bPaloFijoRound = false;
@@ -684,14 +797,14 @@ function PostRound(ggs) {
   
         // yes
         //for (int cc = 0; cc < ggs.maxConnections; cc++) {
-        //    if (ggs.allConnectionStatus[cc] != CONNECTION_UNUSED) {
+        //    if (ggs.allConnectionStatus[cc] != CONN_UNUSED) {
         //        playerConnection[cc].sendShowCongratsWinnerDlg(cc);
         //    }
         //}
     } else {
         // no, send connectionStatus (with names)
         //for (int cc = 0; cc < maxConnections; cc++) {
-        //    if (ggs.allConnectionStatus[cc] != CONNECTION_UNUSED) {
+        //    if (ggs.allConnectionStatus[cc] != CONN_UNUSED) {
         //        playerConnection[cc].sendAllConnectionStatus();
         //    }
         //}

@@ -7,7 +7,9 @@ import BidDlg from '../BidDlg';
 import PopupDialog from '../PopupDialog';
 import ShowShakeDlg from '../ShowShakeDlg.js';
 import ConfirmBidDlg from '../ConfirmBidDlg.js';
-import { CONNECTION_UNUSED, CONNECTION_PLAYER_IN, CONNECTION_PLAYER_OUT, CONNECTION_OBSERVER } from '../DudoGameC.js';
+
+import { CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYER_LEFT,
+  CONN_PLAYER_IN_DISCONN, CONN_PLAYER_OUT_DISCONN, CONN_OBSERVER_DISCONN } from '../DudoGameC.js';;
 
   //************************************************************
   // GamePage function
@@ -54,12 +56,29 @@ import { CONNECTION_UNUSED, CONNECTION_PLAYER_IN, CONNECTION_PLAYER_OUT, CONNECT
     const diceImagesRef = useRef({});
     const diceHiddenImageRef = useRef({});
     const myShowShakeRef = useRef(false);
-    
+    const needRejoin = useRef(false);
+    const prev = useRef(null);
+
     const handleGameStarted = ({ lobbyId, gameState }) => {
       console.log("GamePage: entering function: handleGameStarted");
       setGameState(gameState);
       ggc.AssignGameState(gameState);
     };
+
+  //************************************************************
+  // DEBUGGING, put socket into windows so
+  //            browser console can access it
+  //************************************************************
+  useEffect(() => {
+    if (socket) {
+      window.socket = socket;  // Expose socket globally for DevTools
+      window.gameState = gameState;
+      window.myIndex = myIndex;
+      window.myName = myName;
+      window.isMyTurn = isMyTurn;
+      console.log("GamePage: DEBUG window.stuff set!");
+    }
+  }, [socket, gameState]);
 
   //************************************************************
   // useEffect:  Ask for latest game state on mount
@@ -373,32 +392,159 @@ useEffect(() => {
     });
   }
 }, [lobbyId]);
-  
+
+// ----- listen once for CONNECT / DISCONNECT ---------------- //
+/*
+useEffect(() => {
+  if (!socket) return;
+
+  const markNeedRejoin = () => {
+    console.log('socket connected → will rejoin when data ready');
+    needRejoin.current = true;      // ask next effect to re-emit
+  };
+  const clearRejoinFlag = () => {
+    console.log('socket disconnected');
+    needRejoin.current = false;     // wait for next connect
+  };
+
+  socket.on('connect',    markNeedRejoin);
+  socket.on('disconnect', clearRejoinFlag);
+
+  return () => {
+    socket.off('connect',    markNeedRejoin);
+    socket.off('disconnect', clearRejoinFlag);
+  };
+}, [socket]);
+
+// ----- when EVERYTHING is ready, actually rejoin ------------ //
+
+useEffect(() => {
+
+  console.log ('TRYING TO REJOIN', socket, socket.connected, lobbyId, myName, needRejoin.current);
+
+  if (
+    !socket ||
+    !socket.connected ||       // still offline?
+    !lobbyId ||                // router not ready?
+    !myName ||                 // name not restored yet?
+    !needRejoin.current        // already rejoined for this connection?
+  ) {
+    return;                    // wait …
+  }
+
+  console.log('Rejoining lobby…');
+  socket.emit(
+    'rejoinLobby',
+    { lobbyId, playerName: myName, id: socket.id },
+    (serverLobbyData) => {
+      console.log('Server sent lobby/game:', serverLobbyData);
+
+      // ---- rebuild local state here ---- //
+      setGameState(serverLobbyData.game);
+      setLobbyPlayers(serverLobbyData.players);
+      ggc.AssignGameState(serverLobbyData.game);
+
+      const meId = String(socket.id);
+      const turnId = ggc.allConnectionID[ggc.whosTurn];
+      setIsMyTurn(meId === turnId);
+      setWhosTurnName(ggc.allParticipantNames[ggc.whosTurn]);
+
+      const idx = ggc.allConnectionID.indexOf(meId);
+      setMyIndex(idx);
+      setMyName(ggc.allParticipantNames[idx]);
+    }
+  );
+
+  needRejoin.current = false;   // done for this connection
+}, [socket, connected, lobbyId, myName]);
+*/
+
+
 //************************************************************
 // useEffect:  socket re-connect
-//             Trigger:  [socket, lobbyId, myName]
+//             Trigger:  [socket, socketId, connected, lobbyId, myName]
 //************************************************************
 useEffect(() => {
+
+  if (prev.current) {
+    const p = prev.current;
+    if (p.socket     !== socket)   console.log('RECONNECT: socket changed', p.socket, '→', socket);
+    if (p.socketId   !== socketId) console.log('RECONNECT: socketId changed', p.socketId, '→', socketId);
+    if (p.connected  !== connected)console.log('RECONNECT: connected changed', p.connected, '→', connected);
+    if (p.lobbyId    !== lobbyId)  console.log('RECONNECT: lobbyId changed', p.lobbyId, '→', lobbyId);
+    if (p.myName     !== myName)   console.log('RECONNECT: myName changed', p.myName, '→', myName);
+  }
+  prev.current = { socket, socketId, connected, lobbyId, myName };
+
+
+
   if (!socket) {
-    console.log("GamePage: socket not ready yet, skipping connect handler setup");
+    console.log("RECONNECT: socket not ready yet, skipping connect handler setup");
     return;
   }
 
   function handleReconnect() {
+//    if (!lobbyId || !myName) {
+//      console.log("GamePage: lobbyId or myName not ready, retrying reconnect in 500ms...");
+//      setTimeout(handleReconnect, 500);   // retry after 0.5s
+//      return;
+//    }
+    
+    console.log("RECONNECT: function handleReconnect", lobbyId, myName);
+
+    console.log("RECONNECT: trying to rejoin lobby");
     if (lobbyId && myName) {
-      console.log("GamePage: socket reconnected, rejoining lobby");
-      if (connected) socket.emit('rejoinLobby', { lobbyId, playerName: myName });
+      if (connected) {
+        socket.emit('rejoinLobby', { lobbyId, playerName: myName, id: socket.id }, (serverLobbyData) => {
+          console.log("RECONNECT: callback received lobby/game data:", serverLobbyData);
+  
+          // Reconstruct your client-side state
+          setGameState(serverLobbyData.game);
+          setLobbyPlayers(serverLobbyData.players);
+  
+          ggc.AssignGameState(serverLobbyData.game);
+  
+          const whosTurnSocketId = ggc.allConnectionID[ggc.whosTurn];
+          const stringSocketId = String(socketId);
+          setIsMyTurn(whosTurnSocketId === stringSocketId);
+          setWhosTurnName(ggc.allParticipantNames[ggc.whosTurn]);
+  
+          const index = ggc.allConnectionID.indexOf(stringSocketId);
+          setMyIndex(index);
+          setMyName(ggc.allParticipantNames[index]);
+        });
+      }
+      else {
+        console.log("RECONNECT: not rejoining lobby, 'connected' not valid. ", connected);
+      }
+    }
+    else {
+      console.log("RECONNECT: not rejoining lobby, 'lobbyID' and/or 'myName' not valid. ", lobbyId, myName);
     }
   }
 
-  console.log("GamePage: setting up socket.on('connect') for reconnect handling");
+/*
+  function handleReconnect() {
+    if (lobbyId && myName) {
+      console.log("GamePage: socket reconnected, rejoining lobby");
+      if (connected) socket.emit('rejoinLobby', { lobbyId, playerName: myName, id: socket.id });
+    }
+  }
+*/
+  console.log("RECONNECT: socket.on('connect') for reconnect handling");
   socket.on('connect', handleReconnect);
 
+  // Call immediately if already connected (e.g. on refresh)
+  if (socket.connected) {
+    console.log("GamePage: socket already connected, calling handleReconnect immediately");
+    handleReconnect();
+  }
+  
   return () => {
-    console.log("GamePage: cleaning up socket.on('connect')");
+    console.log("RECONNECT: socket.off('connect') for reconnect handling");
     socket.off('connect', handleReconnect);
   };
-}, [socket, lobbyId, myName]);
+}, [socket, socketId, connected, lobbyId, myName]);
 
 
 //************************************************************
@@ -462,12 +608,12 @@ useEffect(() => {
     const offset = 110;
 
     for (let p=0; p<ggc.maxConnections; p++) {
-      if (ggc.allConnectionStatus[p] == CONNECTION_UNUSED) {
+      if (ggc.allConnectionStatus[p] == CONN_UNUSED) {
         continue;
       }
 
       // draw and fill rectangles for player
-      if (ggc.allConnectionStatus[p] == CONNECTION_PLAYER_OUT) {
+      if (ggc.allConnectionStatus[p] == CONN_PLAYER_OUT) {
         ctx.fillStyle = 'lightgray';
       } else {
         ctx.fillStyle = 'white';
@@ -490,7 +636,7 @@ useEffect(() => {
       ctx.lineWidth = 2;
 
       // draw cup
-      if (ggc.allConnectionStatus[p] == CONNECTION_PLAYER_OUT) {
+      if (ggc.allConnectionStatus[p] == CONN_PLAYER_OUT) {
         ctx.drawImage(cupUpImageRef.current, 25, 245 + p*offset, 40, 56);
       } else {
         if (cupDownImageRef.current) {
@@ -499,7 +645,7 @@ useEffect(() => {
       }
 
       // draw dice
-      if (ggc.allConnectionStatus[p] == CONNECTION_PLAYER_OUT) {
+      if (ggc.allConnectionStatus[p] == CONN_PLAYER_OUT) {
         // this player is out out; do nothing
       } else {
         const diceImages = diceImagesRef.current;

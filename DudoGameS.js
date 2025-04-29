@@ -4,10 +4,14 @@ import { DudoBid } from './DudoBidS.js';
 
 // connectionStatus codes
 // &&& these are more like player status codes
-const CONNECTION_UNUSED = 0;
-const CONNECTION_PLAYER_IN = 1;
-const CONNECTION_PLAYER_OUT = 2;
-const CONNECTION_OBSERVER = 0;
+const CONN_UNUSED = 0;
+const CONN_PLAYER_IN = 1;
+const CONN_PLAYER_OUT = 2;
+const CONN_OBSERVER = 3;
+const CONN_PLAYER_LEFT = 4;
+const CONN_PLAYER_IN_DISCONN = 5;
+const CONN_PLAYER_OUT_DISCONN = 6;
+const CONN_OBSERVER_DISCONN = 7;
 
 export class DudoGame {
 
@@ -205,7 +209,7 @@ export class DudoGame {
             } else {
                 cc = cc + 1;
             }                
-            if (this.allConnectionStatus[cc] == CONNECTION_PLAYER_IN) {
+            if (this.allConnectionStatus[cc] == CONN_PLAYER_IN) {
                 break;
             }
         }
@@ -224,7 +228,7 @@ export class DudoGame {
             } else {
                 cc = cc - 1;
             }                
-            if (this.allConnectionStatus[cc] == CONNECTION_PLAYER_IN) {
+            if (this.allConnectionStatus[cc] == CONN_PLAYER_IN) {
                 break;
             }
         }
@@ -276,7 +280,7 @@ export class DudoGame {
             this.result.doubtWasPaso = false;
             this.result.doubtCount = 0;
             for (let cc = 0; cc < this.maxPlayers; cc++) {
-                if (this.allConnectionStatus[cc] == CONNECTION_PLAYER_IN) {
+                if (this.allConnectionStatus[cc] == CONN_PLAYER_IN) {
                     for (let j = 0; j < 5; j++) {
                         if (this.dice[cc][j] == this.result.doubtOfWhat) {
                             this.result.doubtCount++;
@@ -297,7 +301,7 @@ export class DudoGame {
                 this.result.doubtWasPaso = false;
                 this.result.doubtCount = 0;
                 for (let cc = 0; cc < this.maxPlayers; cc++) {
-                    if (this.allConnectionStatus[cc] == CONNECTION_PLAYER_IN) {
+                    if (this.allConnectionStatus[cc] == CONN_PLAYER_IN) {
                         for (let j = 0; j < 5; j++) {
                             if (this.dice[cc][j] == this.result.doubtOfWhat) {
                                 this.result.doubtCount++;
@@ -313,7 +317,7 @@ export class DudoGame {
                 this.result.doubtWasPaso = false;
                 this.result.doubtCount = 0;
                 for (let cc = 0; cc < this.maxPlayers; cc++) {
-                    if (this.allConnectionStatus[cc] == CONNECTION_PLAYER_IN) {
+                    if (this.allConnectionStatus[cc] == CONN_PLAYER_IN) {
                         for (let j = 0; j < 5; j++) {
                             if ((this.dice[cc][j] == this.result.doubtOfWhat)|| this.dice[cc][j] == 1){
                                 this.result.doubtCount ++;
@@ -762,7 +766,7 @@ export class DudoGame {
     GetNumberPlayers () {
         let result = 0;
         for (let cc = 0; cc < this.maxConnections; cc++) {
-            if (this.allConnectionStatus[cc] != CONNECTION_UNUSED) {
+            if (this.allConnectionStatus[cc] != CONN_UNUSED) {
                 result++;
             }
         }
@@ -775,7 +779,7 @@ export class DudoGame {
     GetNumberPlayersStillIn () {
         let result = 0;
         for (let cc = 0; cc < this.maxConnections; cc++) {
-            if (this.allConnectionStatus[cc] == CONNECTION_PLAYER_IN) {
+            if (this.allConnectionStatus[cc] == CONN_PLAYER_IN) {
                 result++;
             }
         }
@@ -822,4 +826,5 @@ class DoubtResult {
     }
 }
 
-export { CONNECTION_UNUSED, CONNECTION_PLAYER_IN, CONNECTION_PLAYER_OUT, CONNECTION_OBSERVER };
+export { CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYER_LEFT,
+    CONN_PLAYER_IN_DISCONN, CONN_PLAYER_OUT_DISCONN, CONN_OBSERVER_DISCONN };
