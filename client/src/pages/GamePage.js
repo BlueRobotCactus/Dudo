@@ -3,10 +3,10 @@ import { useParams, useLocation } from 'react-router-dom';
 import { useContext } from 'react';
 import { SocketContext } from '../SocketContext.js';
 import { DudoGame } from '../DudoGameC.js'
-import BidDlg from '../BidDlg';
-import PopupDialog from '../PopupDialog';
-import ShowShakeDlg from '../ShowShakeDlg.js';
-import ConfirmBidDlg from '../ConfirmBidDlg.js';
+import BidDlg from '../dlgBid.js';
+import PopupDialog from '../dlgPopup.js';
+import ShowShakeDlg from '../dlgShowShake.js';
+import ConfirmBidDlg from '../dlgConfirmBid.js';
 
 import { CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYER_LEFT,
   CONN_PLAYER_IN_DISCONN, CONN_PLAYER_OUT_DISCONN, CONN_OBSERVER_DISCONN } from '../DudoGameC.js';;
@@ -760,6 +760,9 @@ useEffect(() => {
       } else {
         // non-PASO
         s2 = ggc.allParticipantNames[ggc.result.whoGotDoubted] + "'s bid was " + ggc.result.doubtedText;
+
+        s2 += "\n(looking for " + ggc.result.doubtLookingFor + ")\n";
+
         s3 = (ggc.result.doubtCount == 1 ? "There is " : "There are ") + ggc.result.doubtCount;
       }
       s4 = ggc.allParticipantNames[ggc.result.doubtLoser] + " got the stick";
@@ -768,6 +771,8 @@ useEffect(() => {
       }
 
       let msg = s1 + "\n" + s2 + "\n" + s3 + "\n" + s4; 
+
+
 
       if (ggc.bWinnerGame) {
         msg += "\n\n" + ggc.allParticipantNames[ggc.whoWonGame] + " WINS THE GAME!!";

@@ -177,6 +177,10 @@ export class DudoGame {
         this.result.doubtLoserOut = state.result.doubtLoserOut;
         this.result.doubtWasPaso = state.result.doubtWasPaso;
         this.result.doubtPasoWasThere = state.result.doubtPasoWasThere;
+        this.result.doubtLookingFor = state.result.doubtLookingFor;
+        for (let i=0; i<state.maxConnections; i++) {
+            this.result.doubtCupLifted[i] = false;
+        }
     }
 
     //************************************************************
@@ -269,10 +273,12 @@ export class DudoGame {
         }
 
         //------------------------------------------------------------
-        // doubted npon-paso bid
+        // doubted non-paso bid
         //------------------------------------------------------------
         this.result.doubtHowMany = this.allBids[this.numBids - 2].howMany;
         this.result.doubtOfWhat = this.allBids[this.numBids - 2].ofWhat;
+        this.result.doubtLookingFor = this.result.doubtHowMany - 
+                                      this.GetHowManyShowing(this.result.doubtOfWhat, this.bPaloFijoRound);
         if (this.bPaloFijoRound) {
             //--------------------------------------------------------
             // palo fijo, aces are not wild
@@ -796,6 +802,36 @@ export class DudoGame {
             return false;
         }
     }
+
+    //****************************************************************
+    // Get how many showing
+    //****************************************************************
+    GetHowManyShowing (ofWhat, bPaloFijo) {
+        let result = 0;
+        for (let cc = 0; cc < this.maxConnections; cc++) {
+            if (this.allConnectionStatus[cc] == CONN_PLAYER_IN) {
+                // player is still in
+                for (let i=0; i<5; i++) {
+                    if (this.result.doubtCupLifted[cc] || !this.bDiceHidden[cc][i]) {
+                        // this die is seen by all, examine it
+                        const die = this.dice[cc][i];
+                        if (bPaloFijo) {
+                            // if palofijo, only count ofWhat
+                            if (die == this.result.ofWhat) {
+                                result++;
+                            }
+                        } else {
+                            // not palofijo, count ofWhat and aces
+                            if (die == ofWhat || die == 1)  {
+                                result++;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return result;
+    }
 }
 
 class DoubtResult {
@@ -810,6 +846,8 @@ class DoubtResult {
     doubtLoserOut;
     doubtWasPaso;
     doubtPasoWasThere;
+    doubtLookingFor;
+    doubtCupLifted = [];
 
     init() {
         let doubtedText = undefined;
@@ -823,6 +861,7 @@ class DoubtResult {
         let doubtLoserOut = undefined;
         let doubtWasPaso = undefined;
         let doubtPasoWasThere = undefined;
+        let doubtLookingFor = undefined;
     }
 }
 
