@@ -493,9 +493,17 @@ useEffect(() => {
     console.log("RECONNECT: function handleReconnect", lobbyId, myName);
 
     console.log("RECONNECT: trying to rejoin lobby");
-    if (lobbyId && myName) {
+    
+    // get the name from storage, in case this was a browser tab refresh
+    let nameFromStorage = sessionStorage.getItem('playerName');
+
+    // this won't get updated until the next render (React behavior)
+    // so use 'nameFromStorage' for the rest of this routine
+    setMyName(nameFromStorage);   
+
+    if (lobbyId && nameFromStorage) {
       if (connected) {
-        socket.emit('rejoinLobby', { lobbyId, playerName: myName, id: socket.id }, (serverLobbyData) => {
+        socket.emit('rejoinLobby', { lobbyId, playerName: nameFromStorage, id: socket.id }, (serverLobbyData) => {
           console.log("RECONNECT: callback received lobby/game data:", serverLobbyData);
   
           // Reconstruct your client-side state
@@ -519,7 +527,7 @@ useEffect(() => {
       }
     }
     else {
-      console.log("RECONNECT: not rejoining lobby, 'lobbyID' and/or 'myName' not valid. ", lobbyId, myName);
+      console.log("RECONNECT: not rejoining lobby, 'lobbyID' and/or 'nameFromStorage' not valid. ", lobbyId, nameFromStorage);
     }
   }
 

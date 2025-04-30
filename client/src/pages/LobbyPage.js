@@ -17,15 +17,27 @@ function LobbyPage() {
   // We'll store full lobby data here
   const [lobbyData, setLobbyData] = useState({ players: [] });
 
-  useEffect(() => {
-    // 0. Make sure socket is ready
+  // And to sessionStorage in case of browser tab refresh
+  sessionStorage.setItem('lobbyId', lobbyId);
+  sessionStorage.setItem('playerName', playerName);
+
+//************************************************************
+// useEffect:  handle lobby stuff
+//             Trigger:  [socket, connected, lobbyId, navigate]
+//************************************************************
+useEffect(() => {
+    //-------------------------------------------
+    // Make sure socket is ready
+    //-------------------------------------------
     if (!socket || !connected) {
       console.log('LobbyPage: socket not connected yet');
       return;
     }
     console.log("LobbyPage: setting up socket handlers");
 
-    // 1. Get initial lobby data
+    //-------------------------------------------
+    // Get initial lobby data
+    //-------------------------------------------
     socket.emit('getLobbyData', lobbyId, (data) => {
       if (data && !data.error) {
         setLobbyData(data);
@@ -35,7 +47,9 @@ function LobbyPage() {
       }
     });
 
-    // 2. Listen for real-time "lobbyData" updates
+    //-------------------------------------------
+    // Listen for real-time "lobbyData" updates
+    //-------------------------------------------
     const handleLobbyData = (updatedLobby) => {
       if (updatedLobby.id === lobbyId) {
         setLobbyData(updatedLobby);
@@ -43,7 +57,9 @@ function LobbyPage() {
     };
     socket.on('lobbyData', handleLobbyData);
 
-    // 3. Listen for "gameStarted" event
+    //-------------------------------------------
+    // Listen for "gameStarted" event
+    //-------------------------------------------
     const handleGameStarted = ({ lobbyId, gameState }) => {
       // Everyone in the lobby navigates to the game page
       navigate(`/game/${lobbyId}`, {
@@ -52,28 +68,41 @@ function LobbyPage() {
     };
     socket.on('gameStarted', handleGameStarted);
 
+    //-------------------------------------------
     // Cleanup on unmount
+    //-------------------------------------------
     return () => {
       socket.off('lobbyData', handleLobbyData);
       socket.off('gameStarted', handleGameStarted);
     };
   }, [socket, connected, lobbyId, navigate]);
 
+  //************************************************************
+  // functions and other stuff
+  //************************************************************
+
+  //-------------------------------------------
   // Determine if you're host by comparing your socket.id to the stored hostSocketId
-//&&&  const isHost = lobbyData.hostSocketId === socket.id;
+    //-------------------------------------------
   const isHost = lobbyData.hostSocketId === socketId;
 
+  //-------------------------------------------
   // Host sees "Your Lobby", others see "HostName's Lobby"
+  //-------------------------------------------
   const lobbyTitle = isHost
     ? 'Your Lobby (v2)'
     : `${lobbyData.host}'s Lobby (v2)`;
 
+  //-------------------------------------------
   // Click: Host starts game
+  //-------------------------------------------
   const handleStartGame = () => {
     if (connected) socket.emit('startGame', lobbyId);
   };
 
+  //-------------------------------------------
   // Click: Leave Lobby
+  //-------------------------------------------
   const handleLeaveLobby = () => {
     if (connected) socket.emit('leaveLobby', { playerName, lobbyId });
     navigate('/');
