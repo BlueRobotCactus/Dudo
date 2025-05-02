@@ -1,11 +1,10 @@
-// PopupDialog.js
 import React from 'react';
 
 const styles = {
   backdrop: {
-    position: 'fixed',
+    position: 'absolute',
     top: 0, left: 0, right: 0, bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: 'rgba(54, 13, 13, 0.5)',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
@@ -28,19 +27,30 @@ const styles = {
   }
 };
 
-function PopupDialog({ open, message, onClose }) {
+function DoubtDlg({ open, message, onClose, x, y, doubtButtonText, doubtShowButton = true }) {
   if (!open) return null;
+
+  const dialogStyle = {
+    ...styles.dialog,
+    position: 'absolute',
+    left: x,
+    top: y,
+  };
 
   return (
     <div style={styles.backdrop}>
-      <div style={styles.dialog}>
+      <div style={dialogStyle}>
         {message.split('\n').map((line, i) => (
           <p key={i}>{line}</p>
         ))}
-        <button style={styles.button} onClick={onClose}>OK</button>
+        {doubtShowButton && (
+          <button style={styles.button} onClick={onClose}>
+            {doubtButtonText}
+          </button>
+        )}
       </div>
     </div>
   );
 }
 
-export default PopupDialog;
+export default DoubtDlg;

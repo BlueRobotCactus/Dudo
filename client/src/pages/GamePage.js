@@ -4,7 +4,7 @@ import { useContext } from 'react';
 import { SocketContext } from '../SocketContext.js';
 import { DudoGame } from '../DudoGameC.js'
 import BidDlg from '../dlgBid.js';
-import PopupDialog from '../dlgPopup.js';
+import DoubtDlg from '../dlgPopup.js';
 import ShowShakeDlg from '../dlgShowShake.js';
 import ConfirmBidDlg from '../dlgConfirmBid.js';
 
@@ -41,8 +41,11 @@ import { CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYE
     
     const [bidDlg, setBidDlg] = useState(false);
     const [thisBid, setThisBid] = useState('');
-    const [showPopup, setShowPopup] = useState(false);
-    const [popupMessage, setPopupMessage] = useState('');
+    const [showDoubtDlg, setDoubtDlg] = useState(false);
+    const [doubtMessage, setDoubtMessage] = useState('');
+    const [doubtShowButton, setDoubtShowButton] = useState('');
+    const [doubtButtonText, setDoubtButtonText] = useState('');
+    const [doubtEvent, setDoubtEvent] = useState('');
     const [showShakeDlg, setShowShakeDlg] = useState(false);
     const [confirmBidDlg, setConfirmBidDlg] = useState(false);
     const [confirmMessage, setConfirmMessage] = useState('');
@@ -393,73 +396,6 @@ useEffect(() => {
   }
 }, [lobbyId]);
 
-// ----- listen once for CONNECT / DISCONNECT ---------------- //
-/*
-useEffect(() => {
-  if (!socket) return;
-
-  const markNeedRejoin = () => {
-    console.log('socket connected → will rejoin when data ready');
-    needRejoin.current = true;      // ask next effect to re-emit
-  };
-  const clearRejoinFlag = () => {
-    console.log('socket disconnected');
-    needRejoin.current = false;     // wait for next connect
-  };
-
-  socket.on('connect',    markNeedRejoin);
-  socket.on('disconnect', clearRejoinFlag);
-
-  return () => {
-    socket.off('connect',    markNeedRejoin);
-    socket.off('disconnect', clearRejoinFlag);
-  };
-}, [socket]);
-
-// ----- when EVERYTHING is ready, actually rejoin ------------ //
-
-useEffect(() => {
-
-  console.log ('TRYING TO REJOIN', socket, socket.connected, lobbyId, myName, needRejoin.current);
-
-  if (
-    !socket ||
-    !socket.connected ||       // still offline?
-    !lobbyId ||                // router not ready?
-    !myName ||                 // name not restored yet?
-    !needRejoin.current        // already rejoined for this connection?
-  ) {
-    return;                    // wait …
-  }
-
-  console.log('Rejoining lobby…');
-  socket.emit(
-    'rejoinLobby',
-    { lobbyId, playerName: myName, id: socket.id },
-    (serverLobbyData) => {
-      console.log('Server sent lobby/game:', serverLobbyData);
-
-      // ---- rebuild local state here ---- //
-      setGameState(serverLobbyData.game);
-      setLobbyPlayers(serverLobbyData.players);
-      ggc.AssignGameState(serverLobbyData.game);
-
-      const meId = String(socket.id);
-      const turnId = ggc.allConnectionID[ggc.whosTurn];
-      setIsMyTurn(meId === turnId);
-      setWhosTurnName(ggc.allParticipantNames[ggc.whosTurn]);
-
-      const idx = ggc.allConnectionID.indexOf(meId);
-      setMyIndex(idx);
-      setMyName(ggc.allParticipantNames[idx]);
-    }
-  );
-
-  needRejoin.current = false;   // done for this connection
-}, [socket, connected, lobbyId, myName]);
-*/
-
-
 //************************************************************
 // useEffect:  socket re-connect
 //             Trigger:  [socket, socketId, connected, lobbyId, myName]
@@ -476,22 +412,14 @@ useEffect(() => {
   }
   prev.current = { socket, socketId, connected, lobbyId, myName };
 
-
-
   if (!socket) {
     console.log("RECONNECT: socket not ready yet, skipping connect handler setup");
     return;
   }
 
   function handleReconnect() {
-//    if (!lobbyId || !myName) {
-//      console.log("GamePage: lobbyId or myName not ready, retrying reconnect in 500ms...");
-//      setTimeout(handleReconnect, 500);   // retry after 0.5s
-//      return;
-//    }
-    
+   
     console.log("RECONNECT: function handleReconnect", lobbyId, myName);
-
     console.log("RECONNECT: trying to rejoin lobby");
     
     // get the name from storage, in case this was a browser tab refresh
@@ -531,14 +459,6 @@ useEffect(() => {
     }
   }
 
-/*
-  function handleReconnect() {
-    if (lobbyId && myName) {
-      console.log("GamePage: socket reconnected, rejoining lobby");
-      if (connected) socket.emit('rejoinLobby', { lobbyId, playerName: myName, id: socket.id });
-    }
-  }
-*/
   console.log("RECONNECT: socket.on('connect') for reconnect handling");
   socket.on('connect', handleReconnect);
 
@@ -646,10 +566,10 @@ useEffect(() => {
       // draw cup
       if (ggc.allConnectionStatus[p] == CONN_PLAYER_OUT) {
         ctx.drawImage(cupUpImageRef.current, 25, 245 + p*offset, 40, 56);
+      } else if ((ggc.bDoubtInProgress || ggc.bShowDoubtResult) && ggc.result.doubtCupLifted[p]) {
+        ctx.drawImage(cupUpImageRef.current, 25, 245 + p*offset, 40, 56);
       } else {
-        if (cupDownImageRef.current) {
-          ctx.drawImage(cupDownImageRef.current, 25, 245 + p*offset, 40, 56);
-        }
+        ctx.drawImage(cupDownImageRef.current, 25, 245 + p*offset, 40, 56);
       }
 
       // draw dice
@@ -665,8 +585,14 @@ useEffect(() => {
               // if me, show the die
               ctx.drawImage(diceImages[value], 70 + i*23, 278 + p*offset, 18, 18);
             } else {
-              // if not me, show the empty box
-              ctx.drawImage(diceHiddenImageRef.current, 70 + i*23, 278 + p*offset, 18, 18);
+              // other player
+              if ((ggc.bDoubtInProgress || ggc.bShowDoubtResult) && ggc.result.doubtCupLifted[p]) {
+                // cup lifted, show dice
+                ctx.drawImage(diceImages[value], 70 + i*23, 278 + p*offset, 18, 18);
+              } else {
+                // cup not lifted, show the empty box
+                ctx.drawImage(diceHiddenImageRef.current, 70 + i*23, 278 + p*offset, 18, 18);
+              }
             }
           } else {
             // shown dice in bottom box
@@ -680,25 +606,6 @@ useEffect(() => {
       ctx.font = '24px Arial';
       ctx.fillText(`${ggc.allParticipantNames[p]}`, 70, 268 + p*offset);
     }
-
-    /*
-    ctx.fillStyle = 'white'
-    ctx.fillRect(10, 240, 120, 173);
-    ctx.lineWidth = 2;
-    ctx.fillStyle = 'black'
-    ctx.strokeRect(8, 238, 124, 177);
-
-    if (cupDownImageRef.current) {
-      ctx.drawImage(cupDownImageRef.current, 20, 240, 100, 140);
-    }
-
-    const diceImages = diceImagesRef.current;
-
-    for (let i = 0; i < 5; i++) {
-      const value = ggc.dice[myIndex][i];
-      ctx.drawImage(diceImages[value], 15 + i*23, 390, 18, 18);
-    }
-*/
 
     //-------------------------------------------
     // Display bid history
@@ -736,10 +643,56 @@ useEffect(() => {
     }
   
     //-------------------------------------------
-    // did somebody win the round?
+    // doubt in progress?
     //-------------------------------------------
-    if (ggc.bWinnerRound) {
+    if (ggc.bDoubtInProgress) {
+      // prepare strings to say what happened
+      let s1 = "";  // who doubted whom
+      let s2 = "";  // what the bid was
+      let s3 = '';  // who has not yet lifted the cup
+      s1 = ggc.allParticipantNames[ggc.result.whoDoubted];
+      s1 += " doubted ";
+      s1 += ggc.allParticipantNames[ggc.result.whoGotDoubted];
 
+      if (ggc.result.doubtWasPaso) {
+        // PASO
+        s2 = ggc.allParticipantNames[ggc.result.whoGotDoubted] + " bid PASO";
+      } else {
+        // non-PASO
+        s2 = ggc.allParticipantNames[ggc.result.whoGotDoubted] + "'s bid was " + ggc.result.doubtedText;
+
+        s2 += "\n(" + ggc.result.doubtShowing + " showing, looking for " + ggc.result.doubtLookingFor + ")\n";
+      }
+      // who has not yet lifted their cup
+      s3 = "Waiting to see dice from:";
+      for (let cc = 0; cc < ggc.maxConnections; cc++) {
+        if (ggc.result.doubtMustLiftCup[cc]) {
+          if (!ggc.result.doubtCupLifted[cc]) {
+            s3 += "\n" + ggc.allParticipantNames[cc];
+          }
+        }
+      }
+
+      let msg = s1 + "\n" + s2 + "\n" + s3; 
+
+      setIsMyTurn(false);   //chatgpt
+
+      // show the string in message box
+      setDoubtMessage(msg);
+      if (ggc.result.doubtMustLiftCup[myIndex] && !ggc.result.doubtCupLifted[myIndex]) {
+        setDoubtShowButton(true);
+      } else {
+        setDoubtShowButton(false);
+      }
+      setDoubtButtonText('Lift Cup');
+      setDoubtEvent('liftCup');
+      setDoubtDlg(true);
+    }
+    
+    //-------------------------------------------
+    // show doubt result?
+    //-------------------------------------------
+    if (ggc.bShowDoubtResult) {
       // prepare strings to say what happened
       let s1 = "";  // who doubted whom
       let s2 = "";  // what the bid was
@@ -761,18 +714,15 @@ useEffect(() => {
         // non-PASO
         s2 = ggc.allParticipantNames[ggc.result.whoGotDoubted] + "'s bid was " + ggc.result.doubtedText;
 
-        s2 += "\n(looking for " + ggc.result.doubtLookingFor + ")\n";
-
         s3 = (ggc.result.doubtCount == 1 ? "There is " : "There are ") + ggc.result.doubtCount;
       }
+
       s4 = ggc.allParticipantNames[ggc.result.doubtLoser] + " got the stick";
       if (ggc.result.doubtLoserOut) {
         s4 += ", and is OUT";
       }
 
       let msg = s1 + "\n" + s2 + "\n" + s3 + "\n" + s4; 
-
-
 
       if (ggc.bWinnerGame) {
         msg += "\n\n" + ggc.allParticipantNames[ggc.whoWonGame] + " WINS THE GAME!!";
@@ -781,10 +731,13 @@ useEffect(() => {
       setIsMyTurn(false);   //chatgpt
 
       // show the string in message box
-      setPopupMessage(msg);
-      setShowPopup(true);
+      setDoubtMessage(msg);
+      setDoubtShowButton(ggc.allConnectionStatus[myIndex] == CONN_PLAYER_IN);
+      setDoubtButtonText('OK');
+      setDoubtEvent('nextRound');
+      setDoubtDlg(true);
     }
-    
+
     //-------------------------------------------
     // Display (or not) bid UI
     //-------------------------------------------
@@ -826,13 +779,20 @@ useEffect(() => {
         </>
       )}
 
-      <PopupDialog
-        open={showPopup}
-        message={popupMessage}
+      <DoubtDlg
+        open={showDoubtDlg}
+        message={doubtMessage}
+        doubtButtonText={doubtButtonText}
+        doubtShowButton={doubtShowButton}
+        doubtEvent={doubtEvent}
         onClose={() => {
-          setShowPopup(false);
-          socket.emit('nextRound', { lobbyId, index: myIndex })
+          setDoubtDlg(false);
+          socket.emit(doubtEvent, { lobbyId, index: myIndex })
+          //socket.emit('liftCup', { lobbyId, index: myIndex })
+          //socket.emit('nextRound', { lobbyId, index: myIndex })
         }}
+        x = {200}
+        y = {240}
       />
 
       <ShowShakeDlg

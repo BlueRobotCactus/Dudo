@@ -49,6 +49,7 @@ const lobbies = {
 };
 
 // hear back arrays
+let hearbackLiftCup;
 let hearbackNextRound;
 
 
@@ -422,17 +423,16 @@ io.on('connection', (socket) => {
 
     if (bidText === "DOUBT") {
       // process doubt
+      lobby.game.bDoubtInProgress = true;
+
       ggs.getDoubtResult();
-
-      PostRound(ggs);
-
-      //StartRound(ggs);  chatgpt
+      ggs.getLiftCupList();
+    //&&&PostRound(ggs);
 
     } else {
       // Move to the next turn
       lobby.game.whosTurnPrev = lobby.game.whosTurn;
       lobby.game.whosTurn = lobby.game.getWhosTurnNext();
-      //lobby.game.whosTurn = (lobby.game.whosTurn + 1) % lobby.players.length;
     }
 
     // Broadcast new game state
@@ -442,20 +442,64 @@ io.on('connection', (socket) => {
 
   //************************************************************
   // socket.on
+  // hear back from client: 'liftCup'
+  //************************************************************
+  socket.on('liftCup', ({ lobbyId, index }) => {
+    const lobby = lobbies[lobbyId];
+    const ggs = lobby.game;
+
+    // mark this player cup lifted
+    ggs.result.doubtCupLifted[index] = true;
+
+    // is that everybody we need to hear from?
+    let allLifted = true;
+    for (let i=0; i<ggs.maxConnections; i++) {
+      if (ggs.result.doubtMustLiftCup[i]) {
+        if (!ggs.result.doubtCupLifted[i]) {
+          allLifted = false;
+          break;
+        }
+      }
+    }
+
+    // re-compute showing and lookage
+    ggs.result.doubtShowing = ggs.GetHowManyShowing(ggs.result.doubtOfWhat, ggs.bPaloFijoRound);
+    ggs.result.doubtLookingFor = ggs.result.doubtHowMany - ggs.result.doubtShowing;
+
+    if (allLifted) {
+      ggs.bDoubtInProgress = false;
+      ggs.bShowDoubtResult = true;
+    }
+    io.to(lobbyId).emit('gameStateUpdate', lobby.game);
+   
+  });
+  
+  //************************************************************
+  // socket.on
   // hear back from client: 'nextRound'
   //************************************************************
   socket.on('nextRound', ({ lobbyId, index }) => {
     const lobby = lobbies[lobbyId];
+    const ggs = lobby.game;
 
+    // mark this player heard back
     hearbackNextRound[index] = true;
+
+    // is that everybody we need to hear from?
     let okToGo = true;
-    for (let i=0; i<hearbackNextRound.length; i++) {
-      if (hearbackNextRound[i] == false) {
-        okToGo = false;
-        break;
+    for (let i=0; i<ggs.maxConnections; i++) {
+      if (ggs.allConnectionStatus[i] == CONN_PLAYER_IN) {
+        if (!hearbackNextRound[i]) {
+          okToGo = false;
+          break;
+        }
       }
     }
+
     if (okToGo) {
+      lobby.game.bDoubtInProgress = false;
+      lobby.game.bShowDoubtResult = false;
+      PostRound(lobby.game);
       StartRound(lobby.game);   // => resets bWinnerRound = false
       io.to(lobbyId).emit('gameStateUpdate', lobby.game);
     }
@@ -636,10 +680,12 @@ function StartRound (ggs) {
 */
     ggs.bWinnerRound = false; 
     ggs.result.init();
-    //    ggs.bWinnerRound = false;
     ggs.bRoundInProgress = true;
+    ggs.bDoubtInProgress = false;
+    ggs.bShowDoubtResult = false;
 
-    hearbackNextRound = Array(ggs.numPlayers).fill(false);
+    ggs.result.doubtCupLifted = Array(ggs.maxConnections).fill(false);
+    hearbackNextRound = Array(ggs.maxConnections).fill(false);
 
     //------------------------------------------------------------
     // first round, randomly choose who goes first
@@ -761,6 +807,7 @@ function PostRound(ggs) {
     //------------------------------------------------------------
     ggs.bPaloFijoRound = false;
 
+    // loser gets a stick
     ggs.allSticks[ggs.result.doubtLoser]++;
     
     if (ggs.allSticks[ggs.result.doubtLoser] == ggs.maxSticks) {
@@ -781,32 +828,4 @@ function PostRound(ggs) {
     }
     
     ggs.bWinnerRound = true;
-
-    //------------------------------------------------------------
-    // was there a winner?
-    //------------------------------------------------------------
-    if (ggs.numPlayers == 1) {
-      ggs.bWinnerGame = true;
-      ggs.whoWonGame = ggs.result.doubtWinner;
-    
-//      const msg = ggs.allParticipantNames[ggs.doubtWinner] + ' WINS !!';
-//      io.to(lobbyId).emit('gameWinnergameStateUpdate', lobby.game);
-//      io.met('updateGameState', msg);
-//      io.to(lobbyId).emit('gameStateUpdate', lobby.game);
-//      console.log("server.js: socket.on('bid'): emitting 'gameStateUpdate'");
-  
-        // yes
-        //for (int cc = 0; cc < ggs.maxConnections; cc++) {
-        //    if (ggs.allConnectionStatus[cc] != CONN_UNUSED) {
-        //        playerConnection[cc].sendShowCongratsWinnerDlg(cc);
-        //    }
-        //}
-    } else {
-        // no, send connectionStatus (with names)
-        //for (int cc = 0; cc < maxConnections; cc++) {
-        //    if (ggs.allConnectionStatus[cc] != CONN_UNUSED) {
-        //        playerConnection[cc].sendAllConnectionStatus();
-        //    }
-        //}
-    }
 }

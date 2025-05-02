@@ -44,6 +44,8 @@ export class DudoGame {
     firstRound;
     whichDirection;          // 0 = left (clockwise); 1 = right (counter-clockwise)
     bRoundInProgress;
+    bDoubtInProgress;
+    bShowDoubtResult;
 
     goesFirst;
     whosTurn;                
@@ -96,6 +98,8 @@ export class DudoGame {
         }
 
         this.bRoundInProgress = false;
+        this.bDoubtInProgress = false;
+        this.bShowDoubtResult = false;
         this.bWinnerRound = false;
         this.bWinnerGame = false;
 
@@ -150,6 +154,8 @@ export class DudoGame {
         this.firstRound = state.firstRound;
         this.whichDirection = state.whichDirection;
         this.bRoundInProgress = state.bRoundInProgress;
+        this.bDoubtInProgress = state.bDoubtInProgress;
+        this.bShowDoubtResult = state.bShowDoubtResult;
         this.goesFirst = state.goesFirst;
         this.whosTurn = state.whosTurn;
         this.whosTurnPrev = state.whosTurnPrev;
@@ -171,15 +177,17 @@ export class DudoGame {
         this.result.whoGotDoubted = state.result.whoGotDoubted;
         this.result.doubtHowMany = state.result.doubtHowMany;
         this.result.doubtOfWhat = state.result.doubtOfWhat;
+        this.result.doubtShowing = state.result.doubtShowing;
+        this.result.doubtLookingFor = state.result.doubtLookingFor;
         this.result.doubtLoser = state.result.doubtLoser;
         this.result.doubtWinner = state.result.doubtWinner;
         this.result.doubtCount = state.result.doubtCount;
         this.result.doubtLoserOut = state.result.doubtLoserOut;
         this.result.doubtWasPaso = state.result.doubtWasPaso;
         this.result.doubtPasoWasThere = state.result.doubtPasoWasThere;
-        this.result.doubtLookingFor = state.result.doubtLookingFor;
         for (let i=0; i<state.maxConnections; i++) {
-            this.result.doubtCupLifted[i] = false;
+            this.result.doubtMustLiftCup[i] = state.result.doubtMustLiftCup[i]
+            this.result.doubtCupLifted[i] = state.result.doubtCupLifted[i];
         }
     }
 
@@ -277,8 +285,9 @@ export class DudoGame {
         //------------------------------------------------------------
         this.result.doubtHowMany = this.allBids[this.numBids - 2].howMany;
         this.result.doubtOfWhat = this.allBids[this.numBids - 2].ofWhat;
-        this.result.doubtLookingFor = this.result.doubtHowMany - 
-                                      this.GetHowManyShowing(this.result.doubtOfWhat, this.bPaloFijoRound);
+        this.result.doubtShowing = this.GetHowManyShowing(this.result.doubtOfWhat, this.bPaloFijoRound);
+        this.result.doubtLookingFor = this.result.doubtHowMany - this.result.doubtShowing;
+        
         if (this.bPaloFijoRound) {
             //--------------------------------------------------------
             // palo fijo, aces are not wild
@@ -355,6 +364,39 @@ export class DudoGame {
         } else {
             this.result.doubtLoserOut = false;
         }
+
+        //------------------------------------------------------------
+        // did somebody win the game?
+        //------------------------------------------------------------
+        if (this.GetNumberPlayersStillIn() == 2) {
+            this.bWinnerGame = true;
+            this.whoWonGame = this.result.doubtWinner;
+        }
+    }
+
+    //************************************************************
+    // fill in list of who needs to lift their cup
+    // this is 'true' or 'false' for each participant
+    //************************************************************
+    getLiftCupList () {
+        // initialize all to false
+        for (let i=0; i<this.maxConnections; i++) {
+            this.result.doubtMustLiftCup[i] = false;
+        }
+
+        // if PASO, only the one who was doubted
+        if (this.result.doubtWasPaso) {
+            this.result.doubtMustLiftCup[this.result.whoGotDoubted] = true;
+            return;
+        }
+        
+        // not PASO, all players who are IN
+        for (let i=0; i<this.maxConnections; i++) {
+            if (this.allConnectionStatus[i] == CONN_PLAYER_IN) {
+                this.result.doubtMustLiftCup[i] = true;
+            }
+        }
+        // if UNUSED or OBSERVER, false
     }
 
     //************************************************************
@@ -658,22 +700,7 @@ export class DudoGame {
                     this.possibleBids[this.numPossibleBids] += "aces";
                     this.numPossibleBids++;
                 }
-
-/*                
-                // next level bids (double + 1)
-                for (let i = 0; i < (5 * GetNumberPlayersStillIn()) - ( 2 * this.parsedHowMany); i++) {
-                    for (let j = 0; j < 6; j++) {
-                        possibleBids[numPossibleBids] = Integer.toString(2 * this.parsedHowMany + 1 + i)+ " - ";
-                        if (j == 0) {
-                            possibleBids[numPossibleBids] += "aces";
-                        } else {
-                            possibleBids[numPossibleBids] += Integer.toString(j + 1);
-                        }
-                        numPossibleBids++;
-                    }
-                }
-*/
-}
+            }
         } else {
             //--------------------------------------------------------
             // I'm not palofijo
@@ -768,6 +795,7 @@ export class DudoGame {
 
     //****************************************************************
     // Get total number of players (in or out)
+    // &&& nuke this?
     //****************************************************************
     GetNumberPlayers () {
         let result = 0;
@@ -840,13 +868,15 @@ class DoubtResult {
     whoGotDoubted;           
     doubtHowMany;
     doubtOfWhat;
+    doubtShowing;
+    doubtLookingFor;
     doubtLoser;
     doubtWinner;
     doubtCount;
     doubtLoserOut;
     doubtWasPaso;
     doubtPasoWasThere;
-    doubtLookingFor;
+    doubtMustLiftCup = [];
     doubtCupLifted = [];
 
     init() {
@@ -855,13 +885,14 @@ class DoubtResult {
         let whoGotDoubted = undefined;           
         let doubtHowMany = undefined;
         let doubtOfWhat = undefined;
+        let doubtShowing = undefined;
+        let doubtLookingFor = undefined;
         let doubtLoser = undefined;
         let doubtWinner = undefined;
         let doubtCount = undefined;
         let doubtLoserOut = undefined;
         let doubtWasPaso = undefined;
         let doubtPasoWasThere = undefined;
-        let doubtLookingFor = undefined;
     }
 }
 
