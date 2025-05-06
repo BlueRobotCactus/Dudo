@@ -7,11 +7,13 @@ function LandingPage({ playerName }) {
   const navigate = useNavigate();
   const [lobbies, setLobbies] = useState([]);
 
-  // get our socket id
   const { socket, connected } = useContext(SocketContext);
   
-  // Fetch the lobbies once the component mounts
-  useEffect(() => {
+//************************************************************
+// useEffect:  handle landing page stuff
+//             Trigger:  <none>
+//************************************************************
+useEffect(() => {
     if (!connected) {
       console.log("LandingPage: socket not connected yet");
       return;
@@ -19,7 +21,10 @@ function LandingPage({ playerName }) {
   
     console.log("LandingPage: socket is connected, setting up lobbies");
   
-    fetch('/api/lobbies')
+  //-------------------------------------------
+  // Fetch the lobbies once the component mounts
+  //-------------------------------------------
+  fetch('/api/lobbies')
       .then((res) => res.json())
       .then((data) => setLobbies(data))
       .catch((err) => console.error(err));
@@ -33,6 +38,9 @@ function LandingPage({ playerName }) {
     };
   }, [connected, socket]);
   
+  //-------------------------------------------
+  // Create lobby
+  //-------------------------------------------
   const handleCreateLobby = () => {
     if (!connected) return;
     
@@ -48,6 +56,9 @@ function LandingPage({ playerName }) {
     });
   };
 
+  //-------------------------------------------
+  // Join lobby
+  //-------------------------------------------
   const handleJoinLobby = (lobbyId) => {
     if (!playerName) {
       alert('No player name found.');
@@ -65,6 +76,9 @@ function LandingPage({ playerName }) {
     });
   };
 
+  //-------------------------------------------
+  // Change name
+  //-------------------------------------------
   const handleChangeName = () => {
     // Clear out the saved name
     localStorage.removeItem('playerName');
@@ -85,7 +99,7 @@ function LandingPage({ playerName }) {
         Create Lobby
       </button>
 
-      <h2>Available Lobbies (v2)</h2>
+      <h2>Available Lobbies</h2>
       {lobbies.length === 0 && <p>No lobbies yet</p>}
 
       <ul>

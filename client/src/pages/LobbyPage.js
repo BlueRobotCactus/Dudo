@@ -90,8 +90,8 @@ useEffect(() => {
   // Host sees "Your Lobby", others see "HostName's Lobby"
   //-------------------------------------------
   const lobbyTitle = isHost
-    ? 'Your Lobby (v2)'
-    : `${lobbyData.host}'s Lobby (v2)`;
+    ? 'Your Lobby'
+    : `${lobbyData.host}'s Lobby`;
 
   //-------------------------------------------
   // Click: Host starts game

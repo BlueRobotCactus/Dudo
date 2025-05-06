@@ -183,7 +183,7 @@ io.on('connection', (socket) => {
     if (!lobby) return;
 
     // for debugging:  show what sockets are actually in the room
-    io.in(lobbyId).fetchSockets().then(sockets => console.log(`Lobby ${lobbyId} has ${sockets.length} sockets:`, sockets.map(s => s.id)));
+    //io.in(lobbyId).fetchSockets().then(sockets => console.log(`Lobby ${lobbyId} has ${sockets.length} sockets:`, sockets.map(s => s.id)));
 
     // Only the host can start the game
     if (lobby.hostSocketId === socket.id) {
@@ -193,18 +193,6 @@ io.on('connection', (socket) => {
       const ggs = lobby.game;
       ggs.bRoundInProgress = true;
       ggs.whosTurn = 0;
-
-    //&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
-/*      
-      // load player names from lobby
-      ggs.numPlayers = lobby.players.length;
-      for (let i=0; i<lobby.players.length; i++) {
-        ggs.allParticipantNames[i] = lobby.players[i].name;
-        // deal with connection status later (player vs. observer)
-        ggs.allConnectionStatus[i] = CONN_PLAYER_IN;
-        ggs.allConnectionID[i] = lobby.players[i].id;
-      }
-*/
 
       StartGame(ggs);
 
@@ -281,7 +269,6 @@ io.on('connection', (socket) => {
       console.log("server.js: 'rejoinLobby' adding a player " + playerName);
     }
 
-//&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
     // reconcile with DudoGame object
     const ggs = lobby.game;
     const index = ggs.allParticipantNames.indexOf(playerName);  // lookup by name
@@ -315,12 +302,9 @@ io.on('connection', (socket) => {
       }
 
       // for debugging:  show what sockets are actually in the room
-      io.in(lobbyId).fetchSockets().then(sockets => console.log(`Lobby ${lobbyId} has ${sockets.length} sockets:`, sockets.map(s => s.id)));
+      //io.in(lobbyId).fetchSockets().then(sockets => console.log(`Lobby ${lobbyId} has ${sockets.length} sockets:`, sockets.map(s => s.id)));
 
     }
-
-//&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
-
 
     socket.join(lobbyId);               // (re)enter the room
     io.to(lobbyId).emit('lobbyData', lobby); // let everyone refresh
@@ -465,6 +449,9 @@ io.on('connection', (socket) => {
     // re-compute showing and lookage
     ggs.result.doubtShowing = ggs.GetHowManyShowing(ggs.result.doubtOfWhat, ggs.bPaloFijoRound);
     ggs.result.doubtLookingFor = ggs.result.doubtHowMany - ggs.result.doubtShowing;
+    if (ggs.result.doubtLookingFor < 0) {
+      ggs.result.doubtLookingFor = 0;
+    }
 
     if (allLifted) {
       ggs.bDoubtInProgress = false;
@@ -595,16 +582,6 @@ server.listen(PORT, () => {
   console.log(`Server listening on port ${PORT}`);
 });
 
-//****************************************************************
-//****************************************************************
-//****************************************************************
-//
-// Routines ported from java
-//
-//****************************************************************
-//****************************************************************
-//****************************************************************
-
 
 //****************************************************************
 // Start the game 
@@ -621,45 +598,15 @@ function StartGame (ggs) {
       ggs.allSticks[i] = 0;
   }
 
-  //&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
-/*  
-  //------------------------------------------------------------
-  // put all players in
-  // (must do after 1st game of session)
-  //------------------------------------------------------------
-  ggs.numPlayers = 0;
-  for (let cc = 0; cc < ggs.maxConnections; cc++) {
-      if (ggs.allConnectionStatus[cc] != CONN_UNUSED) {
-          ggs.allConnectionStatus[cc] = CONN_PLAYER_IN;
-          ggs.numPlayers++;
-      }
-  }
-*/
-
   // &&& set direction for now
   ggs.whichDirection = 0;
 
-  /*
-  //------------------------------------------------------------
-  // tell everybody new statueses
-  // (must do after 1st game of session)
-  //------------------------------------------------------------
-  for (int cc = 0; cc < maxConnections; cc++) {
-      if (ggs.allConnectionStatus[cc] != CONN_UNUSED) {
-          playerConnection[cc].sendAllConnectionStatus();
-      }
-  }
-  //------------------------------------------------------------
-  // tell everybody that game is starting
-  //------------------------------------------------------------
-  for (int cc = 0; cc < maxConnections; cc++) {
-      if (ggs.allConnectionStatus[cc] != CONN_UNUSED) {
-          playerConnection[cc].sendStartGame();
-      }
-  }
-*/
-  StartRound(ggs);
+  //&&& for debugging
+  //ggs.allConnectionStatus[0] = CONN_OBSERVER;
 
+  ggs.bGameInProgress = true;
+  
+  StartRound(ggs);
 }
 
 //****************************************************************
@@ -667,17 +614,6 @@ function StartGame (ggs) {
 //****************************************************************
 function StartRound (ggs) {
 
-//    Random randomGenerator = new Random();
-/*
-    //------------------------------------------------------------
-    // tell all players we're starting
-    //------------------------------------------------------------
-    for (int cc = 0; cc < ggs.maxPlayers; cc++) {
-        if (ggs.allConnectionStatus[cc] != CONN_UNUSED) {
-            playerConnection[cc].sendStartRound();
-        }
-    }        
-*/
     ggs.bWinnerRound = false; 
     ggs.result.init();
     ggs.bRoundInProgress = true;
@@ -706,16 +642,7 @@ function StartRound (ggs) {
             }
         }
     }
-/*
-    //------------------------------------------------------------
-    // tell all players who goes first
-    //------------------------------------------------------------
-    for (int cc = 0; cc < ggs.maxPlayers; cc++) {
-        if (ggs.allConnectionStatus[cc] != CONN_UNUSED) {
-            playerConnection[cc].sendGoesFirst(ggs.whosTurn);
-        }
-    }      
-*/    
+
     //------------------------------------------------------------
     // roll the dice for all players
     //------------------------------------------------------------
@@ -729,46 +656,6 @@ function StartRound (ggs) {
             }
         }
     }
-/*    
-    //------------------------------------------------------------
-    // send dice to all players
-    //------------------------------------------------------------
-    for (int cc = 0; cc < ggs.maxPlayers; cc++) {
-        if (ggs.allConnectionStatus[cc] != CONN_UNUSED) {
-            playerConnection[cc].sendAllDice();
-        }
-    }
-    
-    //------------------------------------------------------------
-    // send sticks to everybody
-    //------------------------------------------------------------
-    for (int cc = 0; cc < ggs.maxConnections; cc++) {
-        if (ggs.allConnectionStatus[cc] != CONN_UNUSED) {
-            playerConnection[cc].sendAllSticks();
-        }
-    }      
-
-    //if (ggs.firstRound && (ggs.GetNumberPlayersStillIn() > 2)) {
-    if (ggs.GetNumberPlayersStillIn() > 2) {
-        //------------------------------------------------------------
-        // tell player who goes first to get direction
-        // (we'll send start bidding message when we receive direction)
-        //------------------------------------------------------------
-        if (ggs.GetNumberPlayersStillIn() > 2) {
-            playerConnection[ggs.whosTurn].sendGetDirection();
-        }
-    } else {
-        //------------------------------------------------------------
-        // don't need to get direction
-        // send start bidding message to all players
-        //------------------------------------------------------------
-        for (int cc = 0; cc < ggs.maxPlayers; cc++) {
-            if (ggs.allConnectionStatus[cc] != CONN_UNUSED) {
-                playerConnection[cc].sendStartBidding();
-            }
-        }        
-    }
-*/
 
     //------------------------------------------------------------
     // initialize bidding, and send it to everybody
@@ -781,12 +668,6 @@ function StartRound (ggs) {
     for (let i = 0; i < ggs.maxPlayers; i++) {
         ggs.allPasoUsed[i] = false;
     }
-//    for (let cc = 0; cc < ggs.maxPlayers; cc++) {
-//        if (ggs.allConnectionStatus[cc] == CONN_UNUSED) {
-//            continue;
-//        }
-//        playerConnection[cc].sendBid(cc);
-//    }
 
     //------------------------------------------------------------
     // flip bool after first round

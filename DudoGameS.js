@@ -43,6 +43,7 @@ export class DudoGame {
 */
     firstRound;
     whichDirection;          // 0 = left (clockwise); 1 = right (counter-clockwise)
+    bGameInProgress;
     bRoundInProgress;
     bDoubtInProgress;
     bShowDoubtResult;
@@ -97,6 +98,7 @@ export class DudoGame {
             this.bDiceHidden[i] = new Array(5);
         }
 
+        this.bGameInProgress = false;
         this.bRoundInProgress = false;
         this.bDoubtInProgress = false;
         this.bShowDoubtResult = false;
@@ -153,6 +155,7 @@ export class DudoGame {
 
         this.firstRound = state.firstRound;
         this.whichDirection = state.whichDirection;
+        this.bGameInProgress = state.bGameInProgress;
         this.bRoundInProgress = state.bRoundInProgress;
         this.bDoubtInProgress = state.bDoubtInProgress;
         this.bShowDoubtResult = state.bShowDoubtResult;
@@ -287,7 +290,10 @@ export class DudoGame {
         this.result.doubtOfWhat = this.allBids[this.numBids - 2].ofWhat;
         this.result.doubtShowing = this.GetHowManyShowing(this.result.doubtOfWhat, this.bPaloFijoRound);
         this.result.doubtLookingFor = this.result.doubtHowMany - this.result.doubtShowing;
-        
+        if (this.result.doubtLookingFor < 0) {
+            this.result.doubtLookingFor = 0;
+          }
+     
         if (this.bPaloFijoRound) {
             //--------------------------------------------------------
             // palo fijo, aces are not wild
@@ -791,20 +797,6 @@ export class DudoGame {
         }
         console.log('ERROR cannot find last non-paso bid');
         return (-1);
-    }
-
-    //****************************************************************
-    // Get total number of players (in or out)
-    // &&& nuke this?
-    //****************************************************************
-    GetNumberPlayers () {
-        let result = 0;
-        for (let cc = 0; cc < this.maxConnections; cc++) {
-            if (this.allConnectionStatus[cc] != CONN_UNUSED) {
-                result++;
-            }
-        }
-        return result;
     }
 
     //****************************************************************

@@ -118,6 +118,12 @@ import { CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYE
     setGameState(data);
     ggc.AssignGameState(data);
 
+    // Take down any dialog boxes
+    setBidDlg (false);
+    setShowShakeDlg (false);
+    setConfirmBidDlg (false);
+    setDoubtDlg (false);
+
     // is it my turn to bid?
     const whosTurnSocketId = ggc.allConnectionID[ggc.whosTurn];
     const stringSocketId = String(socketId);  //&&&
@@ -501,7 +507,7 @@ useEffect(() => {
     canvas.height = screenSize.height;
 
     // Clear canvas
-    ctx.fillStyle = 'blue';
+    ctx.fillStyle = (ggc.allConnectionStatus[myIndex] == CONN_OBSERVER ? 'lightgray' : 'lightblue');
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     ggc.AssignGameState(gameState);
@@ -510,93 +516,124 @@ useEffect(() => {
     // draw some text
     //-------------------------------------------
     ctx.fillStyle = 'black';
-    ctx.font = '24px Arial';
+    ctx.font = '12px Arial';
     ctx.fillText('Game Lobby: ' + lobbyId, 20, 40);
 
-    if (!gameState?.bRoundInProgress) {
-        ctx.fillText('Game not active or just ended.', 20, 80);
-      return;
-    }
+//    if (!gameState?.bRoundInProgress) {
+//        ctx.fillText('Game not active or just ended.', 20, 60);
+//      return;
+//    }
 
     // Display your name
-    ctx.fillText(`Your name: ${myName} (id = ${socketId})`, 20, 80);
+    let status = '';
+    if (ggc.allConnectionStatus[myIndex] == CONN_PLAYER_IN) {
+      status = "(PLAYER, IN)";
+    }
+    if (ggc.allConnectionStatus[myIndex] == CONN_PLAYER_OUT) {
+      status = "(PLAYER, OUT)";
+    }
+    if (ggc.allConnectionStatus[myIndex] == CONN_OBSERVER) {
+      status = "(OBSERVER)";
+    }
+
+    ctx.fillText(`Your name: ${myName} ${status}`, 20, 60);
+    //ctx.fillText(`Your name: ${myName} (id = ${socketId})`, 20, 60);
 
     // Display current turn
-    ctx.fillText(`Current turn: ${whosTurnName}`, 20, 120);
-    ctx.fillText(isMyTurn ? "It's YOUR turn to bid!" : `Waiting for ${whosTurnName}...`, 20, 160);
+    if (ggc.bGameInProgress) {
+      ctx.fillText(`Current turn: ${whosTurnName}`, 20, 80);
+      ctx.fillText(isMyTurn ? "It's YOUR turn to bid!" : `Waiting for ${whosTurnName}...`, 20, 100);
+    } else {
+      ctx.fillText(`Waiting for host to start a game...`, 20, 80);
+    }
 
     // Display number of sticks
     const sticks = ggc.allSticks[myIndex];
-    ctx.fillText(`Number of sticks: ${sticks}`, 20, 200);
+    ctx.fillText(`Number of sticks: ${sticks}`, 20, 120);
 
+    //************************************************
+    // Begin loop through all connections (players)
+    //************************************************
     //-------------------------------------------
     // Display cup and dice images
     //-------------------------------------------
-
+    let yPos = 140;
     const offset = 110;
-
+    let arrayObserverNames = [];
+    arrayObserverNames.length = 0;
+    
     for (let p=0; p<ggc.maxConnections; p++) {
       if (ggc.allConnectionStatus[p] == CONN_UNUSED) {
         continue;
       }
-
+      if (ggc.allConnectionStatus[p] == CONN_OBSERVER) {
+        arrayObserverNames.push(ggc.allParticipantNames[p]);
+        continue;
+      }
+      
       // draw and fill rectangles for player
       if (ggc.allConnectionStatus[p] == CONN_PLAYER_OUT) {
         ctx.fillStyle = 'lightgray';
       } else {
         ctx.fillStyle = 'white';
       }
-      ctx.fillRect(20, 240 + p*offset, 170, 66);
+      ctx.fillRect(20, yPos, 170, 66);
       ctx.fillStyle = 'blue';
-      ctx.fillRect(20, 306 + p*offset, 170, 28);
+      ctx.fillStyle = (ggc.allConnectionStatus[myIndex] == CONN_OBSERVER ? 'lightgray' : 'lightblue');
+      ctx.fillRect(20, yPos + 66, 170, 28);
       ctx.strokeStyle = 'black';
-      ctx.strokeRect(20, 306 + p*offset, 170, 28);
+      ctx.strokeRect(20, yPos + 66, 170, 28);
 
-      if (p == ggc.whosTurn) {
-        ctx.lineWidth = 4;
-        ctx.strokeStyle = 'red'
-      } else {
-        ctx.lineWidth = 2;
+      // red box around player whose turn it is
+      if (ggc.bGameInProgress) {
+        if (p == ggc.whosTurn) {
+          ctx.lineWidth = 4;
+          ctx.strokeStyle = 'red'
+        } else {
+          ctx.lineWidth = 2;
+          ctx.strokeStyle = 'black'
+        }
+        ctx.strokeRect(20, yPos, 170, 66 + 28);
         ctx.strokeStyle = 'black'
+        ctx.lineWidth = 2;
       }
-      ctx.strokeRect(20, 240 + p*offset, 170, 66 + 28);
-      ctx.strokeStyle = 'black'
-      ctx.lineWidth = 2;
 
       // draw cup
-      if (ggc.allConnectionStatus[p] == CONN_PLAYER_OUT) {
-        ctx.drawImage(cupUpImageRef.current, 25, 245 + p*offset, 40, 56);
+      if (ggc.allConnectionStatus[p] == CONN_PLAYER_OUT || !ggc.bGameInProgress) {
+        ctx.drawImage(cupUpImageRef.current, 25, yPos + 5, 40, 56);
       } else if ((ggc.bDoubtInProgress || ggc.bShowDoubtResult) && ggc.result.doubtCupLifted[p]) {
-        ctx.drawImage(cupUpImageRef.current, 25, 245 + p*offset, 40, 56);
+        ctx.drawImage(cupUpImageRef.current, 25, yPos + 5, 40, 56);
       } else {
-        ctx.drawImage(cupDownImageRef.current, 25, 245 + p*offset, 40, 56);
+        ctx.drawImage(cupDownImageRef.current, 25, yPos + 5, 40, 56);
       }
 
       // draw dice
-      if (ggc.allConnectionStatus[p] == CONN_PLAYER_OUT) {
-        // this player is out out; do nothing
-      } else {
-        const diceImages = diceImagesRef.current;
-        for (let i = 0; i < 5; i++) {
-          const value = ggc.dice[p][i];
-          if (ggc.bDiceHidden[p][i]) {
-            // hidden dice in upper box
-            if (p == myIndex) {
-              // if me, show the die
-              ctx.drawImage(diceImages[value], 70 + i*23, 278 + p*offset, 18, 18);
-            } else {
-              // other player
-              if ((ggc.bDoubtInProgress || ggc.bShowDoubtResult) && ggc.result.doubtCupLifted[p]) {
-                // cup lifted, show dice
-                ctx.drawImage(diceImages[value], 70 + i*23, 278 + p*offset, 18, 18);
+      if (ggc.bGameInProgress) {
+        if (ggc.allConnectionStatus[p] == CONN_PLAYER_OUT) {
+          // this player is out out; do nothing
+        } else {
+          const diceImages = diceImagesRef.current;
+          for (let i = 0; i < 5; i++) {
+            const value = ggc.dice[p][i];
+            if (ggc.bDiceHidden[p][i]) {
+              // hidden dice in upper box
+              if (p == myIndex) {
+                // if me, show the die
+                ctx.drawImage(diceImages[value], 70 + i*23, yPos + 43, 18, 18);
               } else {
-                // cup not lifted, show the empty box
-                ctx.drawImage(diceHiddenImageRef.current, 70 + i*23, 278 + p*offset, 18, 18);
+                // other player
+                if ((ggc.bDoubtInProgress || ggc.bShowDoubtResult) && ggc.result.doubtCupLifted[p]) {
+                  // cup lifted, show dice
+                  ctx.drawImage(diceImages[value], 70 + i*23, yPos + 43, 18, 18);
+                } else {
+                  // cup not lifted, show the empty box
+                  ctx.drawImage(diceHiddenImageRef.current, 70 + i*23, yPos + 43, 18, 18);
+                }
               }
+            } else {
+              // shown dice in bottom box
+              ctx.drawImage(diceImages[value], 70 + i*23, yPos + 43 + 28, 18, 18);
             }
-          } else {
-            // shown dice in bottom box
-            ctx.drawImage(diceImages[value], 70 + i*23, 278 + p*offset + 33, 18, 18);
           }
         }
       }
@@ -604,42 +641,51 @@ useEffect(() => {
       // draw name
       ctx.fillStyle = 'black'
       ctx.font = '24px Arial';
-      ctx.fillText(`${ggc.allParticipantNames[p]}`, 70, 268 + p*offset);
+      ctx.fillText(`${ggc.allParticipantNames[p]}`, 70, yPos + 33);
+
+      yPos += offset;
     }
 
     //-------------------------------------------
     // Display bid history
     //-------------------------------------------
-    ctx.fillText("Bidding History", 210, 500);
-    if (ggc.numBids === 0) {
-      ctx.fillText("(no bids yet)", 210, 520);
-    }
-    if (ggc.numBids > 0) {
-      for (let i=0; i<ggc.numBids; i++) {
-        const name = ggc.allBids[i].playerName;
-        const bid = ggc.allBids[i].text;
-        ctx.fillText(`${name}:  ${bid}`, 210, 520 + i*20);
+    if (ggc.bGameInProgress) {
+      ctx.font = '12px Arial';
+      ctx.fillText("Bidding History", 210, 400);
+      if (ggc.numBids === 0) {
+        ctx.fillText("(no bids yet)", 210, 420);
+      }
+      if (ggc.numBids > 0) {
+        for (let i=0; i<ggc.numBids; i++) {
+          const name = ggc.allBids[i].playerName;
+          const bid = ggc.allBids[i].text;
+          ctx.fillText(`${name}:  ${bid}`, 210, 420 + i*20);
+        }
       }
     }
 
     //-------------------------------------------
     // my turn?
     //-------------------------------------------
-    if (isMyTurn) {
-      if (ggc.bPaloFijoRound) {
-        ggc.PopulateBidListPaloFijo();
-      } else {
-        ggc.PopulateBidListRegular();
+    if (ggc.bGameInProgress) {
+      if (isMyTurn) {
+        if (ggc.bPaloFijoRound) {
+          ggc.PopulateBidListPaloFijo();
+        } else {
+          ggc.PopulateBidListRegular();
+        }
+        ggc.PopulateBidListPasoDudo();
+        setPossibleBids(ggc.possibleBids || []);
       }
-      ggc.PopulateBidListPasoDudo();
-      setPossibleBids(ggc.possibleBids || []);
     }
 
     //-------------------------------------------
     // palofijo?
     //-------------------------------------------
-    if (ggc.bPaloFijoRound) {
-      ctx.fillText('PALO FIJO', 20, 460);
+    if (ggc.bGameInProgress) {
+      if (ggc.bPaloFijoRound) {
+        ctx.fillText('PALO FIJO', 20, 460);
+      }
     }
   
     //-------------------------------------------
@@ -737,15 +783,37 @@ useEffect(() => {
       setDoubtEvent('nextRound');
       setDoubtDlg(true);
     }
+    //************************************************
+    // End loop through all connections (players)
+    //************************************************
+
+    //-------------------------------------------
+    // Display observer names
+    //-------------------------------------------
+    yPos += 20;
+    if (arrayObserverNames.length > 0) {
+      ctx.fillStyle = 'black';
+      ctx.font = '12px Arial';
+      ctx.fillText('OBSERVERS', 20, yPos);
+      yPos += 20;
+    }
+    for (let i=0; i<arrayObserverNames.length; i++) {
+      ctx.fillStyle = 'black';
+      ctx.font = '12px Arial';
+      ctx.fillText(arrayObserverNames[i], 20, yPos + i * 20);
+     }
 
     //-------------------------------------------
     // Display (or not) bid UI
     //-------------------------------------------
-    if (isMyTurn) {
-      setBidDlg(true);
-    } else {
-      setBidDlg(false); // optional: auto-close when it's no longer their turn
+    if (ggc.bGameInProgress) {
+      if (isMyTurn) {
+        setBidDlg(true);
+      } else {
+        setBidDlg(false); // optional: auto-close when it's no longer their turn
+      }
     }
+
   }, [gameState, lobbyPlayers, isMyTurn, screenSize, imagesReady, socketId]);
 
 
@@ -774,7 +842,7 @@ useEffect(() => {
                 ? `Doubt the PASO or top the bid ${ggc.allBids[ggc.FindLastNonPasoBid()].text}`
                 : ''
             }
-            style={{ left: 210, top: 240, position: 'absolute', zIndex: 1000 }}
+            style={{ left: 210, top: 140, position: 'absolute', zIndex: 1000 }}
           />
         </>
       )}
