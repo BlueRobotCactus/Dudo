@@ -50,7 +50,7 @@ useEffect(() => {
     }
     socket.emit('createLobby', playerName, ({ lobbyId, hostName }) => {
       // If successful, navigate to the new lobby
-      navigate(`/lobby/${lobbyId}`, {
+      navigate(`/game/${lobbyId}`, {
         state: { isHost: true, hostName, playerName },
       });
     });
@@ -69,7 +69,7 @@ useEffect(() => {
         alert(lobbyData.error);
       } else {
         // Navigate to the joined lobby
-        navigate(`/lobby/${lobbyId}`, {
+        navigate(`/game/${lobbyId}`, {
           state: { isHost: false, hostName: lobbyData.host, playerName },
         });
       }

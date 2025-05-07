@@ -154,6 +154,11 @@ io.on('connection', (socket) => {
 
       // Update lobby list for the landing page
       io.emit('lobbiesList', getLobbiesList());
+
+      // Broadcast new game state
+      io.to(lobbyId).emit('gameStateUpdate', lobby.game);
+      console.log("server.js: 'joinlobby': emitting 'gameStateUpdate'");
+      
     } else {
       if (callback) {
         callback({ error: 'Lobby not found' });
@@ -196,13 +201,8 @@ io.on('connection', (socket) => {
 
       StartGame(ggs);
 
-      // Emit to all players in the lobby
-      //&&& do we need this?
-      io.to(lobbyId).emit('gameStarted', {
-        lobbyId,
-        gameState: ggs,
-      });
-      console.log("server.js: emitting 'gameStarted'");
+      io.to(lobbyId).emit('gameStateUpdate', lobby.game);
+      console.log("server.js: 'startGame' emiting 'gameStateUpdate'");
     }
   });
 
@@ -605,7 +605,7 @@ function StartGame (ggs) {
   //ggs.allConnectionStatus[0] = CONN_OBSERVER;
 
   ggs.bGameInProgress = true;
-  
+
   StartRound(ggs);
 }
 
