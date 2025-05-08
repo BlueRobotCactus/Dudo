@@ -3,10 +3,16 @@ import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import { useContext } from 'react';
 import { SocketContext } from '../SocketContext.js';
 import { DudoGame } from '../DudoGameC.js'
-import BidDlg from '../dlgBid.js';
-import DoubtDlg from '../dlgPopup.js';
-import ShowShakeDlg from '../dlgShowShake.js';
-import ConfirmBidDlg from '../dlgConfirmBid.js';
+
+import { BidDlg } from '../Dialogs.js';
+import { DoubtDlg } from '../Dialogs.js';
+import { ShowShakeDlg } from '../Dialogs.js';
+import { ConfirmBidDlg } from '../Dialogs.js';
+import { OkDlg } from '../Dialogs.js';
+//import BidDlg from '../dlgBid.js';
+//import DoubtDlg from '../dlgPopup.js';
+//import ShowShakeDlg from '../dlgShowShake.js';
+//import ConfirmBidDlg from '../dlgConfirmBid.js';
 
 import { CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYER_LEFT,
   CONN_PLAYER_IN_DISCONN, CONN_PLAYER_OUT_DISCONN, CONN_OBSERVER_DISCONN } from '../DudoGameC.js';;
@@ -53,6 +59,10 @@ import { CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYE
     const [showShakeDlg, setShowShakeDlg] = useState(false);
     const [confirmBidDlg, setConfirmBidDlg] = useState(false);
     const [confirmMessage, setConfirmMessage] = useState('');
+
+    const [okDlg, setOkDlg] = useState(false);
+    const [okMessage, setOkMessage] = useState('');
+    const [onOkHandler, setOnOkHandler] = useState(() => () => {});  // default no-op
 
     const [imagesReady, setImagesReady] = useState(false);
 
@@ -131,6 +141,7 @@ import { CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYE
       };
     }, [socket, connected, lobbyId, navigate]);
   
+    /*
   //************************************************************
   // useEffect:  Ask for latest game state on mount
   //             Trigger: [socket, lobbyId]
@@ -158,7 +169,7 @@ import { CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYE
       }
     }
   }, [socket, lobbyId]);
-
+*/
   //************************************************************
   // function handleGameStateUpdate
   //************************************************************
@@ -172,6 +183,7 @@ import { CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYE
     setShowShakeDlg (false);
     setConfirmBidDlg (false);
     setDoubtDlg (false);
+    setOkDlg (false);
 
     // What is my index and my name?
     const stringSocketId = String(socketId);
@@ -220,7 +232,7 @@ import { CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYE
       socket.emit('leaveLobby', { playerName, lobbyId });
       navigate('/');
       console.log ('GamePage: emiting "leaveLobby"');
-      }
+    }
   };
 
   //************************************************************
@@ -270,6 +282,34 @@ import { CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYE
       setConfirmBidDlg(true);
     }
   };
+
+  //&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
+/*
+    setOkMessage("A is asking you something.\nPress OK to continue.");
+    setOnOkHandler(() => () => {
+      console.log("AOk executed");
+      setOkDlg(false);
+    });
+    setOkDlg(true);
+*/
+  //&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
+
+  //************************************************************
+  // function to handle 'forceLeaveLobby'
+  // (host has left, the lobby is about to be deleted)
+  //************************************************************
+  const handleForceLeaveLobby = () => {
+    setOkMessage("The host has closed the lobby.\nPress OK to continue.");
+    setOnOkHandler(() => () => {
+      if (connected) {
+        socket.emit('leaveLobby', { playerName, lobbyId });
+        navigate('/');
+        console.log ('GamePage: handleForceLeaveLobby, leaving"');
+      }
+      setOkDlg(false);
+    });
+    setOkDlg(true);
+  }
 
   //************************************************************
   // functions handle Yes, No from ShowShakeDlg
@@ -335,10 +375,12 @@ import { CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYE
 
     socket.on('gameStateUpdate', handleGameStateUpdate);
     socket.on('gameOver', handleGameOver);
+    socket.on('forceLeaveLobby', handleForceLeaveLobby);
 
     return () => {
       socket.off('gameStateUpdate', handleGameStateUpdate);
       socket.off('gameOver', handleGameOver);
+      socket.off('forceLeaveLobby', handleForceLeaveLobby);
     };
   }, [socket, connected]); 
 
@@ -455,10 +497,10 @@ useEffect(() => {
   }
 }, [lobbyId]);
 
-//************************************************************
+//*************************************************************
 // useEffect:  socket re-connect
 //             Trigger:  [socket, socketId, connected, lobbyId, myName]
-//************************************************************
+//*************************************************************
 useEffect(() => {
 
   if (prev.current) {
@@ -476,6 +518,9 @@ useEffect(() => {
     return;
   }
 
+  //************************************************************
+  // function handle Reconnect
+  //************************************************************
   function handleReconnect() {
    
     console.log("RECONNECT: function handleReconnect", lobbyId, myName);
@@ -588,7 +633,6 @@ useEffect(() => {
     if (ggc.allConnectionStatus[myIndex] == CONN_OBSERVER) {
       status = "(OBSERVER)";
     }
-
     ctx.fillText(`Your name: ${myName} ${status}`, 20, 60);
     //ctx.fillText(`Your name: ${myName} (id = ${socketId})`, 20, 60);
 
@@ -881,18 +925,30 @@ useEffect(() => {
       
       {/* === Top-Right Buttons === */}
       <div style={{ position: 'absolute', top: 20, right: 20, display: 'flex', gap: '10px', zIndex: 1000 }}>
-        {(!ggc.bGameInProgress && lobby.host == myName) && (
+        {(!ggc.bGameInProgress && (lobby.host == myName)) && (
+          <>
           <button
             onClick={handleStartGame}
             style={{
               padding: '6px 12px',
               fontSize: '14px',
             }}
+            disabled={ggc.GetNumberPlayersStillIn() < 2}
           >
             Start Game
           </button>
+          <button
+            onClick={handleLeaveLobby}
+            style={{
+              padding: '6px 12px',
+              fontSize: '14px',
+            }}
+          >
+            Close lobby
+          </button>
+          </>
         )}
-        {!ggc.bGameInProgress && (
+        {(!ggc.bGameInProgress && (lobby.host != myName)) && (
           <button
             onClick={handleLeaveLobby}
             style={{
@@ -956,6 +1012,12 @@ useEffect(() => {
             message={confirmMessage}
             onYes={handleConfirmBidYes}
             onNo={handleConfirmBidNo}
+      />
+
+      <OkDlg
+            open={okDlg}
+            message={okMessage}
+            onOk={onOkHandler}
       />
     </div>
   );

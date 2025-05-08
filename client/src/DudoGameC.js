@@ -15,22 +15,21 @@ const CONN_OBSERVER_DISCONN = 7;
 
 export class DudoGame {
 
+    // associated arrays
     maxConnections;
     allConnectionID = [];
     allConnectionStatus = [];
+    allParticipantNames = [];
+    allSticks = [];
+    allPasoUsed = [];
         
     // game parameters
+    maxPlayers;
     maxSticks;
     bPasoAllowed;
     bPaloFijoAllowed;
     bPaloFijoRound;
-    
-    numPlayers;
-    maxPlayers;
-    allParticipantNames = [];
-    allSticks = [];
-    allPasoUsed = [];
-    
+   
     numBids;
     maxBids;
 
@@ -69,11 +68,14 @@ export class DudoGame {
     // constructor
     //****************************************************************
     constructor() {
-        this.numPlayers = 0;
         this.maxPlayers = 6;
-        this.allSticks = [];
+        //this.allSticks = [];
         for (let cc = 0; cc < this.maxConnections; cc++) {
+            this.allParticipantNames[cc] = '';
+            this.allConnectionID[cc] = '';
+            this.allConnectionStatus = CONN_UNUSED;
             this.allSticks[cc] = 0;
+            this.allPasoUsed[cc] = false;
         }
 
         // default game parameters
@@ -123,34 +125,25 @@ export class DudoGame {
         }
 
         this.maxConnections = state.maxConnections;
+        this.maxPlayers = state.maxPlayers;
+        this.maxSticks = state.maxSticks;
         for (let i=0; i<state.maxConnections; i++) {
-            this.allConnectionStatus[i] = state.allConnectionStatus[i];
+            this.allParticipantNames[i] = state.allParticipantNames[i];
             this.allConnectionID[i] = state.allConnectionID[i];
+            this.allConnectionStatus[i] = state.allConnectionStatus[i];
+            this.allSticks[i] = state.allSticks[i];
+            this.allPasoUsed[i] = state.allPasoUsed[i];
         }
+
         this.bPasoAllowed = state.bPasoAllowed;
         this.bPaloFijoAllowed = state.bPaloFijoAllowed;
         this.bPaloFijoRound = state.bPaloFijoRound;
-
-        this.maxPlayers = state.maxPlayers;
-        this.numPlayers = state.numPlayers;
-
-        this.allParticipantNames.length = 0;
-        for (let i=0; i<state.maxPlayers; i++) {
-            this.allParticipantNames[i] = state.allParticipantNames[i];
-            this.allPasoUsed[i] = state.allPasoUsed[i];
-        }
 
         this.numBids = state.numBids;
         this.maxBids = state.maxBids;
         this.allBids.length = 0;
         for (let i=0; i<state.numBids; i++) {
             this.allBids[i] = state.allBids[i];
-        }
-
-        this.maxSticks = state.maxSticks;
-        this.allSticks.length = 0;
-        for (let i=0; i<state.allSticks.length; i++) {
-            this.allSticks[i] = state.allSticks[i];
         }
 
         this.firstRound = state.firstRound;

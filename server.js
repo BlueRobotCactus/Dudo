@@ -87,7 +87,6 @@ io.on('connection', (socket) => {
     ggs.allParticipantNames[0] = hostName;
     ggs.allConnectionID[0] = socket.id;
     ggs.allConnectionStatus[0] = CONN_PLAYER_IN;
-    ggs.numPlayers = 1;
 
     socket.join(lobbyId);
     console.log(`Lobby created: ${lobbyId} by host: ${hostName}`);
@@ -119,11 +118,17 @@ io.on('connection', (socket) => {
         lobby.players.push({ id: socket.id, name: playerName });
         socket.join(lobbyId);
 
-        let len = ggs.allParticipantNames.length;
-        ggs.allParticipantNames[len] = playerName;
-        ggs.allConnectionID[len] = socket.id;
-        ggs.allConnectionStatus[len] = CONN_PLAYER_IN;
-        ggs.numPlayers = len + 1;
+        // add him to game (first unused connection)
+        let ptr = 0;
+        for (let i=0; i<ggs.maxConnections; i++) {
+          if (ggs.allConnectionStatus[i] == CONN_UNUSED) {
+            ptr = i;
+            break;
+          }
+        }
+        ggs.allParticipantNames[ptr] = playerName;
+        ggs.allConnectionID[ptr] = socket.id;
+        ggs.allConnectionStatus[ptr] = CONN_PLAYER_IN;
       } else {
 
         console.log ('joinLobby, PLAYER FOUND.THIS SHOULD NEVER HAPPEN, DELETE LATER &&&');
@@ -215,13 +220,48 @@ io.on('connection', (socket) => {
     const lobby = lobbies[lobbyId];
     if (!lobby) return;
 
-    // Remove this player from the lobby
+    // get index of player who left
     const playerIndex = lobby.players.findIndex((p) => p.id === socket.id);
     if (playerIndex === -1) return;
 
+    // Remove this player from the lobby
     socket.leave(lobbyId);
     const [removedPlayer] = lobby.players.splice(playerIndex, 1);
 
+    // If the removed player was the host
+    if (removedPlayer.id === lobby.hostSocketId) {
+      console.log(`Host left lobby. Removing lobby: ${lobbyId}`);
+      // tell everybody else to leave
+      io.to(lobbyId).emit('lobbyData', lobby);
+      io.emit('lobbiesList', getLobbiesList());
+      io.to(lobbyId).emit('forceLeaveLobby', lobby);
+
+      // then delete the lobby
+      delete lobbies[lobbyId];
+      return;
+    }
+
+    // Remove this player from game
+    const ggs = lobby.game;
+    for (let cc=playerIndex; cc < ggs.maxConnections - 1; cc++) {
+      ggs.allParticipantNames[cc] = ggs.allParticipantNames[cc+1];
+      ggs.allConnectionID[cc]     = ggs.allConnectionID[cc+1];
+      ggs.allConnectionStatus[cc] = ggs.allConnectionStatus[cc+1];
+      ggs.allSticks[cc]           = ggs.allSticks[cc+1];
+      ggs.allPasoUsed[cc]         = ggs.allPasoUsed[cc+1];
+    }
+    ggs.allParticipantNames[ggs.maxConnections - 1] = '';
+    ggs.allConnectionID[ggs.maxConnections - 1]     = '';
+    ggs.allConnectionStatus[ggs.maxConnections - 1] = CONN_UNUSED;
+    ggs.allSticks[ggs.maxConnections - 1]           = 0;
+    ggs.allPasoUsed[ggs.maxConnections - 1]         = false;
+    
+    console.log(`${playerName} left lobby: ${lobbyId}`)
+    io.to(lobbyId).emit('lobbyData', lobby);
+    io.emit('lobbiesList', getLobbiesList());
+    io.to(lobbyId).emit('gameStateUpdate', lobby.game);
+    console.log("server.js: 'leaveLobby': emitting 'gameStateUpdate'");
+/*
     // If the removed player was the host
     if (removedPlayer.id === lobby.hostSocketId) {
       // Reassign host the earliest joined player if players remain
@@ -245,6 +285,9 @@ io.on('connection', (socket) => {
     }
 
     io.emit('lobbiesList', getLobbiesList());
+    io.to(lobbyId).emit('gameStateUpdate', lobby.game);
+    console.log("server.js: 'leaveLobby': emitting 'gameStateUpdate'");
+*/
   });
 
   //************************************************************
@@ -280,11 +323,16 @@ io.on('connection', (socket) => {
       lobby.players.push({ id: socket.id, name: playerName });
       socket.join(lobbyId);
 
-      let len = ggs.allParticipantNames.length;
-      ggs.allParticipantNames[len] = playerName;
-      ggs.allConnectionID[len] = socket.id;
-      ggs.allConnectionStatus[len] = CONN_PLAYER_IN;
-      ggs.numPlayers = len + 1;
+      let ptr = 0;
+      for (let i=0; i<ggs.maxConnections; i++) {
+        if (ggs.allConnectionStatus[i] == CONN_UNUSED) {
+          ptr = i;
+          break;
+        }
+      }
+      ggs.allParticipantNames[ptr] = playerName;
+      ggs.allConnectionID[ptr] = socket.id;
+      ggs.allConnectionStatus[ptr] = CONN_PLAYER_IN;
     } else {
       // player is in lobby, re-connect him
       console.log ("server.js: 'rejoinLobby' resetting DudoGame for ", playerName);
@@ -594,7 +642,7 @@ function StartGame (ggs) {
   //------------------------------------------------------------
   // give everybody no sticks
   //------------------------------------------------------------
-  for (let i = 0; i < ggs.numPlayers; i++) {
+  for (let i = 0; i < ggs.maxConnections; i++) {
       ggs.allSticks[i] = 0;
   }
 
@@ -658,14 +706,14 @@ function StartRound (ggs) {
     }
 
     //------------------------------------------------------------
-    // initialize bidding, and send it to everybody
+    // initialize bidding
     //------------------------------------------------------------
     ggs.numBids = 0;
     for (let i = 0; i < ggs.maxBids; i++) {
         ggs.allBids[i].InitDudoBid();
     }
 
-    for (let i = 0; i < ggs.maxPlayers; i++) {
+    for (let i = 0; i < ggs.maxConnections; i++) {
         ggs.allPasoUsed[i] = false;
     }
 
@@ -694,7 +742,6 @@ function PostRound(ggs) {
     if (ggs.allSticks[ggs.result.doubtLoser] == ggs.maxSticks) {
         // out! winner of doubt inherits first bid
         ggs.allConnectionStatus[ggs.result.doubtLoser] = CONN_PLAYER_OUT;
-        ggs.numPlayers--;
         ggs.whosTurn = ggs.result.doubtWinner;
         ggs.bPaloFijoRound = false;
     } else {
