@@ -230,14 +230,16 @@ io.on('connection', (socket) => {
 
     // If the removed player was the host
     if (removedPlayer.id === lobby.hostSocketId) {
-      console.log(`Host left lobby. Removing lobby: ${lobbyId}`);
+      console.log(`server.js: Host left lobby. Removing lobby: ${lobbyId}`);
+
+      // delete the lobby from the lobbies array
+      delete lobbies[lobbyId];
+
       // tell everybody else to leave
       io.to(lobbyId).emit('lobbyData', lobby);
       io.emit('lobbiesList', getLobbiesList());
       io.to(lobbyId).emit('forceLeaveLobby', lobby);
 
-      // then delete the lobby
-      delete lobbies[lobbyId];
       return;
     }
 
@@ -535,7 +537,13 @@ io.on('connection', (socket) => {
       lobby.game.bDoubtInProgress = false;
       lobby.game.bShowDoubtResult = false;
       PostRound(lobby.game);
-      StartRound(lobby.game);   // => resets bWinnerRound = false
+      if (ggs.bWinnerGame) {
+        //ggs.bGameInProgress = false;
+        ggs.PrepareNextGame();
+      } else {
+        StartRound(lobby.game);
+      }
+
       io.to(lobbyId).emit('gameStateUpdate', lobby.game);
     }
   });
@@ -607,7 +615,7 @@ app.get('/api/lobbies', (req, res) => {
 // Helper: list of available lobbies
 // ------------------------------
 function getLobbiesList() {
-return Object.values(lobbies).map((lobby) => ({
+  return Object.values(lobbies).map((lobby) => ({
     id: lobby.id,
     host: lobby.host,
     playerCount: lobby.players.length,

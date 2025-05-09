@@ -190,8 +190,55 @@ export class DudoGame {
     //************************************************************
     // initialize game parameters
     //************************************************************
-    initGameParms (sticks) {
-        this.maxSticks = sticks;
+    PrepareNextGame () {
+        this.maxSticks = 1;
+        this.bPasoAllowed = true;
+        this.bPaloFijoAllowed = true;
+        this.bPaloFijoRound =  false;
+        this.firstRound = false;
+
+        this.bGameInProgress = false;
+        this.bRoundInProgress = false;
+        this.bDoubtInProgress = false;
+        this.bShowDoubtResult = false;
+        this.bWinnerRound = false;
+        this.bWinnerGame = false;
+
+        this.whosTurn = -1;
+
+        for (let i = 0; i < this.maxConnections; i++) {
+            const status = this.allConnectionStatus[i];
+            if (status == CONN_PLAYER_IN || status == CONN_PLAYER_OUT || status == CONN_OBSERVER) {
+                this.allConnectionStatus[i] = CONN_PLAYER_IN;
+            }
+            this.allPasoUsed[i] = false;
+            this.allSticks[i] = 0;
+            }
+
+        this.numBids = 0;
+        this.maxBids = 100;
+        this.allBids = new Array(this.maxBids);
+        for (let i = 0; i < this.maxBids; i++) {
+            this.allBids[i] = new DudoBid();
+        }
+
+        for (let i=0; i < 6; i++) {
+            for (let j=0; j < 5; j++) {
+                this.dice[i][j] = undefined;
+                this.bDiceHidden[i][j] = true;
+            }
+        }
+/*
+        this.dice = new Array(6);
+        for (let i = 0; i < 6; i++) {
+            this.dice[i] = new Array(5);
+        }
+        this.bDiceHidden = new Array(6);
+        for (let i = 0; i < 6; i++) {
+            this.bDiceHidden[i] = new Array(5);
+        }
+*/
+        this.result.init();
     }
 
     //************************************************************
