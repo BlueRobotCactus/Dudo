@@ -49,7 +49,6 @@ const lobbies = {
 };
 
 // hear back arrays
-let hearbackLiftCup;
 let hearbackNextRound;
 
 
@@ -190,25 +189,40 @@ io.on('connection', (socket) => {
   //************************************************************
   socket.on('startGame', (lobbyId) => {
     const lobby = lobbies[lobbyId];
+    const ggs = lobby.game;
+
     if (!lobby) return;
 
     // for debugging:  show what sockets are actually in the room
     //io.in(lobbyId).fetchSockets().then(sockets => console.log(`Lobby ${lobbyId} has ${sockets.length} sockets:`, sockets.map(s => s.id)));
 
-    // Only the host can start the game
-    if (lobby.hostSocketId === socket.id) {
-
-      console.log(`Game started in lobby: ${lobbyId}`);
-
-      const ggs = lobby.game;
-      ggs.bRoundInProgress = true;
-      ggs.whosTurn = 0;
-
-      StartGame(ggs);
-
-      io.to(lobbyId).emit('gameStateUpdate', lobby.game);
-      console.log("server.js: 'startGame' emiting 'gameStateUpdate'");
+    // hear back to see who's in or out
+    //ggs.inOutMustSay = Array(ggs.maxConnections).fill(false); // &&&nuke this???
+    for (let cc=0; cc<ggs.maxConnections; cc++) {
+      ggs.inOutMustSay[cc] = false;
+      ggs.inOutDidSay[cc] = false;
     }
+    ggs.getMustSayInOut();
+    
+    if (lobby.hostSocketId === socket.id) {
+      ggs.bAskInOut = true;
+      io.to(lobbyId).emit('gameStateUpdate', lobby.game);
+      return;
+    }
+
+    //&&&
+
+/*
+    console.log(`Game started in lobby: ${lobbyId}`);
+
+    ggs.bRoundInProgress = true;
+    ggs.whosTurn = 0;
+
+    StartGame(ggs);
+
+    io.to(lobbyId).emit('gameStateUpdate', lobby.game);
+    console.log("server.js: 'startGame' emiting 'gameStateUpdate'");
+    */
   });
 
   //************************************************************
@@ -460,7 +474,7 @@ io.on('connection', (socket) => {
       lobby.game.bDoubtInProgress = true;
 
       ggs.getDoubtResult();
-      ggs.getLiftCupList();
+      ggs.getMustLiftCupList();
     //&&&PostRound(ggs);
 
     } else {
@@ -546,6 +560,38 @@ io.on('connection', (socket) => {
 
       io.to(lobbyId).emit('gameStateUpdate', lobby.game);
     }
+  });
+  
+  //************************************************************
+  // socket.on
+  // hear back from client: 'inOrOut'
+  //************************************************************
+  socket.on('inOrOut', ({ lobbyId, index, status }) => {
+    const lobby = lobbies[lobbyId];
+    const ggs = lobby.game;
+
+    // mark this player heard back
+    ggs.inOutDidSay[index] = true;
+    ggs.allConnectionStatus[index] = status;
+
+    // is that everybody we need to hear from?
+    let okToGo = true;
+    for (let i=0; i<ggs.maxConnections; i++) {
+      if (ggs.allConnectionStatus[i] == CONN_PLAYER_IN) {
+        if (!ggs.inOutDidSay[i]) {
+          okToGo = false;
+          break;
+        }
+      }
+    }
+
+    if (okToGo) {
+      ggs.bAskInOut = false;
+      ggs.bRoundInProgress = true;  //&&& need this?
+      ggs.whosTurn = 0; //&&& need this?
+      StartGame(ggs);
+    }
+    io.to(lobbyId).emit('gameStateUpdate', lobby.game);
   });
   
   //************************************************************

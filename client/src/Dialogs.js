@@ -193,3 +193,44 @@ export function OkDlg({ open, message, onOk, style = {} }) {
     </div>
   );
 }
+
+//************************************************************
+// YesNoDlg (reuseable)
+//************************************************************
+export function YesNoDlg({ open, message, yesText, noText, onYes, onNo, yesShowButton, noShowButton, style = {} }) {
+  if (!open) return null;
+
+  return (
+    <div style={{
+      position: 'absolute',
+      top: '40%',
+      left: '50%',
+      transform: 'translate(-50%, -50%)',
+      backgroundColor: 'white',
+      border: '2px solid black',
+      borderRadius: '10px',
+      padding: '20px',
+      zIndex: 1000,
+      textAlign: 'center',
+      width: '300px',
+      ...style,
+    }}>
+      <div style={{ marginBottom: '20px', fontSize: '18px', whiteSpace: 'pre-line' }}>
+        {message}
+      </div>
+
+      {yesShowButton && (
+      <button onClick={onYes} style={{ padding: '10px 20px', fontSize: '16px' }}>
+        {yesText}
+      </button>
+      )}
+
+      {noShowButton && (
+      <button onClick={onNo} style={{ padding: '10px 20px', fontSize: '16px' }}>
+        {noText}
+      </button>
+      )}
+
+    </div>
+  );
+}

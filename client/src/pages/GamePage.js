@@ -9,10 +9,7 @@ import { DoubtDlg } from '../Dialogs.js';
 import { ShowShakeDlg } from '../Dialogs.js';
 import { ConfirmBidDlg } from '../Dialogs.js';
 import { OkDlg } from '../Dialogs.js';
-//import BidDlg from '../dlgBid.js';
-//import DoubtDlg from '../dlgPopup.js';
-//import ShowShakeDlg from '../dlgShowShake.js';
-//import ConfirmBidDlg from '../dlgConfirmBid.js';
+import { YesNoDlg } from '../Dialogs.js';
 
 import { CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYER_LEFT,
   CONN_PLAYER_IN_DISCONN, CONN_PLAYER_OUT_DISCONN, CONN_OBSERVER_DISCONN } from '../DudoGameC.js';;
@@ -48,23 +45,35 @@ import { CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYE
     const [myName, setMyName] = useState('');
     const [isMyTurn, setIsMyTurn] = useState(false);
     const [whosTurnName, setWhosTurnName] = useState('');
+    const [imagesReady, setImagesReady] = useState(false);
     
-    const [bidDlg, setBidDlg] = useState(false);
+    // dialogs
+    const [showBidDlg, setShowBidDlg] = useState(false);
     const [thisBid, setThisBid] = useState('');
-    const [showDoubtDlg, setDoubtDlg] = useState(false);
+
+    const [showDoubtDlg, setShowDoubtDlg] = useState(false);
     const [doubtMessage, setDoubtMessage] = useState('');
     const [doubtShowButton, setDoubtShowButton] = useState('');
     const [doubtButtonText, setDoubtButtonText] = useState('');
     const [doubtEvent, setDoubtEvent] = useState('');
-    const [showShakeDlg, setShowShakeDlg] = useState(false);
-    const [confirmBidDlg, setConfirmBidDlg] = useState(false);
+
+    const [showShowShakeDlg, setShowShakeDlg] = useState(false);
+
+    const [showConfirmBidDlg, setShowConfirmBidDlg] = useState(false);
     const [confirmMessage, setConfirmMessage] = useState('');
 
-    const [okDlg, setOkDlg] = useState(false);
+    const [showOkDlg, setShowOkDlg] = useState(false);
     const [okMessage, setOkMessage] = useState('');
     const [onOkHandler, setOnOkHandler] = useState(() => () => {});  // default no-op
 
-    const [imagesReady, setImagesReady] = useState(false);
+    const [showYesNoDlg, setShowYesNoDlg] = useState(false);
+    const [yesNoMessage, setYesNoMessage] = useState('');
+    const [yesText, setYesText] = useState('');
+    const [noText, setNoText] = useState('');
+    const [yesShowButton, setYesShowButton] = useState(true);
+    const [noShowButton, setNoShowButton] = useState(true);
+    const [onYesHandler, setOnYesHandler] = useState(() => () => {});  // default no-op
+    const [onNoHandler, setOnNoHandler] = useState(() => () => {});  // default no-op
 
     // Refs
     const canvasRef = useRef(null);
@@ -179,11 +188,12 @@ import { CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYE
     ggc.AssignGameState(data);
 
     // Take down any dialog boxes
-    setBidDlg (false);
+    setShowBidDlg (false);
     setShowShakeDlg (false);
-    setConfirmBidDlg (false);
-    setDoubtDlg (false);
-    setOkDlg (false);
+    setShowConfirmBidDlg (false);
+    setShowDoubtDlg (false);
+    setShowOkDlg (false);
+    setShowYesNoDlg (false);
 
     // What is my index and my name?
     const stringSocketId = String(socketId);
@@ -245,7 +255,7 @@ import { CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYE
     setThisBid (bid);
 
     // Close the dialog
-    setBidDlg(false);
+    setShowBidDlg(false);
 
     //-------------------------------------------
     // can they show and shake?
@@ -274,12 +284,12 @@ import { CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYE
       } else {
       // if not, ask if they want to confirm the bid
         setConfirmMessage ('Your bid is:\n' + bid + '\n\nSubmit this bid?');
-        setConfirmBidDlg(true);
+        setShowConfirmBidDlg(true);
       }
     }
     if (bid == "PASO" || bid == "DOUBT") {
       setConfirmMessage ('Your bid is:\n' + bid + '\n\nSubmit this bid?');
-      setConfirmBidDlg(true);
+      setShowConfirmBidDlg(true);
     }
   };
 
@@ -288,9 +298,9 @@ import { CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYE
     setOkMessage("A is asking you something.\nPress OK to continue.");
     setOnOkHandler(() => () => {
       console.log("AOk executed");
-      setOkDlg(false);
+      setShowOkDlg(false);
     });
-    setOkDlg(true);
+    setShowOkDlg(true);
 */
   //&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
 
@@ -306,9 +316,9 @@ import { CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYE
         navigate('/');
         console.log ('GamePage: handleForceLeaveLobby, leaving"');
       }
-      setOkDlg(false);
+      setShowOkDlg(false);
     });
-    setOkDlg(true);
+    setShowOkDlg(true);
   }
 
   //************************************************************
@@ -322,7 +332,7 @@ import { CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYE
 
     // confirm the bid
     setConfirmMessage ('Your bid is:\n' + thisBid + ', Show and Shake\n\nSubmit this bid?');
-    setConfirmBidDlg(true);
+    setShowConfirmBidDlg(true);
   };
 
   const handleShowShakeNo = () => {
@@ -333,14 +343,14 @@ import { CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYE
 
     // confirm the bid
     setConfirmMessage ('Your bid is:\n' + thisBid + '\n\nSubmit this bid?');
-    setConfirmBidDlg(true);
+    setShowConfirmBidDlg(true);
   };
 
   //************************************************************
   // functions handle Yes, No from ConfirmBidDlg
   //************************************************************
   const handleConfirmBidYes = () => {
-    setConfirmBidDlg(false);
+    setShowConfirmBidDlg(false);
 
     // Now send the bid to the server
     if (connected) {
@@ -355,10 +365,10 @@ import { CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYE
   };
 
   const handleConfirmBidNo = () => {
-    setConfirmBidDlg(false);
+    setShowConfirmBidDlg(false);
     setThisBid('');
     myShowShakeRef.current = false;
-    setBidDlg(true); // start over
+    setShowBidDlg(true); // start over
   };
   
   //************************************************************
@@ -831,7 +841,7 @@ useEffect(() => {
       }
       setDoubtButtonText('Lift Cup');
       setDoubtEvent('liftCup');
-      setDoubtDlg(true);
+      setShowDoubtDlg(true);
     }
     
     //-------------------------------------------
@@ -880,7 +890,7 @@ useEffect(() => {
       setDoubtShowButton(ggc.allConnectionStatus[myIndex] == CONN_PLAYER_IN);
       setDoubtButtonText('OK');
       setDoubtEvent('nextRound');
-      setDoubtDlg(true);
+      setShowDoubtDlg(true);
     }
     //************************************************
     // End loop through all connections (players)
@@ -903,13 +913,54 @@ useEffect(() => {
      }
 
     //-------------------------------------------
+    // Display (or not) Ask in or out
+    //-------------------------------------------
+     if (ggc.bAskInOut) {
+      let msg = "Starting a new game\nAre you in?";
+      // who has not yet said in or out
+      let ss = "\n\nWaiting to hear from:";
+      for (let cc = 0; cc < ggc.maxConnections; cc++) {
+        if (ggc.inOutMustSay[cc]) {
+          ss += "\n" + ggc.allParticipantNames[cc];
+          if (ggc.inOutDidSay[cc]) {
+            if (ggc.allConnectionStatus[cc] == CONN_PLAYER_IN) {
+              ss += " - IN";
+            }
+            if (ggc.allConnectionStatus[cc] == CONN_OBSERVER) {
+              ss += " - OUT";
+            }
+          }
+        }
+      }
+      msg += ss;
+      setYesNoMessage(msg);
+
+      setYesText("Yes, I'm in");
+      setNoText("No, I'll watch");
+      setYesShowButton(true);
+      setNoShowButton(true);
+
+      setOnYesHandler(() => () => {
+        setShowYesNoDlg(false);
+        ggc.allConnectionStatus[myIndex] = CONN_PLAYER_IN;
+        socket.emit('inOrOut', { lobbyId, index: myIndex, status: CONN_PLAYER_IN })
+      });
+      setOnNoHandler(() => () => {
+        setShowYesNoDlg(false);
+        ggc.allConnectionStatus[myIndex] = CONN_OBSERVER;
+        socket.emit('inOrOut', { lobbyId, index: myIndex, status: CONN_OBSERVER })
+      });
+      setShowYesNoDlg(true);
+    }
+  
+    //-------------------------------------------
     // Display (or not) bid UI
     //-------------------------------------------
     if (ggc.bGameInProgress) {
       if (isMyTurn) {
-        setBidDlg(true);
+        setShowBidDlg(true);
       } else {
-        setBidDlg(false); // optional: auto-close when it's no longer their turn
+        setShowBidDlg(false); // optional: auto-close when it's no longer their turn
       }
     }
 
@@ -960,12 +1011,13 @@ useEffect(() => {
           </button>
         )}
       </div>
-      
+
+      {/* === Bid dialog === */}
       {isMyTurn && (
         <>
           <BidDlg
-            open={bidDlg}
-            onClose={() => setBidDlg(false)}
+            open={showBidDlg}
+            onClose={() => setShowBidDlg(false)}
             onSubmit={handleBidOK}
             bids={possibleBids}
             makeBidString="Select your bid"
@@ -984,41 +1036,62 @@ useEffect(() => {
         </>
       )}
 
-      <DoubtDlg
-        open={showDoubtDlg}
-        message={doubtMessage}
-        doubtButtonText={doubtButtonText}
-        doubtShowButton={doubtShowButton}
-        doubtEvent={doubtEvent}
-        onClose={() => {
-          setDoubtDlg(false);
-          socket.emit(doubtEvent, { lobbyId, index: myIndex })
-          //socket.emit('liftCup', { lobbyId, index: myIndex })
-          //socket.emit('nextRound', { lobbyId, index: myIndex })
-        }}
-        x = {200}
-        y = {240}
-      />
+      {showDoubtDlg && (
+        <DoubtDlg
+          open={showDoubtDlg}
+          message={doubtMessage}
+          doubtButtonText={doubtButtonText}
+          doubtShowButton={doubtShowButton}
+          doubtEvent={doubtEvent}
+          onClose={() => {
+            setShowDoubtDlg(false);
+            socket.emit(doubtEvent, { lobbyId, index: myIndex })
+            //socket.emit('liftCup', { lobbyId, index: myIndex })
+            //socket.emit('nextRound', { lobbyId, index: myIndex })
+          }}
+          x = {200}
+          y = {240}
+        />
+      )}
 
-      <ShowShakeDlg
-            open={showShakeDlg}
-            message="Do you want to show and shake?"
-            onYes={handleShowShakeYes}
-            onNo={handleShowShakeNo}
-          />
+      {showShowShakeDlg && (
+        <ShowShakeDlg
+          open={showShowShakeDlg}
+          message="Do you want to show and shake?"
+          onYes={handleShowShakeYes}
+          onNo={handleShowShakeNo}
+        />
+      )}
 
-      <ConfirmBidDlg
-            open={confirmBidDlg}
-            message={confirmMessage}
-            onYes={handleConfirmBidYes}
-            onNo={handleConfirmBidNo}
-      />
+      {showConfirmBidDlg && (
+        <ConfirmBidDlg
+          open={showConfirmBidDlg}
+          message={confirmMessage}
+          onYes={handleConfirmBidYes}
+          onNo={handleConfirmBidNo}
+        />
+      )}
 
-      <OkDlg
-            open={okDlg}
-            message={okMessage}
-            onOk={onOkHandler}
-      />
+      {showOkDlg && (
+        <OkDlg
+          open={showOkDlg}
+          message={okMessage}
+          onOk={onOkHandler}
+        />
+      )}
+
+      {showYesNoDlg && (
+        <YesNoDlg
+          open={showYesNoDlg}
+          message={yesNoMessage}
+          yesText={yesText}
+          noText={noText}
+          yesShowButton = {yesShowButton}
+          noShowButton = {noShowButton}
+          onYes={onYesHandler}
+          onNo={onNoHandler}
+        />
+      )}
     </div>
   );
 }

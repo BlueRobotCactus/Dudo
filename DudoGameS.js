@@ -46,6 +46,10 @@ export class DudoGame {
     bRoundInProgress;
     bDoubtInProgress;
     bShowDoubtResult;
+    bAskInOut;
+
+    inOutMustSay = [];
+    inOutDidSay = [];
 
     goesFirst;
     whosTurn;                
@@ -104,6 +108,7 @@ export class DudoGame {
         this.bRoundInProgress = false;
         this.bDoubtInProgress = false;
         this.bShowDoubtResult = false;
+        this.bAskInOut = false;
         this.bWinnerRound = false;
         this.bWinnerGame = false;
 
@@ -152,6 +157,7 @@ export class DudoGame {
         this.bRoundInProgress = state.bRoundInProgress;
         this.bDoubtInProgress = state.bDoubtInProgress;
         this.bShowDoubtResult = state.bShowDoubtResult;
+        this.bAskInOut = state.bAskInOut;
         this.goesFirst = state.goesFirst;
         this.whosTurn = state.whosTurn;
         this.whosTurnPrev = state.whosTurnPrev;
@@ -182,6 +188,8 @@ export class DudoGame {
         this.result.doubtWasPaso = state.result.doubtWasPaso;
         this.result.doubtPasoWasThere = state.result.doubtPasoWasThere;
         for (let i=0; i<state.maxConnections; i++) {
+            this.inOutMustSay[i] = state.inOutMustSay[i];
+            this.inOutDidSay[i] = state.inOutDidSay[i];
             this.result.doubtMustLiftCup[i] = state.result.doubtMustLiftCup[i]
             this.result.doubtCupLifted[i] = state.result.doubtCupLifted[i];
         }
@@ -201,6 +209,7 @@ export class DudoGame {
         this.bRoundInProgress = false;
         this.bDoubtInProgress = false;
         this.bShowDoubtResult = false;
+        this.bAskInOut = false;
         this.bWinnerRound = false;
         this.bWinnerGame = false;
 
@@ -304,6 +313,7 @@ export class DudoGame {
             this.result.doubtWasPaso = true;
             this.result.doubtHowMany = 0;
             this.result.doubtOfWhat = 0;
+            // determine winner and loser
             if (this.hasPaso()) {
                 this.result.doubtLoser = this.result.whoDoubted;
                 this.result.doubtWinner = this.result.whoGotDoubted;
@@ -314,12 +324,17 @@ export class DudoGame {
                 this.result.doubtWinner = this.result.whoDoubted;
                 this.result.doubtPasoWasThere = false;
             }
+            // is the loser out?
             if (this.allSticks[this.result.doubtLoser] == this.maxSticks - 1) {
                 this.result.doubtLoserOut = true;
             } else {
                 this.result.doubtLoserOut = false;
             }
-                
+            // did somebody win the game?
+            if (this.GetNumberPlayersStillIn() == 2) {
+                this.bWinnerGame = true;
+                this.whoWonGame = this.result.doubtWinner;
+            }
             return;
         }
 
@@ -424,7 +439,7 @@ export class DudoGame {
     // fill in list of who needs to lift their cup
     // this is 'true' or 'false' for each participant
     //************************************************************
-    getLiftCupList () {
+    getMustLiftCupList () {
         // initialize all to false
         for (let i=0; i<this.maxConnections; i++) {
             this.result.doubtMustLiftCup[i] = false;
@@ -443,6 +458,22 @@ export class DudoGame {
             }
         }
         // if UNUSED or OBSERVER, false
+    }
+
+    //************************************************************
+    // fill in list of who needs to say in or out
+    // this is 'true' or 'false' for each participant
+    //************************************************************
+    getMustSayInOut () {
+        // initialize all to false
+        for (let i=0; i<this.maxConnections; i++) {
+            let st = this.allConnectionStatus[i];
+            if (st == CONN_PLAYER_IN || st == CONN_PLAYER_OUT || st == CONN_OBSERVER) {
+                this.inOutMustSay[i] = true;
+            } else {
+                this.inOutMustSay[i] = false;
+            }
+        }
     }
 
     //************************************************************
