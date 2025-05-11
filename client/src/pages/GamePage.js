@@ -52,26 +52,36 @@ import { CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYE
     const [thisBid, setThisBid] = useState('');
 
     const [showDoubtDlg, setShowDoubtDlg] = useState(false);
+    const [doubtPosition, setDoubtPosition] = useState({ x: 200, y: 240 });
+    const [doubtTitle, setDoubtTitle] = useState('');
     const [doubtMessage, setDoubtMessage] = useState('');
     const [doubtShowButton, setDoubtShowButton] = useState('');
     const [doubtButtonText, setDoubtButtonText] = useState('');
     const [doubtEvent, setDoubtEvent] = useState('');
 
     const [showShowShakeDlg, setShowShakeDlg] = useState(false);
+    const [showShakePosition, setShowShakePosition] = useState({ x: 200, y: 200 });
+    const [showShakeTitle, setShowShakeTitle] = useState('');
+    const [showShakeMessage, setShowShakeMessage] = useState('');
 
     const [showConfirmBidDlg, setShowConfirmBidDlg] = useState(false);
     const [confirmMessage, setConfirmMessage] = useState('');
 
     const [showOkDlg, setShowOkDlg] = useState(false);
+    const [okPosition, setOkPosition] = useState({ x: 200, y: 200 });
+    const [okTitle, setOkTitle] = useState('');
     const [okMessage, setOkMessage] = useState('');
     const [onOkHandler, setOnOkHandler] = useState(() => () => {});  // default no-op
 
     const [showYesNoDlg, setShowYesNoDlg] = useState(false);
+    const [yesNoPosition, setYesNoPosition] = useState({ x: 200, y: 200 });
+    const [yesNoTitle, setYesNoTitle] = useState('');
     const [yesNoMessage, setYesNoMessage] = useState('');
     const [yesText, setYesText] = useState('');
     const [noText, setNoText] = useState('');
     const [yesShowButton, setYesShowButton] = useState(true);
     const [noShowButton, setNoShowButton] = useState(true);
+    const [xShowButton, setXShowButton] = useState(true);
     const [onYesHandler, setOnYesHandler] = useState(() => () => {});  // default no-op
     const [onNoHandler, setOnNoHandler] = useState(() => () => {});  // default no-op
 
@@ -280,36 +290,64 @@ import { CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYE
       }
       // if so, ask if they want to show and shake
       if (bFound) {
+        setShowShakeTitle("Show and Shake");
+        setShowShakeMessage("Do you want to show and shake?")
         setShowShakeDlg(true);
       } else {
       // if not, ask if they want to confirm the bid
-        setConfirmMessage ('Your bid is:\n' + bid + '\n\nSubmit this bid?');
-        setShowConfirmBidDlg(true);
+        PrepareConfirmBidDlg('Your bid is:\n' + bid + '\n\nSubmit this bid?', bid);
+        setShowYesNoDlg(true);
       }
     }
     if (bid == "PASO" || bid == "DOUBT") {
-      setConfirmMessage ('Your bid is:\n' + bid + '\n\nSubmit this bid?');
-      setShowConfirmBidDlg(true);
+      PrepareConfirmBidDlg('Your bid is:\n' + bid + '\n\nSubmit this bid?', bid);
+      setShowYesNoDlg(true);
+//      setConfirmMessage ('Your bid is:\n' + bid + '\n\nSubmit this bid?');
+//      setShowConfirmBidDlg(true);
     }
   };
 
-  //&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
-/*
-    setOkMessage("A is asking you something.\nPress OK to continue.");
-    setOnOkHandler(() => () => {
-      console.log("AOk executed");
-      setShowOkDlg(false);
+  //************************************************************
+  // function to prepare the confirm bid dlg
+  // (sets up to use the YesNoDlg
+  //************************************************************
+  const PrepareConfirmBidDlg = (msg, bid) => {
+    setYesNoMessage(msg);
+    setYesNoTitle("Confirm Bid");
+    setYesText("Yes");
+    setNoText("No");
+    setYesShowButton(true);
+    setNoShowButton(true);
+    setXShowButton(false);
+    
+    setOnYesHandler(() => () => {
+      setShowYesNoDlg(false);
+      if (connected) {
+        socket?.emit('bid', {
+          lobbyId,
+          bidText: bid,
+          bidShakeShow: myShowShakeRef.current,
+          index: myIndex,
+          name: myName,
+        });
+      }
     });
-    setShowOkDlg(true);
-*/
-  //&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
+    setOnNoHandler(() => () => {
+      setShowYesNoDlg(false);
+      setThisBid('');
+      myShowShakeRef.current = false;
+      setShowBidDlg(true); // start over
+    });
 
+  }
+  
   //************************************************************
   // function to handle 'forceLeaveLobby'
   // (host has left, the lobby is about to be deleted)
   //************************************************************
   const handleForceLeaveLobby = () => {
     setOkMessage("The host has closed the lobby.\nPress OK to continue.");
+    setOkTitle("");
     setOnOkHandler(() => () => {
       if (connected) {
         socket.emit('leaveLobby', { playerName, lobbyId });
@@ -331,8 +369,10 @@ import { CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYE
     setShowShakeDlg(false);
 
     // confirm the bid
-    setConfirmMessage ('Your bid is:\n' + thisBid + ', Show and Shake\n\nSubmit this bid?');
-    setShowConfirmBidDlg(true);
+    PrepareConfirmBidDlg('Your bid is:\n' + thisBid + ', Show and Shake\n\nSubmit this bid?', thisBid);
+    setShowYesNoDlg(true);
+    //setConfirmMessage ('Your bid is:\n' + thisBid + ', Show and Shake\n\nSubmit this bid?');
+    //setShowConfirmBidDlg(true);
   };
 
   const handleShowShakeNo = () => {
@@ -342,8 +382,10 @@ import { CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYE
     setShowShakeDlg(false);
 
     // confirm the bid
-    setConfirmMessage ('Your bid is:\n' + thisBid + '\n\nSubmit this bid?');
-    setShowConfirmBidDlg(true);
+    PrepareConfirmBidDlg('Your bid is:\n' + thisBid + '\n\nSubmit this bid?', thisBid);
+    setShowYesNoDlg(true);
+    //setConfirmMessage ('Your bid is:\n' + thisBid + '\n\nSubmit this bid?');
+    //setShowConfirmBidDlg(true);
   };
 
   //************************************************************
@@ -839,6 +881,7 @@ useEffect(() => {
       } else {
         setDoubtShowButton(false);
       }
+      setDoubtTitle('DOUBT');
       setDoubtButtonText('Lift Cup');
       setDoubtEvent('liftCup');
       setShowDoubtDlg(true);
@@ -934,12 +977,12 @@ useEffect(() => {
       }
       msg += ss;
       setYesNoMessage(msg);
-
+      setYesNoTitle("Start game");
       setYesText("Yes, I'm in");
       setNoText("No, I'll watch");
       setYesShowButton(true);
       setNoShowButton(true);
-
+      setXShowButton(false);
       setOnYesHandler(() => () => {
         setShowYesNoDlg(false);
         ggc.allConnectionStatus[myIndex] = CONN_PLAYER_IN;
@@ -1039,6 +1082,9 @@ useEffect(() => {
       {showDoubtDlg && (
         <DoubtDlg
           open={showDoubtDlg}
+          position={doubtPosition}
+          setPosition={setDoubtPosition}          
+          title={doubtTitle}
           message={doubtMessage}
           doubtButtonText={doubtButtonText}
           doubtShowButton={doubtShowButton}
@@ -1057,7 +1103,10 @@ useEffect(() => {
       {showShowShakeDlg && (
         <ShowShakeDlg
           open={showShowShakeDlg}
-          message="Do you want to show and shake?"
+          position={showShakePosition}
+          setPosition={setShowShakePosition}          
+          title={showShakeTitle}
+          message={showShakeMessage}
           onYes={handleShowShakeYes}
           onNo={handleShowShakeNo}
         />
@@ -1075,6 +1124,9 @@ useEffect(() => {
       {showOkDlg && (
         <OkDlg
           open={showOkDlg}
+          position={okPosition}
+          setPosition={setOkPosition}          
+          title={okTitle}
           message={okMessage}
           onOk={onOkHandler}
         />
@@ -1083,11 +1135,15 @@ useEffect(() => {
       {showYesNoDlg && (
         <YesNoDlg
           open={showYesNoDlg}
+          position={yesNoPosition}
+          setPosition={setYesNoPosition}          
+          title={yesNoTitle}
           message={yesNoMessage}
           yesText={yesText}
           noText={noText}
           yesShowButton = {yesShowButton}
           noShowButton = {noShowButton}
+          xShowButton = {xShowButton}
           onYes={onYesHandler}
           onNo={onNoHandler}
         />

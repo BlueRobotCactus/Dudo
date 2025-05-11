@@ -313,6 +313,7 @@ export class DudoGame {
             this.result.doubtWasPaso = true;
             this.result.doubtHowMany = 0;
             this.result.doubtOfWhat = 0;
+            // determine winner and loser
             if (this.hasPaso()) {
                 this.result.doubtLoser = this.result.whoDoubted;
                 this.result.doubtWinner = this.result.whoGotDoubted;
@@ -323,12 +324,17 @@ export class DudoGame {
                 this.result.doubtWinner = this.result.whoDoubted;
                 this.result.doubtPasoWasThere = false;
             }
+            // is the loser out?
             if (this.allSticks[this.result.doubtLoser] == this.maxSticks - 1) {
                 this.result.doubtLoserOut = true;
             } else {
                 this.result.doubtLoserOut = false;
             }
-                
+            // did somebody win the game?
+            if (this.GetNumberPlayersStillIn() == 2) {
+                this.bWinnerGame = true;
+                this.whoWonGame = this.result.doubtWinner;
+            }
             return;
         }
 
