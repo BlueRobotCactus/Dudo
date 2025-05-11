@@ -48,9 +48,13 @@ import { CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYE
     const [imagesReady, setImagesReady] = useState(false);
     
     // dialogs
+    // bid
     const [showBidDlg, setShowBidDlg] = useState(false);
+    const [bidPosition, setBidPosition] = useState({ x: 200, y: 200 });
+    const [bidTitle, setBidTitle] = useState('');
     const [thisBid, setThisBid] = useState('');
 
+    // show doubt
     const [showDoubtDlg, setShowDoubtDlg] = useState(false);
     const [doubtPosition, setDoubtPosition] = useState({ x: 200, y: 240 });
     const [doubtTitle, setDoubtTitle] = useState('');
@@ -59,20 +63,24 @@ import { CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYE
     const [doubtButtonText, setDoubtButtonText] = useState('');
     const [doubtEvent, setDoubtEvent] = useState('');
 
+    // show and shake
     const [showShowShakeDlg, setShowShakeDlg] = useState(false);
     const [showShakePosition, setShowShakePosition] = useState({ x: 200, y: 200 });
     const [showShakeTitle, setShowShakeTitle] = useState('');
     const [showShakeMessage, setShowShakeMessage] = useState('');
 
+    // confirmBid (nuke? &&&)
     const [showConfirmBidDlg, setShowConfirmBidDlg] = useState(false);
     const [confirmMessage, setConfirmMessage] = useState('');
 
+    // OK
     const [showOkDlg, setShowOkDlg] = useState(false);
     const [okPosition, setOkPosition] = useState({ x: 200, y: 200 });
     const [okTitle, setOkTitle] = useState('');
     const [okMessage, setOkMessage] = useState('');
-    const [onOkHandler, setOnOkHandler] = useState(() => () => {});  // default no-op
+    const [onOkHandler, setOnOkHandler] = useState(() => () => {});
 
+    // Yes / No
     const [showYesNoDlg, setShowYesNoDlg] = useState(false);
     const [yesNoPosition, setYesNoPosition] = useState({ x: 200, y: 200 });
     const [yesNoTitle, setYesNoTitle] = useState('');
@@ -160,35 +168,6 @@ import { CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYE
       };
     }, [socket, connected, lobbyId, navigate]);
   
-    /*
-  //************************************************************
-  // useEffect:  Ask for latest game state on mount
-  //             Trigger: [socket, lobbyId]
-  //************************************************************
-  useEffect(() => {
-    if (socket && lobbyId) {
-      console.log("GamePage: requesting latest lobby/game state");
-      if (connected) {
-        socket.emit('getLobbyData', lobbyId, (lobby) => {
-          if (lobby && lobby.game) {
-            console.log("GamePage: received lobby/game after manual request");
-            setLobby(lobby);
-            setGameState(lobby.game);
-            ggc.AssignGameState(lobby.game);
-    
-            const stringSocketId = String(socketId);  //&&&
-            const index = ggc.allConnectionID.indexOf(stringSocketId);
-            setMyIndex (index);
-            setMyName (ggc.allParticipantNames[index]);
-        
-          } else {
-            console.warn("GamePage: Failed to get lobby/game data!");
-          }
-        });
-      }
-    }
-  }, [socket, lobbyId]);
-*/
   //************************************************************
   // function handleGameStateUpdate
   //************************************************************
@@ -336,6 +315,7 @@ import { CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYE
       setShowYesNoDlg(false);
       setThisBid('');
       myShowShakeRef.current = false;
+      setBidTitle("Select your bid");
       setShowBidDlg(true); // start over
     });
 
@@ -410,6 +390,7 @@ import { CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYE
     setShowConfirmBidDlg(false);
     setThisBid('');
     myShowShakeRef.current = false;
+    setBidTitle("Select your bid");
     setShowBidDlg(true); // start over
   };
   
@@ -1001,6 +982,7 @@ useEffect(() => {
     //-------------------------------------------
     if (ggc.bGameInProgress) {
       if (isMyTurn) {
+        setBidTitle("Select your bid");
         setShowBidDlg(true);
       } else {
         setShowBidDlg(false); // optional: auto-close when it's no longer their turn
@@ -1055,28 +1037,28 @@ useEffect(() => {
         )}
       </div>
 
-      {/* === Bid dialog === */}
-      {isMyTurn && (
-        <>
-          <BidDlg
-            open={showBidDlg}
-            onClose={() => setShowBidDlg(false)}
-            onSubmit={handleBidOK}
-            bids={possibleBids}
-            makeBidString="Select your bid"
-            yourTurnString={
-              ggc.allBids && ggc.allBids.length > 0 && ggc.numBids > 0
-                ? `The bid to you is ${ggc.allBids[ggc.numBids-1].text}`
-                : 'You bid first'
-            }
-            specialPasoString={
-              ggc.allBids && ggc.allBids.length > 1 && ggc.numBids > 1 && ggc.allBids[ggc.numBids-1].text == "PASO"
-                ? `Doubt the PASO or top the bid ${ggc.allBids[ggc.FindLastNonPasoBid()].text}`
-                : ''
-            }
-            style={{ left: 210, top: 140, position: 'absolute', zIndex: 1000 }}
-          />
-        </>
+      {showBidDlg && (
+        <BidDlg
+          open={showBidDlg}
+          position={bidPosition}
+          setPosition={setBidPosition}          
+          onClose={() => setShowBidDlg(false)}
+          onSubmit={handleBidOK}
+          bids={possibleBids}
+          title={bidTitle}
+          yourTurnString={
+            ggc.allBids && ggc.allBids.length > 0 && ggc.numBids > 0
+              ? `The bid to you is ${ggc.allBids[ggc.numBids-1].text}`
+              : 'You bid first'
+          }
+          specialPasoString={
+            ggc.allBids && ggc.allBids.length > 1 && ggc.numBids > 1 && ggc.allBids[ggc.numBids-1].text == "PASO"
+              ? `Doubt the PASO or top the bid ${ggc.allBids[ggc.FindLastNonPasoBid()].text}`
+              : ''
+          }
+
+
+        />
       )}
 
       {showDoubtDlg && (
