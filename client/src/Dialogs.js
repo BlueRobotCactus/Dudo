@@ -188,6 +188,8 @@ export function ShowShakeDlg({
       x: e.clientX - position.x,
       y: e.clientY - position.y,
     };
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
   };
 
   const handleMouseMove = (e) => {
@@ -200,14 +202,41 @@ export function ShowShakeDlg({
 
   const handleMouseUp = () => {
     dragging.current = false;
+    window.removeEventListener('mousemove', handleMouseMove);
+    window.removeEventListener('mouseup', handleMouseUp);
   };
+
+  const handleTouchStart = (e) => {
+    const touch = e.touches[0];
+    dragging.current = true;
+    offset.current = {
+      x: touch.clientX - position.x,
+      y: touch.clientY - position.y,
+    };
+    window.addEventListener('touchmove', handleTouchMove);
+    window.addEventListener('touchend', handleTouchEnd);
+  };
+
+  const handleTouchMove = (e) => {
+    if (!dragging.current) return;
+    const touch = e.touches[0];
+    setPosition({
+      x: touch.clientX - offset.current.x,
+      y: touch.clientY - offset.current.y,
+    });
+  };
+
+  const handleTouchEnd = () => {
+    dragging.current = false;
+    window.removeEventListener('touchmove', handleTouchMove);
+    window.removeEventListener('touchend', handleTouchEnd);
+  };
+
 
   if (!open) return null;
 
   return (
     <div
-      onMouseMove={handleMouseMove}
-      onMouseUp={handleMouseUp}
       style={{
         position: 'absolute',
         top: 0,
@@ -240,6 +269,7 @@ export function ShowShakeDlg({
         {/* Title Bar */}
         <div
           onMouseDown={handleMouseDown}
+          onTouchStart={handleTouchStart}
           style={{
             backgroundColor: 'darkblue',
             color: 'white',

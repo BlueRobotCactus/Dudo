@@ -308,6 +308,7 @@ import { CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYE
           bidShakeShow: myShowShakeRef.current,
           index: myIndex,
           name: myName,
+          direction: ggc.whichDirection,
         });
       }
     });
@@ -982,13 +983,37 @@ useEffect(() => {
     //-------------------------------------------
     if (ggc.bGameInProgress) {
       if (isMyTurn) {
-        setBidTitle("Select your bid");
-        setShowBidDlg(true);
-      } else {
-        setShowBidDlg(false); // optional: auto-close when it's no longer their turn
+        if (ggc.whichDirection == undefined) {
+          // choose direction if starting a round
+          setYesNoMessage("You start\nWhich way?");
+          setYesNoTitle("Choose direction");
+          let cc = ggc.getPlayerToLeft(myIndex);
+          setYesText("to " + ggc.allParticipantNames[cc]);
+          cc = ggc.getPlayerToRight(myIndex);
+          setNoText("to " + ggc.allParticipantNames[cc]);
+          setYesShowButton(true);
+          setNoShowButton(true);
+          setXShowButton(false);
+          setOnYesHandler(() => () => {
+            setShowYesNoDlg(false);
+            ggc.whichDirection = 0;
+            setBidTitle("Select your bid");
+            setShowBidDlg(true);
+          });
+          setOnNoHandler(() => () => {
+            setShowYesNoDlg(false);
+            ggc.whichDirection = 1;
+            setBidTitle("Select your bid");
+            setShowBidDlg(true);
+          });
+          setShowYesNoDlg(true);
+        } else {
+          // no need to choose direction, just bid
+          setBidTitle("Select your bid");
+          setShowBidDlg(true);
+        }
       }
     }
-
   }, [gameState, lobbyPlayers, isMyTurn, screenSize, imagesReady, socketId]);
 
 

@@ -389,9 +389,14 @@ io.on('connection', (socket) => {
   // socket.on
   // PROCESS THE BID
   //************************************************************
-  socket.on('bid', ({ lobbyId, bidText, bidShakeShow, index, name }) => {
+  socket.on('bid', ({ lobbyId, bidText, bidShakeShow, index, name, direction }) => {
     const lobby = lobbies[lobbyId];
     const ggs = lobby.game;
+
+    //-------------------------------------------------
+    // set direction of bidding (left or right)
+    //-------------------------------------------------
+    ggs.whichDirection = direction;
 
     //-------------------------------------------------
     // add this bid to the bid array
@@ -701,7 +706,7 @@ function StartGame (ggs) {
   }
 
   // &&& set direction for now
-  ggs.whichDirection = 0;
+  //ggs.whichDirection = 0;
 
   //&&& for debugging
   //ggs.allConnectionStatus[0] = CONN_OBSERVER;
@@ -722,6 +727,12 @@ function StartRound (ggs) {
     ggs.bDoubtInProgress = false;
     ggs.bShowDoubtResult = false;
 
+    if (ggs.GetNumberPlayersStillIn() > 2) {
+      ggs.whichDirection = undefined;
+    } else {
+      ggs.whichDirection = 0;
+    }
+
     ggs.result.doubtCupLifted = Array(ggs.maxConnections).fill(false);
     hearbackNextRound = Array(ggs.maxConnections).fill(false);
 
@@ -730,6 +741,7 @@ function StartRound (ggs) {
     // (otherwise determined in PostRound())
     //------------------------------------------------------------
     if (ggs.firstRound) {
+
         //let rr = randomGenerator.nextInt(ggs.GetNumberPlayersStillIn());
         const random = Math.floor(Math.random() * ggs.GetNumberPlayersStillIn());
         let temp = 0;
