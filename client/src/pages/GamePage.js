@@ -33,6 +33,7 @@ import { CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYE
     // state hooks
     const [gameState, setGameState] = useState({});
     const [lobby, setLobby] = useState([]);
+    const [lobbyHost, setLobbyHost] = useState([]);
     const [lobbyPlayers, setLobbyPlayers] = useState([]);
     const [screenSize, setScreenSize] = useState({
       width: window.innerWidth,
@@ -46,6 +47,10 @@ import { CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYE
     const [isMyTurn, setIsMyTurn] = useState(false);
     const [whosTurnName, setWhosTurnName] = useState('');
     const [imagesReady, setImagesReady] = useState(false);
+
+    const [showCountdown, setShowCountdown] = useState(false);
+    // structure: { playerName: 'Alice', secondsRemaining: 23 }
+    const [countdownMessage, setCountdownMessage] = useState('');
     
     // dialogs
     // bid
@@ -101,47 +106,52 @@ import { CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYE
     const diceHiddenImageRef = useRef({});
     const myShowShakeRef = useRef(false);
     const needRejoin = useRef(false);
-    const prev = useRef(null);
     const amIHost = useRef(null);
 
-  //************************************************************
-  // DEBUGGING, put socket into windows so
-  //            browser console can access it
-  //************************************************************
-  useEffect(() => {
-    if (socket) {
-      window.socket = socket;  // Expose socket globally for DevTools
-      window.gameState = gameState;
-      window.myIndex = myIndex;
-      window.myName = myName;
-      window.isMyTurn = isMyTurn;
-      console.log("GamePage: DEBUG window.stuff set!");
-    }
-  }, [socket, gameState]);
+    // Refs debugging
+    const prevReconnect = useRef(null);
+    const prevDraw = useRef(null);
+
 
     //************************************************************
-    // useEffect:  Store session values to survive refresh
-    //             Trigger: [lobbyId, playerName]
+    // UseEffect DEBUG [socket, gameState]
+    //           put socket into windows so
+    //           browser console can access it
+    //************************************************************
+    useEffect(() => {
+      if (socket) {
+        window.socket = socket;  // Expose socket globally for DevTools
+        window.gameState = gameState;
+        window.myIndex = myIndex;
+        window.myName = myName;
+        window.isMyTurn = isMyTurn;
+        console.log("GamePage: UseEffect DEBUG");
+      }
+    }, [socket, gameState]);
+
+    //************************************************************
+    // useEffect SESSION STORAGE [lobbyId, playerName]
+    //           Store session values to survive refresh
     //************************************************************
     // Immediately store values to survive refresh
     useEffect(() => {
       sessionStorage.setItem('lobbyId', lobbyId);
       sessionStorage.setItem('playerName', playerName);
+      console.log("GamePage: useEffect: SESSION STORAGE");
     }, [lobbyId, playerName]);
   
     //************************************************************
-    // useEffect:  Initial setup: 
-    //             Join lobby, get initial lobby data, listener
-    //             Trigger: [lobbyId, playerName]
+    // useEffect: INITIAL LOBBY [socket, connected, lobbyId, navigate]
+    //            Join lobby, get initial lobby data, listener
     //************************************************************
     //
     useEffect(() => {
       if (!socket || !connected) {
-        console.log('GamePage: socket not connected yet');
+        console.log('GamePage: useEffect: INITIAL LOBBY: socket not connected yet');
         return;
       }
   
-      console.log('GamePage: running initial lobby setup');
+      console.log('GamePage: useEffect: INITIAL LOBBY: socket connected');
   
       // Get initial lobby data
       socket.emit('getLobbyData', lobbyId, (data) => {
@@ -173,16 +183,17 @@ import { CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYE
   //************************************************************
   const handleGameStateUpdate = (data) => {
     console.log("GamePage: entering function: handleGameStateUpdate");
-    setGameState(data);
-    ggc.AssignGameState(data);
 
-    // Take down any dialog boxes
+    // close down any dialogs
     setShowBidDlg (false);
     setShowShakeDlg (false);
     setShowConfirmBidDlg (false);
     setShowDoubtDlg (false);
     setShowOkDlg (false);
     setShowYesNoDlg (false);
+
+    setGameState(data);
+    ggc.AssignGameState(data);
 
     // What is my index and my name?
     const stringSocketId = String(socketId);
@@ -341,6 +352,21 @@ import { CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYE
   }
 
   //************************************************************
+  // functions to handle disconnectdCountdown
+  //************************************************************
+  const handleDisconnectCountdown = ({ playerName, secondsRemaining }) => {
+    console.log(`Countdown for ${playerName}: ${secondsRemaining}s`);
+    setCountdownMessage(`${playerName} disconnected. Pausing for ${secondsRemaining} seconds to allow reconnection...`);
+    setShowCountdown(true);
+  };
+
+  const handleDisconnectCountdownEnded = ({ playerName }) => {
+    console.log(`Countdown for ${playerName} ended`);
+    setCountdownMessage(`${playerName} did not reconnect in time.`);
+    setTimeout(() => setShowCountdown(false), 3000);  // Optional: hide after brief display
+  };
+
+  //************************************************************
   // functions handle Yes, No from ShowShakeDlg
   //************************************************************
   const handleShowShakeYes = () => {
@@ -396,34 +422,37 @@ import { CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYE
   };
   
   //************************************************************
-  // useEffect:  Turn listeners on 
-  //             Trigger: [socket, connected]
+  // useEffect:  LISTENERS ON [socket, connected]
+  //             turn on listeners 
   //************************************************************
   useEffect(() => {
     if (!socket || !connected) {
-      console.log("GamePage: socket not ready yet, skipping socket.on setup");
+      console.log("GamePage: useEffect: LISTENERS ON: socket not ready yet");
       return;
     }
   
-    console.log("GamePage: useEffect [] registering socket listeners");
+    console.log("GamePage: useEffect: LISTENERS ON: socket ready");
 
     socket.on('gameStateUpdate', handleGameStateUpdate);
     socket.on('gameOver', handleGameOver);
     socket.on('forceLeaveLobby', handleForceLeaveLobby);
+    socket.on('disconnectCountdown', handleDisconnectCountdown);
+    socket.on('disconnectCountdownEnded', handleDisconnectCountdownEnded);
 
     return () => {
       socket.off('gameStateUpdate', handleGameStateUpdate);
       socket.off('gameOver', handleGameOver);
       socket.off('forceLeaveLobby', handleForceLeaveLobby);
+      socket.off('disconnectCountdown', handleDisconnectCountdown);
+      socket.off('disconnectCountdownEnded', handleDisconnectCountdownEnded);
     };
   }, [socket, connected]); 
 
   //************************************************************
-  // useEffect:  Handle window resize
-  //             Trigger: []
+  // useEffect:  WINDOW RESIZE []
   //************************************************************
   useEffect(() => {
-    console.log("GamePage: useEffect [] setScreenSize");
+    console.log("GamePage: useEffect: WINDOW RESIZE");
 
     // Resize the canvas when the window resizes
     const updateScreenSize = () => {
@@ -437,13 +466,11 @@ import { CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYE
     return () => window.removeEventListener('resize', updateScreenSize);
   }, []);
 
-
   //************************************************************
-  // useEffect:  load images
-  //             Trigger: []
+  // useEffect:  LOAD IMAGES []
   //************************************************************
   useEffect(() => {
-    console.log("GamePage: useEffect [] load images");
+    console.log("GamePage: useEffect: LOAD IMAGES");
   
     let loaded = 0;
     const totalToLoad = 9;  // cup down, cup up, 6 dice, hidden die
@@ -455,7 +482,7 @@ import { CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYE
       if (loaded === totalToLoad) {
         diceImagesRef.current = diceImgs;
         setImagesReady(true);
-        console.log("All images loaded. Setting imagesReady = true");
+        console.log("GamePage: useEffect LOAD IMAGES; All images loaded");
       }
     };
   
@@ -508,15 +535,15 @@ import { CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYE
   }, []);
   
 //************************************************************
-// useEffect:  ask server to send lobby data with callback
-//             Trigger:  [lobbyID]
+// useEffect:  REQUEST LOBBY DATA [lobbyId]
+//             Request from server with callback
 //************************************************************
 useEffect(() => {
-  console.log("GamePage: useEffect [lobbyId] 'getLobbyData' with callback");
+  console.log("GamePage: useEffect: REQUEST LOBBY DATA: entering");
 
   if (connected) {
     socket?.emit('getLobbyData', lobbyId, (lobby) => {
-      console.log ("GamePage.js: useEffect callback from getLobbyData");
+      console.log ("GamePage.js: REQUEST LOBBY DATA: connected");
       setLobby(lobby);
       setGameState(lobby.game);
       setLobbyPlayers(lobby.players);
@@ -532,33 +559,27 @@ useEffect(() => {
 }, [lobbyId]);
 
 //*************************************************************
-// useEffect:  socket re-connect
-//             Trigger:  [socket, socketId, connected, lobbyId, myName]
+// useEffect:  RECONNECT [socket, socketId]
 //*************************************************************
 useEffect(() => {
 
-  if (prev.current) {
-    const p = prev.current;
+  // for debugging
+  if (prevReconnect.current) {
+    const p = prevReconnect.current;
     if (p.socket     !== socket)   console.log('RECONNECT: socket changed', p.socket, '→', socket);
     if (p.socketId   !== socketId) console.log('RECONNECT: socketId changed', p.socketId, '→', socketId);
     if (p.connected  !== connected)console.log('RECONNECT: connected changed', p.connected, '→', connected);
     if (p.lobbyId    !== lobbyId)  console.log('RECONNECT: lobbyId changed', p.lobbyId, '→', lobbyId);
     if (p.myName     !== myName)   console.log('RECONNECT: myName changed', p.myName, '→', myName);
   }
-  prev.current = { socket, socketId, connected, lobbyId, myName };
-
-  if (!socket) {
-    console.log("RECONNECT: socket not ready yet, skipping connect handler setup");
-    return;
-  }
+  prevReconnect.current = { socket, socketId, connected, lobbyId, myName };
 
   //************************************************************
   // function handle Reconnect
   //************************************************************
   function handleReconnect() {
    
-    console.log("RECONNECT: function handleReconnect", lobbyId, myName);
-    console.log("RECONNECT: trying to rejoin lobby");
+    console.log("handleRECONNECT: entering", lobbyId, myName);
     
     // get the name from storage, in case this was a browser tab refresh
     let nameFromStorage = sessionStorage.getItem('playerName');
@@ -570,12 +591,13 @@ useEffect(() => {
     if (lobbyId && nameFromStorage) {
       if (connected) {
         socket.emit('rejoinLobby', { lobbyId, playerName: nameFromStorage, id: socket.id }, (serverLobbyData) => {
-          console.log("RECONNECT: callback received lobby/game data:", serverLobbyData);
+          console.log("handleRECONNECT: callback received lobby/game data:", serverLobbyData);
   
           // Reconstruct your client-side state
+          setLobbyHost(serverLobbyData.host);
           setGameState(serverLobbyData.game);
           setLobbyPlayers(serverLobbyData.players);
-  
+
           ggc.AssignGameState(serverLobbyData.game);
   
           const whosTurnSocketId = ggc.allConnectionID[ggc.whosTurn];
@@ -589,17 +611,24 @@ useEffect(() => {
         });
       }
       else {
-        console.log("RECONNECT: not rejoining lobby, 'connected' not valid. ", connected);
+        console.log("handleRECONNECT: not rejoining lobby, 'connected' not valid. ", connected);
       }
     }
     else {
-      console.log("RECONNECT: not rejoining lobby, 'lobbyID' and/or 'nameFromStorage' not valid. ", lobbyId, nameFromStorage);
+      console.log("handleRECONNECT: not rejoining lobby, 'lobbyID' and/or 'nameFromStorage' not valid. ", lobbyId, nameFromStorage);
     }
   }
 
-  console.log("RECONNECT: socket.on('connect') for reconnect handling");
+  if (!socket || !connected) {
+    console.log("Gamepage: useEffect: RECONNECT: socket not ready yet");
+    return;
+  }
+
+  // set up listener for reconnecting
+  console.log("Gamepage: useEffect: RECONNECT: socket ready, turn on 'connect' listener");
   socket.on('connect', handleReconnect);
 
+  // &&& comment out or not?
   // Call immediately if already connected (e.g. on refresh)
   if (socket.connected) {
     console.log("GamePage: socket already connected, calling handleReconnect immediately");
@@ -607,24 +636,35 @@ useEffect(() => {
   }
   
   return () => {
-    console.log("RECONNECT: socket.off('connect') for reconnect handling");
+    console.log("handleRECONNECT: socket.off('connect') for reconnect handling");
     socket.off('connect', handleReconnect);
   };
-}, [socket, socketId, connected, lobbyId, myName]);
+}, [socket, socketId]);
 
 
 //************************************************************
-// useEffect:  Draw on canvas
-//             Trigger:  [gameState, lobbyPlayers, isMyTurn, screenSize]
+// useEffect:  DRAW [gameState, lobbyPlayers, isMyTurn, screenSize, imagesReady, socketId]
 //************************************************************
 useEffect(() => {
-    console.log("GamePage: useEffect [gameState, lobbyPlayers, isMyTurn, screenSize, imagesReady] Draw on canvas");
+    console.log("GamePage: useEffect DRAW");
+
+    // for debugging
+    if (prevReconnect.current) {
+      const p = prevReconnect.current;
+      if (p.gameState     !== gameState)    console.log ('DRAW: gameState changed', p.gameState, '→', gameState);
+      if (p.lobbyPlayers  !== lobbyPlayers) console.log ('DRAW: lobbyPlayers changed', p.lobbyPlayers, '→', lobbyPlayers);
+      if (p.isMyTurn      !== isMyTurn)     console.log ('DRAW: isMyTurn changed', p.isMyTurn, '→', isMyTurn);
+      if (p.screenSize    !== screenSize)   console.log ('DRAW: screenSize changed', p.screenSize, '→', screenSize);
+      if (p.imagesReady   !== imagesReady)  console.log ('DRAW: imagesReady changed', p.imagesReady, '→', imagesReady);
+      if (p.socketId      !== socketId)     console.log ('DRAW: socketId changed', p.socketId, '→', socketId);
+    }
+    prevReconnect.current = { gameState, lobbyPlayers, isMyTurn, screenSize, imagesReady, socketId };
 
     //-------------------------------------------
     // wait for images to be loaded
     //-------------------------------------------
     if (!imagesReady) {
-      console.log("GamePage: useEffect IMAGES ARE NOT LOADED YET");
+      console.log("GamePage: useEffect DRAW: IMAGES ARE NOT LOADED YET");
       return;
     }
 
@@ -675,7 +715,7 @@ useEffect(() => {
       ctx.fillText(`Current turn: ${whosTurnName}`, 20, 80);
       ctx.fillText(isMyTurn ? "It's YOUR turn to bid!" : `Waiting for ${whosTurnName}...`, 20, 100);
     } else {
-      ctx.fillText(`Waiting for host to start a game...`, 20, 80);
+      ctx.fillText(`Waiting for host (${lobby.host}) to start a game...`, 20, 80);
     }
 
     // Display number of sticks
@@ -1024,6 +1064,23 @@ useEffect(() => {
     <div style={{ position: 'relative', textAlign: 'center', padding: '0', margin: '0' }}>
       <canvas ref={canvasRef} style={{ display: 'block' }} />
       
+      {showCountdown && (
+        <div style={{
+          position: 'absolute',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+          backgroundColor: 'rgba(0, 0, 0, 0.7)',
+          color: 'white',
+          padding: '20px',
+          borderRadius: '10px',
+          fontSize: '20px',
+          zIndex: 3000,
+        }}>
+          {countdownMessage}
+        </div>
+      )}
+
       {/* === Top-Right Buttons === */}
       <div style={{ position: 'absolute', top: 20, right: 20, display: 'flex', gap: '10px', zIndex: 1000 }}>
         {(!ggc.bGameInProgress && (lobby.host == myName)) && (
@@ -1049,7 +1106,7 @@ useEffect(() => {
           </button>
           </>
         )}
-        {(!ggc.bGameInProgress && (lobby.host != myName)) && (
+        {((ggc.allConnectionStatus[myIndex] == CONN_OBSERVER) ||(!ggc.bGameInProgress && (lobby.host != myName))) && (
           <button
             onClick={handleLeaveLobby}
             style={{

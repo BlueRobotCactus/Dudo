@@ -22,7 +22,7 @@ export function SocketProvider({ children }) {
     s.on('connect', () => {  // ② when handshake completes
       setSocketId(s.id);
       setConnected(true);    //    flip the boolean → re-render!
-      console.log('socket connected:', s.id);
+      console.log('SocketContext: socket connected:', s.id);
     });
 
     s.on('yourSocketId', (id) => {   // optional;
@@ -31,7 +31,7 @@ export function SocketProvider({ children }) {
 
     s.on('disconnect', () => {
       setConnected(false);           // ③ re-render on disconnect
-      console.log('socket disconnected');
+      console.log('SocketContext: socket disconnected');
     });
 
     return () => s.disconnect();     // cleanup

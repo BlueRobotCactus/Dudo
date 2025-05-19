@@ -56,7 +56,7 @@ let hearbackNextRound;
 // Socket.IO setup
 // ******************************
 io.on('connection', (socket) => {
-  console.log('New client connected:', socket.id);
+  console.log('server.js: New client connected:', socket.id);
 
   socket.emit("yourSocketId", socket.id);
 
@@ -88,8 +88,8 @@ io.on('connection', (socket) => {
     ggs.allConnectionStatus[0] = CONN_PLAYER_IN;
 
     socket.join(lobbyId);
-    console.log(`Lobby created: ${lobbyId} by host: ${hostName}`);
-    console.log(`${hostName} joined lobby: ${lobbyId}`);
+    console.log(`server.js: Lobby created: ${lobbyId} by host: ${hostName}`);
+    console.log(`server.js: ${hostName} joined lobby: ${lobbyId}`);
 
     // Respond back to creator
     if (callback) {
@@ -127,10 +127,14 @@ io.on('connection', (socket) => {
         }
         ggs.allParticipantNames[ptr] = playerName;
         ggs.allConnectionID[ptr] = socket.id;
-        ggs.allConnectionStatus[ptr] = CONN_PLAYER_IN;
+        if (ggs.bGameInProgress) {
+          ggs.allConnectionStatus[ptr] = CONN_OBSERVER;
+        } else {
+          ggs.allConnectionStatus[ptr] = CONN_PLAYER_IN;
+        }
       } else {
 
-        console.log ('joinLobby, PLAYER FOUND.THIS SHOULD NEVER HAPPEN, DELETE LATER &&&');
+        console.log ('server.js: joinLobby, PLAYER FOUND.THIS SHOULD NEVER HAPPEN, DELETE LATER &&&');
 
         // player is in lobby, re-connect him
         ggs.allConnectionID[index] = socket.id;
@@ -146,7 +150,7 @@ io.on('connection', (socket) => {
         }
       }
 
-      console.log(`${playerName} joined lobby: ${lobbyId}`);
+      console.log(`server.js: ${playerName} joined lobby: ${lobbyId}`);
 
       // Notify everyone in this lobby
       io.to(lobbyId).emit('lobbyData', lobby);
@@ -272,7 +276,7 @@ io.on('connection', (socket) => {
     ggs.allSticks[ggs.maxConnections - 1]           = 0;
     ggs.allPasoUsed[ggs.maxConnections - 1]         = false;
     
-    console.log(`${playerName} left lobby: ${lobbyId}`)
+    console.log(`server.js: ${playerName} left lobby: ${lobbyId}`)
     io.to(lobbyId).emit('lobbyData', lobby);
     io.emit('lobbiesList', getLobbiesList());
     io.to(lobbyId).emit('gameStateUpdate', lobby.game);
@@ -313,31 +317,33 @@ io.on('connection', (socket) => {
   socket.on('rejoinLobby', ({ lobbyId, playerName, id }, callback) => {
 
     const lobby = lobbies[lobbyId];
-    if (!lobby) return;                 // stale tab or wrong id
+    if (!lobby) return;
 
-    // replace or add this player entry
+    //-------------------------------------------------
+    // lobby object
+    //-------------------------------------------------
     const idx = lobby.players.findIndex(p => p.name === playerName);
-    if (idx !== -1) {
-      lobby.players[idx].id = socket.id;  // swap old id → new id
-      console.log("server.js: 'rejoinLobby' swapping old id -> new id for index " + idx);
-    } else {
-
-      // THIS SHOULD NEVER HAPPEN, REMOVE LATER
-
+    if (idx == -1) {
+      // player not found, add player
       lobby.players.push({ id: socket.id, name: playerName });
       console.log("server.js: 'rejoinLobby' adding a player " + playerName);
+    } else {
+      // player found, update socket.id
+      lobby.players[idx].id = socket.id;
+      console.log("server.js: 'rejoinLobby' swapping old id -> new id for index " + idx);
     }
 
-    // reconcile with DudoGame object
+    //-------------------------------------------------
+    // DudoGame object
+    //-------------------------------------------------
     const ggs = lobby.game;
     const index = ggs.allParticipantNames.indexOf(playerName);  // lookup by name
     if (index == -1) {
-
-      console.log ('rejoinLobby, PLAYER NOT FOUND. HIS SHOULD NEVER HAPPEN, DELETE LATER&&&');
-
       // new player (not reconnecting); add him
-      lobby.players.push({ id: socket.id, name: playerName });
-      socket.join(lobbyId);
+      console.log ('server.js: rejoinLobby, PLAYER NOT FOUND. HIS SHOULD NEVER HAPPEN, DELETE LATER&&&');
+
+      //lobby.players.push({ id: socket.id, name: playerName });
+      //socket.join(lobbyId);
 
       let ptr = 0;
       for (let i=0; i<ggs.maxConnections; i++) {
@@ -350,7 +356,7 @@ io.on('connection', (socket) => {
       ggs.allConnectionID[ptr] = socket.id;
       ggs.allConnectionStatus[ptr] = CONN_PLAYER_IN;
     } else {
-      // player is in lobby, re-connect him
+      // player found, re-connect him
       console.log ("server.js: 'rejoinLobby' resetting DudoGame for ", playerName);
 
       ggs.allConnectionID[index] = id;
@@ -365,9 +371,18 @@ io.on('connection', (socket) => {
         ggs.allConnectionStatus[index] = CONN_OBSERVER;
       }
 
+      // if host, update socketId
+      if (playerName == lobby.host) {
+        lobby.hostSocketId = socket.id;
+      }
+
+      // stop disconnect counter
+      io.to(id).emit('disconnectCountdownEnded', {
+        playerName: playerName
+      });
+
       // for debugging:  show what sockets are actually in the room
       //io.in(lobbyId).fetchSockets().then(sockets => console.log(`Lobby ${lobbyId} has ${sockets.length} sockets:`, sockets.map(s => s.id)));
-
     }
 
     socket.join(lobbyId);               // (re)enter the room
@@ -378,6 +393,7 @@ io.on('connection', (socket) => {
     // Send back current lobby state via callback
     if (callback) {
       callback({
+        host: lobby.host,
         players: lobby.players,
         game: lobby.game
       });
@@ -480,6 +496,7 @@ io.on('connection', (socket) => {
 
       ggs.getDoubtResult();
       ggs.getMustLiftCupList();
+      ggs.whosTurn = -1;
     //&&&PostRound(ggs);
 
     } else {
@@ -604,7 +621,7 @@ io.on('connection', (socket) => {
   // DISCONNECT
   //************************************************************
   socket.on('disconnect', () => {
-    console.log('Client disconnected:', socket.id);
+    console.log('server.js: Client disconnected:', socket.id);
 
     // Find any lobby that this player was in
     for (let id in lobbies) {
@@ -628,7 +645,7 @@ io.on('connection', (socket) => {
             ggs.allConnectionStatus[index] = CONN_OBSERVER_DISCONN;
           }
         }
-
+/*
         if (removedPlayer.id === lobby.hostSocketId) {
           // The host disconnected
           if (lobby.players.length > 0) {
@@ -646,10 +663,46 @@ io.on('connection', (socket) => {
           // A non-host disconnected
           io.to(id).emit('lobbyData', lobby);
         }
+*/
 
-        // Always update the main lobby list
-        io.emit('lobbiesList', getLobbiesList());
-        break; // Stop after removing from one lobby
+
+//&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
+// start
+/*
+        io.to(id).emit('lobbyData', lobby);
+
+        // Start disconnect countdown
+        const countdownDuration = 10;
+        let secondsRemaining = countdownDuration;
+
+        io.to(id).emit('disconnectCountdown', {
+          playerName: removedPlayer.name,
+          secondsRemaining
+        });
+
+        console.log('server.js: setting 30 second interval timer');
+        const intervalId = setInterval(() => {
+          secondsRemaining--;
+
+          if (secondsRemaining > 0) {
+            // still giving them time for re-connect
+            io.to(id).emit('disconnectCountdown', {
+              playerName: removedPlayer.name,
+              secondsRemaining
+            });
+          } else {
+            // time's up
+            console.log("server.js: clearing 30 second interval timer; time's up");
+            clearInterval(intervalId);
+
+            io.to(id).emit('disconnectCountdownEnded', {
+              playerName: removedPlayer.name
+            });
+          }
+        }, 1000);
+*/        
+// end
+//&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
       }
     }
   });
@@ -721,7 +774,7 @@ function StartGame (ggs) {
 //****************************************************************
 function StartRound (ggs) {
 
-    ggs.bWinnerRound = false; 
+    ggs.bWinnerRound = false;
     ggs.result.init();
     ggs.bRoundInProgress = true;
     ggs.bDoubtInProgress = false;
