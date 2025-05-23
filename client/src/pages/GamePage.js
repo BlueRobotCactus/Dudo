@@ -249,38 +249,27 @@ import { CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYE
   //************************************************************
   //  function handle BidOK
   //************************************************************
-  const handleBidOK = (bid) => {
+  const handleBidOK = (bid, bShowShake) => {
     console.log("GamePage: entering function: handleBidOK()");
-    console.log("GamePage: selected bid:", bid);
+    console.log("GamePage: selected bid:", bid, " show/shake = ", bShowShake);
 
     setThisBid (bid);
-
+    myShowShakeRef.current = bShowShake;
     // Close the dialog
     setShowBidDlg(false);
 
     //-------------------------------------------
     // can they show and shake?
     //-------------------------------------------
-    myShowShakeRef.current = false;
-    let bFound = false;
+    //myShowShakeRef.current = false;
+
     if (bid != "PASO" && bid != "DOUBT") {
     // does player have any of hidden dice of what they bid?
-      ggc.parseBid(bid);
-      for (let i = 0; i < 5; i++) {
-          if (ggc.bDiceHidden[myIndex][i]) {
-              if (ggc.dice[myIndex][i] == ggc.parsedOfWhat) {
-                  bFound = true;
-              }
-              if (!ggc.bPaloFijoRound) {
-                  // aces wild if not palofijo
-                  if (ggc.dice[myIndex][i] == 1) {
-                      bFound = true;
-                  }
-              }
-          }
-      }
       // if so, ask if they want to show and shake
-      if (bFound) {
+
+      if (false) {
+      //if (CanShowShake(bid)) {
+
         setShowShakeTitle("Show and Shake");
         setShowShakeMessage("Do you want to show and shake?")
         setShowShakeDlg(true);
@@ -299,8 +288,33 @@ import { CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYE
   };
 
   //************************************************************
+  // function to say whether they can show/shake 
+  // based on currently selected bid
+  //************************************************************
+  const CanShowShake = (bid) => {
+    if (bid != "PASO" && bid != "DOUBT") {
+    // does player have any of hidden dice of what they bid?
+      ggc.parseBid(bid);
+      for (let i = 0; i < 5; i++) {
+          if (ggc.bDiceHidden[myIndex][i]) {
+              if (ggc.dice[myIndex][i] == ggc.parsedOfWhat) {
+                  return (true);
+              }
+              if (!ggc.bPaloFijoRound) {
+                  // aces wild if not palofijo
+                  if (ggc.dice[myIndex][i] == 1) {
+                    return (true);
+                  }
+              }
+          }
+      }
+      return (false);
+    }
+  }
+
+  //************************************************************
   // function to prepare the confirm bid dlg
-  // (sets up to use the YesNoDlg
+  // (sets up to use the YesNoDlg)
   //************************************************************
   const PrepareConfirmBidDlg = (msg, bid) => {
     setYesNoMessage(msg);
@@ -403,6 +417,10 @@ import { CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYE
     setShowConfirmBidDlg(false);
 
     // Now send the bid to the server
+
+    console.log ("DEBUGGING - sending to server ", thisBid, " ",  myShowShakeRef.current);
+
+
     if (connected) {
       socket?.emit('bid', {
         lobbyId,
@@ -1098,63 +1116,72 @@ useEffect(() => {
   //  Render
   //************************************************************
   return (
-    <div style={{ position: 'relative', textAlign: 'center', padding: '0', margin: '0' }}>
-      <canvas ref={canvasRef} style={{ display: 'block' }} />
-      
+    <div className="container-fluid" style={{ position: 'relative' }}>
+      {/* === Row 1: Lobby title and buttons === */}
+      <div className="row align-items-center justify-content-between mb-2">
+        <div className="col text-start fw-bold">
+          Game Lobby Host: {lobbyHost}
+        </div>
+        <div className="col text-end d-flex justify-content-end gap-2">
+          {(!ggc.bGameInProgress && lobby.host === myName) && (
+            <>
+              <button
+                onClick={handleStartGame}
+                className="btn btn-primary btn-sm"
+                disabled={ggc.GetNumberPlayersStillIn() < 2}
+              >
+                Start Game
+              </button>
+              <button
+                onClick={handleLeaveLobby}
+                className="btn btn-secondary btn-sm"
+              >
+                Close lobby
+              </button>
+            </>
+          )}
+          {((ggc.allConnectionStatus[myIndex] === CONN_OBSERVER) || (!ggc.bGameInProgress && lobby.host !== myName)) && (
+            <button
+              onClick={handleLeaveLobby}
+              className="btn btn-secondary btn-sm"
+            >
+              Leave lobby
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* === Row 2: Game status or current bid === */}
+      <div className="row mb-3">
+        <div className="col text-center">
+          {ggc.bGameInProgress ? (
+            <>
+              <div>Current turn: {whosTurnName}</div>
+              <div className="fw-bold">
+                {isMyTurn ? "It's YOUR turn to bid!" : `Waiting for ${whosTurnName}...`}
+              </div>
+            </>
+          ) : (
+            <div className="text-muted">Waiting for host ({lobby.host}) to start a game...</div>
+          )}
+        </div>
+      </div>
+
+      {/* === Row 3: Canvas === */}
+      <div className="row">
+        <div className="col">
+          <canvas ref={canvasRef} className="img-fluid w-100" />
+        </div>
+      </div>
+
+      {/* existing overlays and dialogs stay outside the layout grid */}
       {showCountdown && (
-        <div style={{
-          position: 'absolute',
-          top: '50%',
-          left: '50%',
-          transform: 'translate(-50%, -50%)',
-          backgroundColor: 'rgba(0, 0, 0, 0.7)',
-          color: 'white',
-          padding: '20px',
-          borderRadius: '10px',
-          fontSize: '20px',
-          zIndex: 3000,
-        }}>
+        <div className="position-absolute top-50 start-50 translate-middle bg-dark text-white p-3 rounded" style={{ zIndex: 3000 }}>
           {countdownMessage}
         </div>
       )}
 
-      {/* === Top-Right Buttons === */}
-      <div style={{ position: 'absolute', top: 20, right: 20, display: 'flex', gap: '10px', zIndex: 1000 }}>
-        {(!ggc.bGameInProgress && (lobby.host == myName)) && (
-          <>
-          <button
-            onClick={handleStartGame}
-            style={{
-              padding: '6px 12px',
-              fontSize: '14px',
-            }}
-            disabled={ggc.GetNumberPlayersStillIn() < 2}
-          >
-            Start Game
-          </button>
-          <button
-            onClick={handleLeaveLobby}
-            style={{
-              padding: '6px 12px',
-              fontSize: '14px',
-            }}
-          >
-            Close lobby
-          </button>
-          </>
-        )}
-        {((ggc.allConnectionStatus[myIndex] == CONN_OBSERVER) ||(!ggc.bGameInProgress && (lobby.host != myName))) && (
-          <button
-            onClick={handleLeaveLobby}
-            style={{
-              padding: '6px 12px',
-              fontSize: '14px',
-            }}
-          >
-            Leave lobby
-          </button>
-        )}
-      </div>
+      {/* keep dialog rendering as-is (BidDlg, DoubtDlg, etc.) */}
 
       {showBidDlg && (
         <BidDlg
@@ -1165,6 +1192,7 @@ useEffect(() => {
           onSubmit={handleBidOK}
           bids={possibleBids}
           title={bidTitle}
+          CanShowShake={CanShowShake}
           yourTurnString={
             ggc.allBids && ggc.allBids.length > 0 && ggc.numBids > 0
               ? `The bid to you is ${ggc.allBids[ggc.numBids-1].text}`
@@ -1175,8 +1203,6 @@ useEffect(() => {
               ? `Doubt the PASO or top the bid ${ggc.allBids[ggc.FindLastNonPasoBid()].text}`
               : ''
           }
-
-
         />
       )}
 
@@ -1250,6 +1276,7 @@ useEffect(() => {
         />
       )}
     </div>
+    
   );
 }
 

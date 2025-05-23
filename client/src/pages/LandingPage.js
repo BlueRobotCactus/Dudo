@@ -92,10 +92,16 @@ useEffect(() => {
     <div style={{ padding: '20px' }}>
       <h1>
         <span id="landing-page-welcome">Welcome, {playerName}!</span>
-        <button onClick={handleChangeName}>Change Name</button>
+        <button 
+          className="btn btn-primary btn-sm"
+          onClick={handleChangeName}>Change Name
+        </button>
       </h1>
 
-      <button onClick={handleCreateLobby} disabled={!connected}>
+      <button 
+        onClick={handleCreateLobby} 
+        className="btn btn-primary btn-sm"
+        disabled={!connected}>
         Create Lobby
       </button>
 
@@ -107,7 +113,11 @@ useEffect(() => {
           <li key={lobby.id}>
             <strong>{lobby.host}</strong>'s lobby ({lobby.playerCount} players)
             &nbsp;
-            <button onClick={() => handleJoinLobby(lobby.id)}>Join</button>
+            <button 
+              className="btn btn-primary btn-sm"
+              onClick={() => handleJoinLobby(lobby.id)}>
+              Join
+            </button>
           </li>
         ))}
       </ul>

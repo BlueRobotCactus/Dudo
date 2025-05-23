@@ -3,7 +3,8 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
-import './index.css';
+import './index.css';                       // your own custom styles
+import 'bootstrap/dist/css/bootstrap.min.css';  // Bootstrap styles
 
 import { SocketProvider } from './SocketContext';   // ① import it
 import reportWebVitals from './reportWebVitals';

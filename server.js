@@ -609,9 +609,14 @@ io.on('connection', (socket) => {
 
     if (okToGo) {
       ggs.bAskInOut = false;
-      ggs.bRoundInProgress = true;  //&&& need this?
-      ggs.whosTurn = 0; //&&& need this?
-      StartGame(ggs);
+      // need 2 or more players
+      if (ggs.GetNumberPlayersStillIn() > 1) {
+        ggs.bRoundInProgress = true;  //&&& need this?
+        ggs.whosTurn = 0; //&&& need this?
+        StartGame(ggs);
+      } else {
+        // anything? &&&
+      }
     }
     io.to(lobbyId).emit('gameStateUpdate', lobby.game);
   });

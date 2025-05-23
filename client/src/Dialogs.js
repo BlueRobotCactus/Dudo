@@ -15,13 +15,25 @@ export function BidDlg({
   position,
   setPosition,
   title,
+  CanShowShake, // function passed in
   style = {},
 }) {
   const [selectedBid, setSelectedBid] = useState(defaultBid || bids[0] || '');
+  const [canShowShake, setCanShowShake] = useState(() => CanShowShake(selectedBid));
+  const [bidShowShake, setBidShowShake] = useState(false); // for checkbox state
+
   // Update selected bid if bids array changes
   useEffect(() => {
     setSelectedBid(defaultBid || bids[0] || '');
+    setBidShowShake(false); // reset checkbox
   }, [bids, defaultBid, open]);
+
+  // Update checkbox enabled state when user clicks on dropdown (changed)
+  useEffect(() => {
+    const result = CanShowShake(selectedBid);
+    setCanShowShake(result);
+    if (!result) setBidShowShake(false);
+  }, [selectedBid, CanShowShake]);
 
   const dragging = useRef(false);
   const offset = useRef({ x: 0, y: 0 });
@@ -46,6 +58,16 @@ export function BidDlg({
     dragging.current = false;
   };
 
+  const handleDoubt = () => {
+    setSelectedBid('DOUBT');
+    onSubmit('DOUBT', bidShowShake);
+  };
+
+  const handlePaso = () => {
+    setSelectedBid('PASO');
+    onSubmit('PASO', bidShowShake);
+  };
+
   if (!open) return null;
 
   return (
@@ -58,7 +80,7 @@ export function BidDlg({
         left: 0,
         width: '100vw',
         height: '100vh',
-        backgroundColor: 'rgba(54, 13, 13, 0.5)', // same as backdrop
+        backgroundColor: 'rgba(54, 13, 13, 0.5)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -72,7 +94,6 @@ export function BidDlg({
           top: position.y,
           left: position.x,
           backgroundColor: 'white',
-          paddingBottom: '20px',
           borderRadius: '10px',
           minWidth: '300px',
           maxWidth: '80%',
@@ -101,37 +122,69 @@ export function BidDlg({
           <span>{title}</span>
         </div>
 
-        <div className="p-4 sm:p-6 md:p-8 lg:p-10">
-          <h2 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-semibold mb-2 sm:mb-4">
+        {/* Content */}
+        <div className="p-4">
+          {/* Bid text */}
+          <h2 className="text-lg sm:text-xl md:text-2xl lg:text-3xl fw-semibold mb-3">
             {yourTurnString}
           </h2>
-          <p className="mb-2 sm:mb-4 text-sm sm:text-base md:text-lg">{specialPasoString}</p>
+          <p className="mb-4 text-sm sm:text-base md:text-lg">{specialPasoString}</p>
 
-          <select
-            value={selectedBid}
-            onChange={(e) => setSelectedBid(e.target.value)}
-            className="w-full p-2 sm:p-3 md:p-4 text-base sm:text-lg md:text-xl border rounded mb-8"
-          >
-            {bids.map((bid) => (
-              <option key={bid} value={bid}>
-                {bid}
-              </option>
-            ))}
-          </select>
+          {/* Dropdown and checkbox */}
+          <div className="row align-items-center mb-3">
+            <div className="col-auto">
+              <select
+                value={selectedBid}
+                onChange={(e) => setSelectedBid(e.target.value)}
+                className="form-select w-auto"
+                style={{ minWidth: '120px' }}
+              >
+                {bids.map((bid) => (
+                  <option key={bid} value={bid}>
+                    {bid}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="col text-start">
+              <div className="form-check">
+                <input
+                  className="form-check-input"
+                  type="checkbox"
+                  id="showShakeCheckbox"
+                  disabled={!canShowShake}
+                  checked={bidShowShake}
+                  onChange={(e) => setBidShowShake(e.target.checked)}
+                />
+                <label className="form-check-label" htmlFor="showShakeCheckbox">
+                  Show/shake
+                </label>
+              </div>
+            </div>
+          </div>
 
-          <div style={{ height: '20px', pointerEvents: 'none' }} />
+          <div className="row align-items-center">
+            {/* OK button aligned left with dropdown */}
+            <div className="col-8">
+              <button
+                className="btn btn-primary"
+                onClick={() => onSubmit(selectedBid, bidShowShake)}
+              >
+                OK
+              </button>
+            </div>
 
-          <div className="mt-8 flex justify-end gap-2 sm:gap-4">
-            <button
-              onClick={() => onSubmit(selectedBid)}
-              className="px-4 sm:px-6 py-2 sm:py-3 text-base sm:text-lg bg-blue-500 text-white rounded"
-            >
-              OK
-            </button>
+            {/* Doubt / Paso aligned under checkbox area */}
+            <div className="col-4 d-flex justify-content-end gap-2">
+              <button className="btn btn-outline-danger btn-sm" onClick={handleDoubt}>
+                Doubt
+              </button>
+              <button className="btn btn-outline-secondary btn-sm" onClick={handlePaso}>
+                Paso
+              </button>
+            </div>
           </div>
         </div>
-
-
       </div>
     </div>
   );
@@ -537,6 +590,7 @@ export function YesNoDlg({
   xShowButton,
   style = {},
 }) {
+  const dialogRef = useRef(null);
   const dragging = useRef(false);
   const offset = useRef({ x: 0, y: 0 });
 
@@ -550,15 +604,51 @@ export function YesNoDlg({
 
   const handleMouseMove = (e) => {
     if (!dragging.current) return;
+    const dialog = dialogRef.current;
+    const screenWidth = window.innerWidth;
+    const dialogWidth = dialog.offsetWidth;
+    let newX = e.clientX - offset.current.x;
+    let newY = e.clientY - offset.current.y;
+    newX = Math.max(0, Math.min(screenWidth - dialogWidth, newX));
     setPosition({
-      x: e.clientX - offset.current.x,
-      y: e.clientY - offset.current.y,
+      x: newX,
+      y: newY,
     });
   };
 
   const handleMouseUp = () => {
     dragging.current = false;
   };
+
+  useEffect(() => {
+    if (!open) return;
+
+    const handleResize = () => {
+      if (!dialogRef.current) return;
+      const screenWidth = window.innerWidth;
+      const dialogWidth = dialogRef.current.offsetWidth;
+
+      let newX = position.x;
+      let newY = position.y;
+
+      // If position was expressed in px (number), clamp it
+      if (typeof newX === 'number') {
+        newX = Math.min(newX, screenWidth - dialogWidth);
+        newX = Math.max(0, newX);
+      }
+
+      setPosition({ x: newX, y: newY });
+    };
+    window.addEventListener('resize', handleResize);
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [open]);
 
   if (!open) return null;
 
@@ -577,6 +667,7 @@ export function YesNoDlg({
       }}
     >
       <div
+        ref={dialogRef}
         style={{
           position: 'absolute',
           top: position.y,
@@ -587,7 +678,9 @@ export function YesNoDlg({
           overflow: 'hidden', 
           paddingBottom: '20px',
           textAlign: 'center',
-          width: '300px',
+          minWidth: '280px',
+          maxWidth: '90vw',
+          boxShadow: '0 0 10px rgba(0,0,0,0.25)',
           ...style,
         }}
       >
@@ -630,14 +723,14 @@ export function YesNoDlg({
         </div>
 
         {/* Buttons */}
-        <div>
+        <div className="d-flex justify-content-center gap-3 mt-3">
           {yesShowButton && (
-            <button onClick={onYes} style={{ padding: '10px 20px', fontSize: '16px', marginRight: '10px' }}>
+            <button className="ff-style-button" onClick={onYes}>
               {yesText}
             </button>
           )}
           {noShowButton && (
-            <button onClick={onNo} style={{ padding: '10px 20px', fontSize: '16px' }}>
+            <button className="ff-style-button" onClick={onNo}>
               {noText}
             </button>
           )}
