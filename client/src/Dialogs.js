@@ -3,6 +3,80 @@
 import React, { useState, useRef, useEffect } from 'react';
 
 //************************************************************
+// Shared Hook: useDraggableDialog
+//************************************************************
+function useDraggableDialog(open, position, setPosition) {
+  const dialogRef = useRef(null);
+  const dragging = useRef(false);
+  const offset = useRef({ x: 0, y: 0 });
+
+  const startDrag = (clientX, clientY) => {
+    dragging.current = true;
+    offset.current = {
+      x: clientX - position.x,
+      y: clientY - position.y,
+    };
+  };
+
+  const updatePosition = (clientX, clientY) => {
+    if (!dragging.current || !dialogRef.current) return;
+
+    const dialog = dialogRef.current;
+    const screenWidth = window.innerWidth;
+    const screenHeight = window.innerHeight;
+    const dialogWidth = dialog.offsetWidth;
+    const dialogHeight = dialog.offsetHeight;
+
+    let newX = clientX - offset.current.x;
+    let newY = clientY - offset.current.y;
+
+    newX = Math.max(0, Math.min(screenWidth - dialogWidth, newX));
+    newY = Math.max(0, Math.min(screenHeight - dialogHeight, newY));
+
+    setPosition({ x: newX, y: newY });
+  };
+
+  const handleMouseMove = (e) => updatePosition(e.clientX, e.clientY);
+  const handleMouseUp = () => { dragging.current = false; };
+
+  const handleTouchMove = (e) => updatePosition(e.touches[0].clientX, e.touches[0].clientY);
+  const handleTouchEnd = () => { dragging.current = false; };
+
+  useEffect(() => {
+    if (!open) return;
+
+    const handleResize = () => {
+      if (!dialogRef.current) return;
+      const screenWidth = window.innerWidth;
+      const screenHeight = window.innerHeight;
+      const dialogWidth = dialogRef.current.offsetWidth;
+      const dialogHeight = dialogRef.current.offsetHeight;
+
+      let newX = Math.max(0, Math.min(screenWidth - dialogWidth, position.x));
+      let newY = Math.max(0, Math.min(screenHeight - dialogHeight, position.y));
+
+      setPosition({ x: newX, y: newY });
+    };
+
+    window.addEventListener('resize', handleResize);
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+    window.addEventListener('touchmove', handleTouchMove);
+    window.addEventListener('touchend', handleTouchEnd);
+
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+      window.removeEventListener('touchmove', handleTouchMove);
+      window.removeEventListener('touchend', handleTouchEnd);
+    };
+  }, [open, position]);
+
+  return { dialogRef, startDrag };
+}
+
+//************************************************************
 // BidDlg
 //************************************************************
 export function BidDlg({
@@ -15,48 +89,34 @@ export function BidDlg({
   position,
   setPosition,
   title,
-  CanShowShake, // function passed in
+  CanShowShake,
   style = {},
 }) {
   const [selectedBid, setSelectedBid] = useState(defaultBid || bids[0] || '');
   const [canShowShake, setCanShowShake] = useState(() => CanShowShake(selectedBid));
-  const [bidShowShake, setBidShowShake] = useState(false); // for checkbox state
+  const [bidShowShake, setBidShowShake] = useState(false);
 
-  // Update selected bid if bids array changes
+  const dialogRef = useRef(null);
+  const {
+    handleMouseDown,
+    handleMouseMove,
+    handleMouseUp,
+    handleTouchStart,
+    handleTouchMove,
+    handleTouchEnd,
+  } = useDraggableDialog(dialogRef, position, setPosition);
+
+
   useEffect(() => {
     setSelectedBid(defaultBid || bids[0] || '');
-    setBidShowShake(false); // reset checkbox
+    setBidShowShake(false);
   }, [bids, defaultBid, open]);
 
-  // Update checkbox enabled state when user clicks on dropdown (changed)
   useEffect(() => {
     const result = CanShowShake(selectedBid);
     setCanShowShake(result);
     if (!result) setBidShowShake(false);
   }, [selectedBid, CanShowShake]);
-
-  const dragging = useRef(false);
-  const offset = useRef({ x: 0, y: 0 });
-
-  const handleMouseDown = (e) => {
-    dragging.current = true;
-    offset.current = {
-      x: e.clientX - position.x,
-      y: e.clientY - position.y,
-    };
-  };
-
-  const handleMouseMove = (e) => {
-    if (!dragging.current) return;
-    setPosition({
-      x: e.clientX - offset.current.x,
-      y: e.clientY - offset.current.y,
-    });
-  };
-
-  const handleMouseUp = () => {
-    dragging.current = false;
-  };
 
   const handleDoubt = () => {
     setSelectedBid('DOUBT');
@@ -74,6 +134,8 @@ export function BidDlg({
     <div
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
       style={{
         position: 'absolute',
         top: 0,
@@ -89,6 +151,7 @@ export function BidDlg({
       }}
     >
       <div
+        ref={dialogRef}
         style={{
           position: 'absolute',
           top: position.y,
@@ -105,6 +168,7 @@ export function BidDlg({
         {/* Title Bar */}
         <div
           onMouseDown={handleMouseDown}
+          onTouchStart={handleTouchStart}
           style={{
             backgroundColor: 'darkblue',
             color: 'white',
@@ -124,13 +188,11 @@ export function BidDlg({
 
         {/* Content */}
         <div className="p-4">
-          {/* Bid text */}
           <h2 className="text-lg sm:text-xl md:text-2xl lg:text-3xl fw-semibold mb-3">
             {yourTurnString}
           </h2>
           <p className="mb-4 text-sm sm:text-base md:text-lg">{specialPasoString}</p>
 
-          {/* Dropdown and checkbox */}
           <div className="row align-items-center mb-3">
             <div className="col-auto">
               <select
@@ -164,19 +226,16 @@ export function BidDlg({
           </div>
 
           <div className="row align-items-center">
-            {/* OK button aligned left with dropdown */}
             <div className="col-8">
               <button
-                className="btn btn-primary"
+                className="ff-style-button"
                 onClick={() => onSubmit(selectedBid, bidShowShake)}
               >
                 OK
               </button>
             </div>
-
-            {/* Doubt / Paso aligned under checkbox area */}
             <div className="col-4 d-flex justify-content-end gap-2">
-              <button className="btn btn-outline-danger btn-sm" onClick={handleDoubt}>
+              <button className="btn btn-danger btn-sm text-white" onClick={handleDoubt}>
                 Doubt
               </button>
               <button className="btn btn-outline-secondary btn-sm" onClick={handlePaso}>
@@ -193,29 +252,91 @@ export function BidDlg({
 //************************************************************
 // ConfirmBidDlg
 //************************************************************
-export function ConfirmBidDlg({ open, message, onYes, onNo, style }) {
+export function ConfirmBidDlg({
+  open,
+  message,
+  onYes,
+  onNo,
+  position,
+  setPosition,
+  style = {},
+}) {
+  const { handleMouseDown, handleMouseMove, handleMouseUp, dialogRef } =
+    useDraggableDialog({ open, position, setPosition });
+
   if (!open) return null;
 
   return (
-    <div style={{
-      position: 'absolute',
-      top: '40%',
-      left: '50%',
-      transform: 'translate(-50%, -50%)',
-      backgroundColor: 'white',
-      border: '2px solid black',
-      borderRadius: '10px',
-      padding: '20px',
-      zIndex: 1000,
-      textAlign: 'center',
-      ...style,
-    }}>
-        <div style={{ marginBottom: '20px', fontSize: '18px', whiteSpace: 'pre-line' }}>{message}</div>
-        <div>
-            <button onClick={onYes} style={{ marginRight: '20px', padding: '10px 20px' }}>Yes</button>
-            <button onClick={onNo} style={{ padding: '10px 20px' }}>No</button>
+    <div
+      onMouseMove={handleMouseMove}
+      onMouseUp={handleMouseUp}
+      style={{
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        width: '100vw',
+        height: '100vh',
+        zIndex: 1000,
+        userSelect: 'none',
+      }}
+    >
+      <div
+        ref={dialogRef}
+        style={{
+          position: 'absolute',
+          top: position.y,
+          left: position.x,
+          backgroundColor: 'white',
+          border: '2px solid darkblue',
+          borderRadius: '10px',
+          overflow: 'hidden',
+          paddingBottom: '20px',
+          textAlign: 'center',
+          minWidth: '280px',
+          maxWidth: '90vw',
+          boxShadow: '0 0 10px rgba(0,0,0,0.25)',
+          ...style,
+        }}
+      >
+        {/* Title Bar */}
+        <div
+          onMouseDown={handleMouseDown}
+          style={{
+            backgroundColor: 'darkblue',
+            color: 'white',
+            padding: '10px 12px',
+            fontWeight: 'bold',
+            cursor: 'move',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+          }}
+        >
+          <span>Confirm Bid</span>
         </div>
+
+        {/* Message */}
+        <div
+          style={{
+            margin: '20px 10px',
+            fontSize: '18px',
+            whiteSpace: 'pre-line',
+          }}
+        >
+          {message}
         </div>
+
+        {/* Buttons */}
+        <div className="d-flex justify-content-center gap-3 mt-3">
+          <button className="ff-style-button" onClick={onYes}>
+            Yes
+          </button>
+          <button className="ff-style-button" onClick={onNo}>
+            No
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -486,28 +607,15 @@ export function OkDlg({
   setPosition,
   style = {},
 }) {
-  const dragging = useRef(false);
-  const offset = useRef({ x: 0, y: 0 });
-
-  const handleMouseDown = (e) => {
-    dragging.current = true;
-    offset.current = {
-      x: e.clientX - position.x,
-      y: e.clientY - position.y,
-    };
-  };
-
-  const handleMouseMove = (e) => {
-    if (!dragging.current) return;
-    setPosition({
-      x: e.clientX - offset.current.x,
-      y: e.clientY - offset.current.y,
-    });
-  };
-
-  const handleMouseUp = () => {
-    dragging.current = false;
-  };
+  const dialogRef = useRef(null);
+  const {
+    handleMouseDown,
+    handleMouseMove,
+    handleMouseUp,
+    handleTouchStart,
+    handleTouchMove,
+    handleTouchEnd,
+  } = useDraggableDialog(dialogRef, position, setPosition);
 
   if (!open) return null;
 
@@ -515,6 +623,8 @@ export function OkDlg({
     <div
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
       style={{
         position: 'absolute',
         top: 0,
@@ -526,6 +636,7 @@ export function OkDlg({
       }}
     >
       <div
+        ref={dialogRef}
         style={{
           position: 'absolute',
           top: position.y,
@@ -533,16 +644,19 @@ export function OkDlg({
           backgroundColor: 'white',
           border: '2px solid darkblue',
           borderRadius: '10px',
-          overflow: 'hidden', 
+          overflow: 'hidden',
           paddingBottom: '20px',
           textAlign: 'center',
           width: '300px',
+          maxWidth: '90vw',
+          boxShadow: '0 0 10px rgba(0,0,0,0.25)',
           ...style,
         }}
       >
         {/* Title Bar */}
         <div
           onMouseDown={handleMouseDown}
+          onTouchStart={handleTouchStart}
           style={{
             backgroundColor: 'darkblue',
             color: 'white',
@@ -590,72 +704,12 @@ export function YesNoDlg({
   xShowButton,
   style = {},
 }) {
-  const dialogRef = useRef(null);
-  const dragging = useRef(false);
-  const offset = useRef({ x: 0, y: 0 });
-
-  const handleMouseDown = (e) => {
-    dragging.current = true;
-    offset.current = {
-      x: e.clientX - position.x,
-      y: e.clientY - position.y,
-    };
-  };
-
-  const handleMouseMove = (e) => {
-    if (!dragging.current) return;
-    const dialog = dialogRef.current;
-    const screenWidth = window.innerWidth;
-    const dialogWidth = dialog.offsetWidth;
-    let newX = e.clientX - offset.current.x;
-    let newY = e.clientY - offset.current.y;
-    newX = Math.max(0, Math.min(screenWidth - dialogWidth, newX));
-    setPosition({
-      x: newX,
-      y: newY,
-    });
-  };
-
-  const handleMouseUp = () => {
-    dragging.current = false;
-  };
-
-  useEffect(() => {
-    if (!open) return;
-
-    const handleResize = () => {
-      if (!dialogRef.current) return;
-      const screenWidth = window.innerWidth;
-      const dialogWidth = dialogRef.current.offsetWidth;
-
-      let newX = position.x;
-      let newY = position.y;
-
-      // If position was expressed in px (number), clamp it
-      if (typeof newX === 'number') {
-        newX = Math.min(newX, screenWidth - dialogWidth);
-        newX = Math.max(0, newX);
-      }
-
-      setPosition({ x: newX, y: newY });
-    };
-    window.addEventListener('resize', handleResize);
-    window.addEventListener('mousemove', handleMouseMove);
-    window.addEventListener('mouseup', handleMouseUp);
-
-    return () => {
-      window.removeEventListener('resize', handleResize);
-      window.removeEventListener('mousemove', handleMouseMove);
-      window.removeEventListener('mouseup', handleMouseUp);
-    };
-  }, [open]);
+  const { dialogRef, startDrag } = useDraggableDialog(open, position, setPosition);
 
   if (!open) return null;
 
   return (
     <div
-      onMouseMove={handleMouseMove}
-      onMouseUp={handleMouseUp}
       style={{
         position: 'absolute',
         top: 0,
@@ -675,7 +729,7 @@ export function YesNoDlg({
           backgroundColor: 'white',
           border: '2px solid darkblue',
           borderRadius: '10px',
-          overflow: 'hidden', 
+          overflow: 'hidden',
           paddingBottom: '20px',
           textAlign: 'center',
           minWidth: '280px',
@@ -686,7 +740,8 @@ export function YesNoDlg({
       >
         {/* Title Bar */}
         <div
-          onMouseDown={handleMouseDown}
+          onMouseDown={(e) => startDrag(e.clientX, e.clientY)}
+          onTouchStart={(e) => startDrag(e.touches[0].clientX, e.touches[0].clientY)}
           style={{
             backgroundColor: 'darkblue',
             color: 'white',

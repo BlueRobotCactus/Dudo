@@ -15,6 +15,7 @@ code {
     monospace;
 }
 
+/* "firefox" style buttons */
 .ff-style-button {
   background: linear-gradient(to bottom, #f5f5f5, #e0e0e0);
   border: 1px solid #999;

@@ -59,6 +59,15 @@ import { CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYE
     const [bidTitle, setBidTitle] = useState('');
     const [thisBid, setThisBid] = useState('');
 
+    const [selectedBid, setSelectedBid] = useState('');
+    const [canShowShake, setCanShowShake] = useState(false);
+    const [bidShowShake, setBidShowShake] = useState(false);
+
+    const [row2YourTurnString, setRow2YourTurnString] = useState('');
+    const [row2SpecialPasoString, setRow2SpecialPasoString] = useState('');
+    const [row2CurrentBid, setRow2CurrentBid] = useState('');
+    const [row2BidToWhom, setRow2BidToWhom] = useState('');
+
     // show doubt
     const [showDoubtDlg, setShowDoubtDlg] = useState(false);
     const [doubtPosition, setDoubtPosition] = useState({ x: 200, y: 240 });
@@ -68,14 +77,15 @@ import { CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYE
     const [doubtButtonText, setDoubtButtonText] = useState('');
     const [doubtEvent, setDoubtEvent] = useState('');
 
-    // show and shake
+    // show and shake (nuke? &&&)
     const [showShowShakeDlg, setShowShakeDlg] = useState(false);
     const [showShakePosition, setShowShakePosition] = useState({ x: 200, y: 200 });
     const [showShakeTitle, setShowShakeTitle] = useState('');
     const [showShakeMessage, setShowShakeMessage] = useState('');
 
-    // confirmBid (nuke? &&&)
+    // confirmBid
     const [showConfirmBidDlg, setShowConfirmBidDlg] = useState(false);
+    const [confirmPosition, setConfirmPosition] = useState({ x: 200, y: 200 });
     const [confirmMessage, setConfirmMessage] = useState('');
 
     // OK
@@ -98,6 +108,7 @@ import { CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYE
     const [onYesHandler, setOnYesHandler] = useState(() => () => {});  // default no-op
     const [onNoHandler, setOnNoHandler] = useState(() => () => {});  // default no-op
 
+
     // Refs
     const canvasRef = useRef(null);
     const cupDownImageRef = useRef(null);
@@ -107,10 +118,22 @@ import { CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYE
     const myShowShakeRef = useRef(false);
     const needRejoin = useRef(false);
     const amIHost = useRef(null);
-
+    
     // Refs debugging
     const prevReconnect = useRef(null);
     const prevDraw = useRef(null);
+
+
+    //************************************************************
+    // UseEffect CHECKBOX [selectedBid, CanShowShake]
+    //           track changes in checkbox
+    //************************************************************
+    useEffect(() => {
+      console.log("GamePage: useEffect: CHECKBOX");
+      const result = CanShowShake(selectedBid);
+      setCanShowShake(result);
+      if (!result) setBidShowShake(false);
+    }, [selectedBid, canShowShake]);
 
 
     //************************************************************
@@ -255,6 +278,7 @@ import { CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYE
 
     setThisBid (bid);
     myShowShakeRef.current = bShowShake;
+
     // Close the dialog
     setShowBidDlg(false);
 
@@ -275,15 +299,17 @@ import { CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYE
         setShowShakeDlg(true);
       } else {
       // if not, ask if they want to confirm the bid
-        PrepareConfirmBidDlg('Your bid is:\n' + bid + '\n\nSubmit this bid?', bid);
+        if (bShowShake) {
+          PrepareConfirmBidDlg('Your bid is:\n' + bid + ', Show and Shake\n\nSubmit this bid?', bid);
+        } else {
+          PrepareConfirmBidDlg('Your bid is:\n' + bid + ', No  Show\n\nSubmit this bid?', bid);
+        }
         setShowYesNoDlg(true);
       }
     }
     if (bid == "PASO" || bid == "DOUBT") {
       PrepareConfirmBidDlg('Your bid is:\n' + bid + '\n\nSubmit this bid?', bid);
       setShowYesNoDlg(true);
-//      setConfirmMessage ('Your bid is:\n' + bid + '\n\nSubmit this bid?');
-//      setShowConfirmBidDlg(true);
     }
   };
 
@@ -316,6 +342,55 @@ import { CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYE
   // function to prepare the confirm bid dlg
   // (sets up to use the YesNoDlg)
   //************************************************************
+  const PrepareBidRow = () => {
+
+    console.log ("DEBUGG - PrepareBidRow, isMyTurn = ", isMyTurn);
+    
+    if (isMyTurn) {
+      //-------------------------------------------
+      // my turn
+      //-------------------------------------------
+      setBidTitle("Select your bid");
+      if (ggc.numBids > 0) {
+        setRow2YourTurnString(`The bid to you is ${ggc.allBids[ggc.numBids-1].text}`);
+      } else {
+        setRow2YourTurnString('You bid first');
+      }
+      if (ggc.numBids > 1 && ggc.allBids[ggc.numBids-1].text == "PASO") {
+        setRow2SpecialPasoString(`Doubt the PASO or top the bid ${ggc.allBids[ggc.FindLastNonPasoBid()].text}`);
+      } else {
+        setRow2SpecialPasoString('');
+      }
+      setSelectedBid (ggc.possibleBids[0]);
+    } else {
+      //-------------------------------------------
+      // not my turn
+      //-------------------------------------------
+      if (ggc.numBids > 0) {
+        // there is at least one bid
+        const currentBid = ggc.allBids[ggc.numBids-1];
+        if (currentBid.text == "DOUBT") {
+          setRow2CurrentBid('');
+          setRow2BidToWhom('');
+        } else {
+        setRow2CurrentBid(currentBid.bShakeShow ? 
+                          currentBid.playerName + " bid: " + currentBid.text + ", (show and shake)" :
+                          currentBid.playerName + " bid: " + currentBid.text + ", (no show)");
+        
+        setRow2BidToWhom(`Bid is to: ${whosTurnName}...`);
+        }
+      } else {
+        // waiting for someone to start bidding
+        setRow2CurrentBid(`Waiting for ${whosTurnName} to start the bidding...`);
+        setRow2BidToWhom('');
+      }
+    }
+  }
+
+  //************************************************************
+  // function to prepare the bid row
+  // (sets up to use the YesNoDlg)
+  //************************************************************
   const PrepareConfirmBidDlg = (msg, bid) => {
     setYesNoMessage(msg);
     setYesNoTitle("Confirm Bid");
@@ -342,8 +417,9 @@ import { CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYE
       setShowYesNoDlg(false);
       setThisBid('');
       myShowShakeRef.current = false;
-      setBidTitle("Select your bid");
-      setShowBidDlg(true); // start over
+      //setBidTitle("Select your bid");
+      //setShowBidDlg(true); // start over
+      PrepareBidRow();
     });
 
   }
@@ -436,8 +512,10 @@ import { CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYE
     setShowConfirmBidDlg(false);
     setThisBid('');
     myShowShakeRef.current = false;
-    setBidTitle("Select your bid");
-    setShowBidDlg(true); // start over
+    //setBidTitle("Select your bid");
+    //setShowBidDlg(true); // start over
+    PrepareBidRow();
+
   };
   
   //************************************************************
@@ -726,17 +804,20 @@ useEffect(() => {
     DrawBidHistory();
   }
 
-  // Display observer names
+  // draw observer names
   yPos += 20;
   DrawObserverNames (yPos);
+
+  // Draw bid status
+  if (ggc.bGameInProgress) {
+    DrawProcessBid();
+  } else {
+    DrawWaitingToStartGame();
+  }
 
   // dialogs
   if (ggc.bAskInOut) {
     DrawInOrOut();
-  }
-
-  if (ggc.bGameInProgress) {
-    DrawProcessBid();
   }
 
   if (ggc.bDoubtInProgress) {
@@ -951,6 +1032,7 @@ useEffect(() => {
   //  function Draw and process the bid
   //************************************************************
   function DrawProcessBid() {
+
     if (isMyTurn) {
       // my turn
       // populate the bid list
@@ -977,20 +1059,23 @@ useEffect(() => {
         setOnYesHandler(() => () => {
           setShowYesNoDlg(false);
           ggc.whichDirection = 0;
-          setBidTitle("Select your bid");
-          setShowBidDlg(true);
-        });
+          //setBidTitle("Select your bid");
+          //setShowBidDlg(true);
+          PrepareBidRow();
+      });
         setOnNoHandler(() => () => {
           setShowYesNoDlg(false);
           ggc.whichDirection = 1;
-          setBidTitle("Select your bid");
-          setShowBidDlg(true);
+          //setBidTitle("Select your bid");
+          //setShowBidDlg(true);
+          PrepareBidRow();
         });
         setShowYesNoDlg(true);
       } else {
         // no need to choose direction, just bid
-        setBidTitle("Select your bid");
-        setShowBidDlg(true);
+        //setBidTitle("Select your bid");
+        //setShowBidDlg(true);
+          PrepareBidRow();
       }
     } else {
       // not my turn
@@ -1010,9 +1095,22 @@ useEffect(() => {
         yPos += 40;
         ctx.fillText(`Bid is to: ${whosTurnName}...`, xPos, yPos);
       }
+      PrepareBidRow();
     }
   }
   }, [gameState, lobbyPlayers, isMyTurn, screenSize, imagesReady, socketId]);
+
+  //************************************************************
+  //  function Draw Waiting for host to start the game
+  //************************************************************
+  function DrawWaitingToStartGame () {
+    if (ggc.GetNumberPlayersStillIn() < 2) {
+      setRow2CurrentBid(`Waiting for 2 or more players in the lobby to start a game...`);
+    } else {
+      setRow2CurrentBid(`Waiting for ${lobby.host} to start the game...`);
+    }
+    setRow2BidToWhom('');
+  }
 
   //************************************************************
   //  function Draw Doubt in Progress
@@ -1116,53 +1214,132 @@ useEffect(() => {
   //  Render
   //************************************************************
   return (
-    <div className="container-fluid" style={{ position: 'relative' }}>
+
+    <div
+      className="container mx-auto"
+      style={{
+        maxWidth: '1000px',
+        position: 'relative',
+        border: '2px solid #333',
+        borderRadius: '10px',
+        padding: '10px',
+        backgroundColor: 'white',
+      }}
+    >
       {/* === Row 1: Lobby title and buttons === */}
-      <div className="row align-items-center justify-content-between mb-2">
-        <div className="col text-start fw-bold">
-          Game Lobby Host: {lobbyHost}
-        </div>
-        <div className="col text-end d-flex justify-content-end gap-2">
-          {(!ggc.bGameInProgress && lobby.host === myName) && (
-            <>
-              <button
-                onClick={handleStartGame}
-                className="btn btn-primary btn-sm"
-                disabled={ggc.GetNumberPlayersStillIn() < 2}
-              >
-                Start Game
-              </button>
-              <button
-                onClick={handleLeaveLobby}
-                className="btn btn-secondary btn-sm"
-              >
-                Close lobby
-              </button>
-            </>
-          )}
-          {((ggc.allConnectionStatus[myIndex] === CONN_OBSERVER) || (!ggc.bGameInProgress && lobby.host !== myName)) && (
-            <button
-              onClick={handleLeaveLobby}
-              className="btn btn-secondary btn-sm"
-            >
-              Leave lobby
-            </button>
-          )}
+      <div className="row mb-2 my-2">
+        <div className="col">
+          <div className="border rounded p-2 d-flex justify-content-between align-items-center">
+            <div className="fw-bold text-start">
+              <div>Game Lobby Host: {lobbyHost}</div>
+              <div>Your Name: {myName}</div>
+            </div>
+            <div className="d-flex justify-content-end gap-2">
+              {(!ggc.bGameInProgress && lobby.host === myName) && (
+                <>
+                  <button
+                    onClick={handleStartGame}
+                    className="btn btn-primary btn-sm"
+                    disabled={ggc.GetNumberPlayersInLobby() < 2}
+                  >
+                    Start Game
+                  </button>
+                  <button
+                    onClick={handleLeaveLobby}
+                    className="btn btn-secondary btn-sm"
+                  >
+                    Close lobby
+                  </button>
+                </>
+              )}
+              {((ggc.allConnectionStatus[myIndex] === CONN_OBSERVER) ||
+                (!ggc.bGameInProgress && lobby.host !== myName)) && (
+                <button
+                  onClick={handleLeaveLobby}
+                  className="btn btn-secondary btn-sm"
+                >
+                  Leave lobby
+                </button>
+              )}
+            </div>
+          </div>
         </div>
       </div>
 
       {/* === Row 2: Game status or current bid === */}
       <div className="row mb-3">
-        <div className="col text-center">
-          {ggc.bGameInProgress ? (
-            <>
-              <div>Current turn: {whosTurnName}</div>
-              <div className="fw-bold">
-                {isMyTurn ? "It's YOUR turn to bid!" : `Waiting for ${whosTurnName}...`}
+        <div className="col">
+          {isMyTurn ? (
+            // MY TURN
+            <div className="border border-primary rounded p-3 bg-light">
+              <div className="row mb-2">
+                <div className="col text-center">
+                  <h4 className="fw-bold">{row2YourTurnString}</h4>
+                  <p className="fw-bold">{row2SpecialPasoString}</p>
+                </div>
               </div>
-            </>
+
+              <div className="row align-items-center mb-3">
+                <div className="col-auto">
+                  <select
+                    value={selectedBid}
+                    onChange={(e) => setSelectedBid(e.target.value)}
+                    className="form-select w-auto"
+                  >
+                    {possibleBids.map((bid) => (
+                      <option key={bid} value={bid}>{bid}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="col">
+                  <div className="form-check">
+                    <input
+                      className="form-check-input"
+                      type="checkbox"
+                      id="showShakeCheckbox"
+                      disabled={!canShowShake}
+                      checked={bidShowShake}
+                      onChange={(e) => setBidShowShake(e.target.checked)}
+                    />
+                    <label className="form-check-label" htmlFor="showShakeCheckbox">
+                      Show/shake
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              <div className="row justify-content-between">
+                <div className="col-auto">
+                  <button
+                    className="btn btn-danger btn-sm text-white me-2"
+                    onClick={() => handleBidOK('DOUBT', bidShowShake)}
+                  >
+                    Doubt
+                  </button>
+                  <button
+                    className="btn btn-outline-secondary btn-sm"
+                    onClick={() => handleBidOK('PASO', bidShowShake)}
+                  >
+                    Paso
+                  </button>
+                </div>
+                <div className="col-auto">
+                  <button
+                    className="btn btn-primary btn-sm"
+                    onClick={() => handleBidOK(selectedBid, bidShowShake)}
+                  >
+                    OK
+                  </button>
+                </div>
+              </div>
+            </div>
           ) : (
-            <div className="text-muted">Waiting for host ({lobby.host}) to start a game...</div>
+            // NOT MY TURN
+            <div className="fw-bold text-center">
+              <div>{row2CurrentBid}</div>
+              <div>{row2BidToWhom}</div>
+            </div>
           )}
         </div>
       </div>
@@ -1170,7 +1347,13 @@ useEffect(() => {
       {/* === Row 3: Canvas === */}
       <div className="row">
         <div className="col">
-          <canvas ref={canvasRef} className="img-fluid w-100" />
+          <canvas
+            ref={canvasRef}
+            className="img-fluid w-100"
+            style={{
+              pointerEvents: showBidDlg || showYesNoDlg || showDoubtDlg || showShowShakeDlg || showOkDlg || showConfirmBidDlg ? 'none' : 'auto'
+            }}
+          />
         </div>
       </div>
 
@@ -1242,6 +1425,8 @@ useEffect(() => {
       {showConfirmBidDlg && (
         <ConfirmBidDlg
           open={showConfirmBidDlg}
+          position={confirmPosition}
+          setPosition={setConfirmPosition}          
           message={confirmMessage}
           onYes={handleConfirmBidYes}
           onNo={handleConfirmBidNo}

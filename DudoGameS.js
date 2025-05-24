@@ -871,6 +871,21 @@ export class DudoGame {
     }
 
     //****************************************************************
+    // Get number of players in the lobby (and connected)
+    //****************************************************************
+    GetNumberPlayersInLobby () {
+        let result = 0;
+        for (let cc = 0; cc < this.maxConnections; cc++) {
+            if (this.allConnectionStatus[cc] == CONN_PLAYER_IN ||
+                this.allConnectionStatus[cc] == CONN_PLAYER_OUT ||
+                this.allConnectionStatus[cc] == CONN_OBSERVER) {
+                result++;
+            }
+        }
+        return result;
+    }
+
+    //****************************************************************
     // Get number of players still in
     //****************************************************************
     GetNumberPlayersStillIn () {
