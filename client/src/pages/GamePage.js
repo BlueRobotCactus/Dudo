@@ -77,6 +77,14 @@ import { CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYE
     const [doubtButtonText, setDoubtButtonText] = useState('');
     const [doubtEvent, setDoubtEvent] = useState('');
 
+    const [row2DoubtWho, setRow2DoubtWho] = useState('');
+    const [row2DoubtBid, setRow2DoubtBid] = useState('');
+    const [row2DoubtResult, setRow2DoubtResult] = useState('');
+    const [row2DoubtStick, setRow2DoubtStick] = useState('');
+    const [row2DoubtWin, setRow2DoubtWin] = useState('');
+    const [row2DoubtShowButton, setRow2DoubtShowButton] = useState('');
+    
+
     // show and shake (nuke? &&&)
     const [showShowShakeDlg, setShowShakeDlg] = useState(false);
     const [showShakePosition, setShowShakePosition] = useState({ x: 200, y: 200 });
@@ -910,7 +918,7 @@ useEffect(() => {
     // draw cup
     if (ggc.allConnectionStatus[p] == CONN_PLAYER_OUT || !ggc.bGameInProgress) {
       ctx.drawImage(cupUpImageRef.current, 25, yPos + 5, 40, 56);
-    } else if ((ggc.bDoubtInProgress || ggc.bShowDoubtResult) && ggc.result.doubtCupLifted[p]) {
+    } else if ((ggc.bDoubtInProgress || ggc.bShowDoubtResult) && ggc.result.doubtDidLiftCup[p]) {
       ctx.drawImage(cupUpImageRef.current, 25, yPos + 5, 40, 56);
     } else {
       ctx.drawImage(cupDownImageRef.current, 25, yPos + 5, 40, 56);
@@ -931,7 +939,7 @@ useEffect(() => {
               ctx.drawImage(diceImages[value], 70 + i*23, yPos + 43, 18, 18);
             } else {
               // other player
-              if ((ggc.bDoubtInProgress || ggc.bShowDoubtResult) && ggc.result.doubtCupLifted[p]) {
+              if ((ggc.bDoubtInProgress || ggc.bShowDoubtResult) && ggc.result.doubtDidLiftCup[p]) {
                 // cup lifted, show dice
                 ctx.drawImage(diceImages[value], 70 + i*23, yPos + 43, 18, 18);
               } else {
@@ -1123,6 +1131,7 @@ useEffect(() => {
     s1 = ggc.allParticipantNames[ggc.result.whoDoubted];
     s1 += " doubted ";
     s1 += ggc.allParticipantNames[ggc.result.whoGotDoubted];
+    setRow2DoubtWho(s1);
 
     if (ggc.result.doubtWasPaso) {
       // PASO
@@ -1133,15 +1142,23 @@ useEffect(() => {
 
       s2 += "\n(" + ggc.result.doubtShowing + " showing, looking for " + ggc.result.doubtLookingFor + ")\n";
     }
+    setRow2DoubtBid(s2);
+
     // who has not yet lifted their cup
     s3 = "Waiting to see dice from:";
     for (let cc = 0; cc < ggc.maxConnections; cc++) {
       if (ggc.result.doubtMustLiftCup[cc]) {
-        if (!ggc.result.doubtCupLifted[cc]) {
+        if (!ggc.result.doubtDidLiftCup[cc]) {
           s3 += "\n" + ggc.allParticipantNames[cc];
         }
       }
     }
+    setRow2DoubtResult('');
+    setRow2DoubtStick('');
+    setRow2DoubtWin('');
+
+    console.log ('DEBUGG - doubt in progress', row2DoubtResult, row2DoubtStick, row2DoubtWin);
+
 
     let msg = s1 + "\n" + s2 + "\n" + s3; 
 
@@ -1149,7 +1166,7 @@ useEffect(() => {
 
     // show the string in message box
     setDoubtMessage(msg);
-    if (ggc.result.doubtMustLiftCup[myIndex] && !ggc.result.doubtCupLifted[myIndex]) {
+    if (ggc.result.doubtMustLiftCup[myIndex] && !ggc.result.doubtDidLiftCup[myIndex]) {
       setDoubtShowButton(true);
     } else {
       setDoubtShowButton(false);
@@ -1157,7 +1174,7 @@ useEffect(() => {
     setDoubtTitle('DOUBT');
     setDoubtButtonText('Lift Cup');
     setDoubtEvent('liftCup');
-    setShowDoubtDlg(true);
+    //setShowDoubtDlg(true);
   }
 
   //************************************************************
@@ -1169,9 +1186,11 @@ useEffect(() => {
     let s2 = "";  // what the bid was
     let s3 = "";  // result of doubt
     let s4 = "";  // who got the stick
+    let s5 = "";  // who got won the game (if anyone)
     s1 = ggc.allParticipantNames[ggc.result.whoDoubted];
     s1 += " doubted ";
     s1 += ggc.allParticipantNames[ggc.result.whoGotDoubted];
+    setRow2DoubtWho(s1);
 
     if (ggc.result.doubtWasPaso) {
       // PASO
@@ -1187,26 +1206,34 @@ useEffect(() => {
 
       s3 = (ggc.result.doubtCount == 1 ? "There is " : "There are ") + ggc.result.doubtCount;
     }
+    setRow2DoubtBid(s2);
+    setRow2DoubtResult(s3);
 
     s4 = ggc.allParticipantNames[ggc.result.doubtLoser] + " got the stick";
     if (ggc.result.doubtLoserOut) {
       s4 += ", and is OUT";
     }
+    setRow2DoubtStick(s4);
 
     let msg = s1 + "\n" + s2 + "\n" + s3 + "\n" + s4; 
 
     if (ggc.bWinnerGame) {
-      msg += "\n\n" + ggc.allParticipantNames[ggc.whoWonGame] + " WINS THE GAME!!";
+      s5 = ggc.allParticipantNames[ggc.whoWonGame] + " WINS THE GAME!!"
+      msg += "\n\n" + s5;
+      setRow2DoubtWin(s5);
     }
 
-    setIsMyTurn(false);   //chatgpt
+    console.log ('DEBUGG - doubt result', row2DoubtResult, row2DoubtStick, row2DoubtWin);
+
+
+    setIsMyTurn(false);
 
     // show the string in message box
     setDoubtMessage(msg);
     setDoubtShowButton(ggc.allConnectionStatus[myIndex] == CONN_PLAYER_IN);
     setDoubtButtonText('OK');
     setDoubtEvent('nextRound');
-    setShowDoubtDlg(true);
+    //setShowDoubtDlg(true);
   }
 
 
@@ -1269,6 +1296,37 @@ useEffect(() => {
       {/* === Row 2: Game status or current bid === */}
       <div className="row mb-3">
         <div className="col">
+
+          {ggc.bDoubtInProgress || ggc.bShowDoubtResult ? (
+            <div className="border border-primary rounded p-3 bg-light">
+              <div className="row mb-2">
+                <div className="col text-center">
+                  <h4 className="fw-bold">{row2DoubtWho}</h4>
+                  <p className="fw-bold">{row2DoubtBid}</p>
+                  <p className="fw-bold">{row2DoubtResult}</p>
+                  <p className="fw-bold">{row2DoubtStick}</p>
+                  <p className="fw-bold">{row2DoubtWin}</p>
+                  {ggc.bDoubtInProgress && ggc.result.doubtMustLiftCup[myIndex] && !ggc.result.doubtDidLiftCup[myIndex] ? (
+                  <button
+                    className="ff-style-button"
+                    onClick={() => socket.emit('liftCup', { lobbyId, index: myIndex })}
+                  >
+                    Lift Cup
+                  </button>
+                  ) : null}
+                  {ggc.bShowDoubtResult && ggc.nextRoundMustSay[myIndex] && !ggc.nextRoundDidSay[myIndex]? (
+                  <button
+                    className="ff-style-button"
+                    onClick={() => socket.emit('nextRound', { lobbyId, index: myIndex })}
+                  >
+                    OK
+                  </button>
+                  ) : null}
+                </div>
+              </div>
+            </div>
+          ) : null}
+
           {isMyTurn ? (
             // MY TURN
             <div className="border border-primary rounded p-3 bg-light">

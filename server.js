@@ -49,7 +49,7 @@ const lobbies = {
 };
 
 // hear back arrays
-let hearbackNextRound;
+let hearbackNextRound;  //&&& can delete?
 
 
 // ******************************
@@ -206,7 +206,7 @@ io.on('connection', (socket) => {
       ggs.inOutMustSay[cc] = false;
       ggs.inOutDidSay[cc] = false;
     }
-    ggs.getMustSayInOut();
+    ggs.getInOutMustSay();
     
     if (lobby.hostSocketId === socket.id) {
       ggs.bAskInOut = true;
@@ -519,13 +519,13 @@ io.on('connection', (socket) => {
     const ggs = lobby.game;
 
     // mark this player cup lifted
-    ggs.result.doubtCupLifted[index] = true;
+    ggs.result.doubtDidLiftCup[index] = true;
 
     // is that everybody we need to hear from?
     let allLifted = true;
     for (let i=0; i<ggs.maxConnections; i++) {
       if (ggs.result.doubtMustLiftCup[i]) {
-        if (!ggs.result.doubtCupLifted[i]) {
+        if (!ggs.result.doubtDidLiftCup[i]) {
           allLifted = false;
           break;
         }
@@ -556,13 +556,13 @@ io.on('connection', (socket) => {
     const ggs = lobby.game;
 
     // mark this player heard back
-    hearbackNextRound[index] = true;
+    ggs.nextRoundDidSay[index] = true;
 
     // is that everybody we need to hear from?
     let okToGo = true;
     for (let i=0; i<ggs.maxConnections; i++) {
-      if (ggs.allConnectionStatus[i] == CONN_PLAYER_IN) {
-        if (!hearbackNextRound[i]) {
+      if (ggs.nextRoundMustSay[i]) {
+        if (!ggs.nextRoundDidSay[i]) {
           okToGo = false;
           break;
         }
@@ -579,9 +579,8 @@ io.on('connection', (socket) => {
       } else {
         StartRound(lobby.game);
       }
-
-      io.to(lobbyId).emit('gameStateUpdate', lobby.game);
     }
+    io.to(lobbyId).emit('gameStateUpdate', lobby.game);
   });
   
   //************************************************************
@@ -791,8 +790,10 @@ function StartRound (ggs) {
       ggs.whichDirection = 0;
     }
 
-    ggs.result.doubtCupLifted = Array(ggs.maxConnections).fill(false);
-    hearbackNextRound = Array(ggs.maxConnections).fill(false);
+    ggs.result.doubtDidLiftCup = Array(ggs.maxConnections).fill(false);  // &&& need this?
+    ggs.nextRoundMustSay = Array(ggs.maxConnections).fill(false);       // &&& need this?
+    ggs.nextRoundDidSay = Array(ggs.maxConnections).fill(false);       // &&& need this?
+    ggs.getNextRoundMustSay();
 
     //------------------------------------------------------------
     // first round, randomly choose who goes first

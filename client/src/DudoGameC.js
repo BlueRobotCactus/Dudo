@@ -50,6 +50,8 @@ export class DudoGame {
 
     inOutMustSay = [];
     inOutDidSay = [];
+    nextRoundMustSay = [];
+    nextRoundDidSay = [];
 
     goesFirst;
     whosTurn;                
@@ -191,7 +193,9 @@ export class DudoGame {
             this.inOutMustSay[i] = state.inOutMustSay[i];
             this.inOutDidSay[i] = state.inOutDidSay[i];
             this.result.doubtMustLiftCup[i] = state.result.doubtMustLiftCup[i]
-            this.result.doubtCupLifted[i] = state.result.doubtCupLifted[i];
+            this.result.doubtDidLiftCup[i] = state.result.doubtDidLiftCup[i];
+            this.nextRoundMustSay[i] = state.nextRoundMustSay[i];
+            this.nextRoundDidSay[i] = state.nextRoundDidSay[i];
         }
     }
 
@@ -464,14 +468,28 @@ export class DudoGame {
     // fill in list of who needs to say in or out
     // this is 'true' or 'false' for each participant
     //************************************************************
-    getMustSayInOut () {
-        // initialize all to false
+    getInOutMustSay () {
         for (let i=0; i<this.maxConnections; i++) {
             let st = this.allConnectionStatus[i];
             if (st == CONN_PLAYER_IN || st == CONN_PLAYER_OUT || st == CONN_OBSERVER) {
                 this.inOutMustSay[i] = true;
             } else {
                 this.inOutMustSay[i] = false;
+            }
+        }
+    }
+
+    //************************************************************
+    // fill in list of who needs to say ok for next round
+    // this is 'true' or 'false' for each participant
+    //************************************************************
+    getNextRoundMustSay () {
+        for (let i=0; i<this.maxConnections; i++) {
+            let st = this.allConnectionStatus[i];
+            if (st == CONN_PLAYER_IN || st == CONN_PLAYER_OUT) {
+                this.nextRoundMustSay[i] = true;
+            } else {
+                this.nextRoundMustSay[i] = false;
             }
         }
     }
@@ -918,7 +936,7 @@ export class DudoGame {
             if (this.allConnectionStatus[cc] == CONN_PLAYER_IN) {
                 // player is still in
                 for (let i=0; i<5; i++) {
-                    if (this.result.doubtCupLifted[cc] || !this.bDiceHidden[cc][i]) {
+                    if (this.result.doubtDidLiftCup[cc] || !this.bDiceHidden[cc][i]) {
                         // this die is seen by all, examine it
                         const die = this.dice[cc][i];
                         if (bPaloFijo) {
@@ -955,7 +973,7 @@ class DoubtResult {
     doubtWasPaso;
     doubtPasoWasThere;
     doubtMustLiftCup = [];
-    doubtCupLifted = [];
+    doubtDidLiftCup = [];
 
     init() {
         let doubtedText = undefined;
