@@ -1253,10 +1253,13 @@ useEffect(() => {
         backgroundColor: 'white',
       }}
     >
-      {/* === Row 1: Lobby title and buttons === */}
+
+      {/*-------------------------------------------------------------------
+        Row 1: Lobby title and buttons
+      --------------------------------------------------------------------*/}
       <div className="row mb-2 my-2">
         <div className="col">
-          <div className="border rounded p-2 d-flex justify-content-between align-items-center">
+          <div className="border border-primary rounded p-1 d-flex justify-content-between align-items-center">
             <div className="fw-bold text-start">
               <div>Game Lobby Host: {lobbyHost}</div>
               <div>Your Name: {myName}</div>
@@ -1293,12 +1296,107 @@ useEffect(() => {
         </div>
       </div>
 
-      {/* === Row 2: Game status or current bid === */}
+      {/*-------------------------------------------------------------------
+        Row 2: Game status, current bid, doubt info
+      --------------------------------------------------------------------*/}
       <div className="row mb-3">
         <div className="col">
+          {/*----------------------------------------------
+                  BID
+          -----------------------------------------------*/}
+          {isMyTurn ? (
+            //----- MY TURN -----//
+            <div className="border border-primary rounded p-1">
+              <div className="row mb-2">
+                <div className="col text-center">
+                  <p className="fw-bold">{row2YourTurnString}</p>
+                  <p className="fw-bold">{row2SpecialPasoString}</p>
+                </div>
+              </div>
 
+              <div className="border border-secondary rounded p-1 d-inline-block">
+                <div className="row align-items-center mb-0">
+                  {/* dropbox */}
+                  <div className="col-auto">
+                    <select
+                      value={selectedBid}
+                      onChange={(e) => setSelectedBid(e.target.value)}
+                      className="form-select w-auto"
+                    >
+                      {possibleBids.map((bid) => (
+                        <option key={bid} value={bid}>{bid}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Bid button */}
+                  <div className="col-auto">
+                    <button
+                      className="ff-style-button"
+                      onClick={() => handleBidOK(selectedBid, bidShowShake)}
+                    >
+                      Bid
+                    </button>
+                  </div>
+                </div>
+
+                {/* checkbox */}
+                <div className="row">
+                  <div className="col-auto">
+                    <div className="form-check">
+                      <input
+                        className="form-check-input"
+                        type="checkbox"
+                        id="showShakeCheckbox"
+                        disabled={!canShowShake}
+                        checked={bidShowShake}
+                        onChange={(e) => setBidShowShake(e.target.checked)}
+                      />
+                      <label className="form-check-label" htmlFor="showShakeCheckbox">
+                        Show/shake
+                      </label>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="row justify-content-between mt-2">
+                <div className="col-auto">
+                  {/* DOUBT button */}
+                  <button
+                    className="btn btn-danger btn-sm text-white me-2"
+                    onClick={() => handleBidOK('DOUBT', bidShowShake)}
+                  >
+                    Doubt
+                  </button>
+                  {/* PASO button */}
+                  <button
+                    className="btn btn-outline-secondary btn-sm"
+                    onClick={() => handleBidOK('PASO', bidShowShake)}
+                  >
+                    Paso
+                  </button>
+                </div>
+              </div>
+            </div>
+          ) : null}
+
+
+          {!ggc.bDoubtInProgress && !ggc.bShowDoubtResult && !isMyTurn ? (
+            //----- NOT MY TURN -----//
+            <div className="border border-primary rounded p-1">
+              <div className="fw-bold text-center">
+                <div>{row2CurrentBid}</div>
+                <div>{row2BidToWhom}</div>
+              </div>
+            </div>
+          ) : null}
+
+          {/*----------------------------------------------
+                  DOUBT
+          -----------------------------------------------*/}
           {ggc.bDoubtInProgress || ggc.bShowDoubtResult ? (
-            <div className="border border-primary rounded p-3 bg-light">
+            <div className="border border-primary rounded p-1">
               <div className="row mb-2">
                 <div className="col text-center">
                   <h4 className="fw-bold">{row2DoubtWho}</h4>
@@ -1306,7 +1404,7 @@ useEffect(() => {
                   <p className="fw-bold">{row2DoubtResult}</p>
                   <p className="fw-bold">{row2DoubtStick}</p>
                   <p className="fw-bold">{row2DoubtWin}</p>
-                  {ggc.bDoubtInProgress && ggc.result.doubtMustLiftCup[myIndex] && !ggc.result.doubtDidLiftCup[myIndex] ? (
+                  {ggc.bDoubtInProgress ? (
                   <button
                     className="ff-style-button"
                     onClick={() => socket.emit('liftCup', { lobbyId, index: myIndex })}
@@ -1314,7 +1412,7 @@ useEffect(() => {
                     Lift Cup
                   </button>
                   ) : null}
-                  {ggc.bShowDoubtResult && ggc.nextRoundMustSay[myIndex] && !ggc.nextRoundDidSay[myIndex]? (
+                  {ggc.bShowDoubtResult ? (
                   <button
                     className="ff-style-button"
                     onClick={() => socket.emit('nextRound', { lobbyId, index: myIndex })}
@@ -1326,83 +1424,12 @@ useEffect(() => {
               </div>
             </div>
           ) : null}
-
-          {isMyTurn ? (
-            // MY TURN
-            <div className="border border-primary rounded p-3 bg-light">
-              <div className="row mb-2">
-                <div className="col text-center">
-                  <h4 className="fw-bold">{row2YourTurnString}</h4>
-                  <p className="fw-bold">{row2SpecialPasoString}</p>
-                </div>
-              </div>
-
-              <div className="row align-items-center mb-3">
-                <div className="col-auto">
-                  <select
-                    value={selectedBid}
-                    onChange={(e) => setSelectedBid(e.target.value)}
-                    className="form-select w-auto"
-                  >
-                    {possibleBids.map((bid) => (
-                      <option key={bid} value={bid}>{bid}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="col">
-                  <div className="form-check">
-                    <input
-                      className="form-check-input"
-                      type="checkbox"
-                      id="showShakeCheckbox"
-                      disabled={!canShowShake}
-                      checked={bidShowShake}
-                      onChange={(e) => setBidShowShake(e.target.checked)}
-                    />
-                    <label className="form-check-label" htmlFor="showShakeCheckbox">
-                      Show/shake
-                    </label>
-                  </div>
-                </div>
-              </div>
-
-              <div className="row justify-content-between">
-                <div className="col-auto">
-                  <button
-                    className="btn btn-danger btn-sm text-white me-2"
-                    onClick={() => handleBidOK('DOUBT', bidShowShake)}
-                  >
-                    Doubt
-                  </button>
-                  <button
-                    className="btn btn-outline-secondary btn-sm"
-                    onClick={() => handleBidOK('PASO', bidShowShake)}
-                  >
-                    Paso
-                  </button>
-                </div>
-                <div className="col-auto">
-                  <button
-                    className="btn btn-primary btn-sm"
-                    onClick={() => handleBidOK(selectedBid, bidShowShake)}
-                  >
-                    OK
-                  </button>
-                </div>
-              </div>
-            </div>
-          ) : (
-            // NOT MY TURN
-            <div className="fw-bold text-center">
-              <div>{row2CurrentBid}</div>
-              <div>{row2BidToWhom}</div>
-            </div>
-          )}
         </div>
       </div>
 
-      {/* === Row 3: Canvas === */}
+      {/*-------------------------------------------------------------------
+        Row 3: Canvas
+      --------------------------------------------------------------------*/}
       <div className="row">
         <div className="col">
           <canvas
@@ -1417,12 +1444,14 @@ useEffect(() => {
 
       {/* existing overlays and dialogs stay outside the layout grid */}
       {showCountdown && (
-        <div className="position-absolute top-50 start-50 translate-middle bg-dark text-white p-3 rounded" style={{ zIndex: 3000 }}>
+        <div className="position-absolute top-50 start-50 translate-middle bg-dark text-white p-1 rounded" style={{ zIndex: 3000 }}>
           {countdownMessage}
         </div>
       )}
 
-      {/* keep dialog rendering as-is (BidDlg, DoubtDlg, etc.) */}
+      {/*-------------------------------------------------------------------
+        DIALOGS
+      --------------------------------------------------------------------*/      }
 
       {showBidDlg && (
         <BidDlg
