@@ -4,9 +4,6 @@ import { useContext } from 'react';
 import { SocketContext } from '../SocketContext.js';
 import { DudoGame } from '../DudoGameC.js'
 
-import { BidDlg } from '../Dialogs.js';
-import { DoubtDlg } from '../Dialogs.js';
-import { ShowShakeDlg } from '../Dialogs.js';
 import { ConfirmBidDlg } from '../Dialogs.js';
 import { OkDlg } from '../Dialogs.js';
 import { YesNoDlg } from '../Dialogs.js';
@@ -52,13 +49,9 @@ import { CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYE
     // structure: { playerName: 'Alice', secondsRemaining: 23 }
     const [countdownMessage, setCountdownMessage] = useState('');
     
-    // dialogs
+    // row2
     // bid
-    const [showBidDlg, setShowBidDlg] = useState(false);
-    const [bidPosition, setBidPosition] = useState({ x: 200, y: 200 });
-    const [bidTitle, setBidTitle] = useState('');
     const [thisBid, setThisBid] = useState('');
-
     const [selectedBid, setSelectedBid] = useState('');
     const [canShowShake, setCanShowShake] = useState(false);
     const [bidShowShake, setBidShowShake] = useState(false);
@@ -69,14 +62,6 @@ import { CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYE
     const [row2BidToWhom, setRow2BidToWhom] = useState('');
 
     // show doubt
-    const [showDoubtDlg, setShowDoubtDlg] = useState(false);
-    const [doubtPosition, setDoubtPosition] = useState({ x: 200, y: 240 });
-    const [doubtTitle, setDoubtTitle] = useState('');
-    const [doubtMessage, setDoubtMessage] = useState('');
-    const [doubtShowButton, setDoubtShowButton] = useState('');
-    const [doubtButtonText, setDoubtButtonText] = useState('');
-    const [doubtEvent, setDoubtEvent] = useState('');
-
     const [row2DoubtWho, setRow2DoubtWho] = useState('');
     const [row2DoubtBid, setRow2DoubtBid] = useState('');
     const [row2DoubtResult, setRow2DoubtResult] = useState('');
@@ -84,13 +69,7 @@ import { CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYE
     const [row2DoubtWin, setRow2DoubtWin] = useState('');
     const [row2DoubtShowButton, setRow2DoubtShowButton] = useState('');
     
-
-    // show and shake (nuke? &&&)
-    const [showShowShakeDlg, setShowShakeDlg] = useState(false);
-    const [showShakePosition, setShowShakePosition] = useState({ x: 200, y: 200 });
-    const [showShakeTitle, setShowShakeTitle] = useState('');
-    const [showShakeMessage, setShowShakeMessage] = useState('');
-
+    // dialogs
     // confirmBid
     const [showConfirmBidDlg, setShowConfirmBidDlg] = useState(false);
     const [confirmPosition, setConfirmPosition] = useState({ x: 200, y: 200 });
@@ -216,10 +195,7 @@ import { CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYE
     console.log("GamePage: entering function: handleGameStateUpdate");
 
     // close down any dialogs
-    setShowBidDlg (false);
-    setShowShakeDlg (false);
     setShowConfirmBidDlg (false);
-    setShowDoubtDlg (false);
     setShowOkDlg (false);
     setShowYesNoDlg (false);
 
@@ -243,7 +219,7 @@ import { CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYE
       } else {
         ggc.PopulateBidListRegular();
       }
-      ggc.PopulateBidListPasoDudo();
+      //ggc.PopulateBidListPasoDudo();
       setPossibleBids(ggc.possibleBids || []);
     }
   };
@@ -287,38 +263,16 @@ import { CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYE
     setThisBid (bid);
     myShowShakeRef.current = bShowShake;
 
-    // Close the dialog
-    setShowBidDlg(false);
-
-    //-------------------------------------------
-    // can they show and shake?
-    //-------------------------------------------
-    //myShowShakeRef.current = false;
-
-    if (bid != "PASO" && bid != "DOUBT") {
-    // does player have any of hidden dice of what they bid?
-      // if so, ask if they want to show and shake
-
-      if (false) {
-      //if (CanShowShake(bid)) {
-
-        setShowShakeTitle("Show and Shake");
-        setShowShakeMessage("Do you want to show and shake?")
-        setShowShakeDlg(true);
-      } else {
-      // if not, ask if they want to confirm the bid
+    if (bid == "PASO" || bid == "DOUBT") {
+      PrepareConfirmBidDlg('Your bid is:\n' + bid + '\n\nSubmit this bid?', bid);
+    } else {
         if (bShowShake) {
           PrepareConfirmBidDlg('Your bid is:\n' + bid + ', Show and Shake\n\nSubmit this bid?', bid);
         } else {
           PrepareConfirmBidDlg('Your bid is:\n' + bid + ', No  Show\n\nSubmit this bid?', bid);
         }
-        setShowYesNoDlg(true);
-      }
     }
-    if (bid == "PASO" || bid == "DOUBT") {
-      PrepareConfirmBidDlg('Your bid is:\n' + bid + '\n\nSubmit this bid?', bid);
-      setShowYesNoDlg(true);
-    }
+    setShowYesNoDlg(true);
   };
 
   //************************************************************
@@ -347,28 +301,25 @@ import { CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYE
   }
 
   //************************************************************
-  // function to prepare the confirm bid dlg
+  // function to prepare the bid UI
   // (sets up to use the YesNoDlg)
   //************************************************************
-  const PrepareBidRow = () => {
+  const PrepareBidUI = () => {
 
-    console.log ("DEBUGG - PrepareBidRow, isMyTurn = ", isMyTurn);
+    console.log ("DEBUGG - PrepareBidUI, isMyTurn = ", isMyTurn);
     
+    myShowShakeRef.current = false;
+    setBidShowShake(false)    
     if (isMyTurn) {
       //-------------------------------------------
       // my turn
       //-------------------------------------------
-      setBidTitle("Select your bid");
-      if (ggc.numBids > 0) {
-        setRow2YourTurnString(`The bid to you is ${ggc.allBids[ggc.numBids-1].text}`);
-      } else {
-        setRow2YourTurnString('You bid first');
-      }
-      if (ggc.numBids > 1 && ggc.allBids[ggc.numBids-1].text == "PASO") {
-        setRow2SpecialPasoString(`Doubt the PASO or top the bid ${ggc.allBids[ggc.FindLastNonPasoBid()].text}`);
-      } else {
-        setRow2SpecialPasoString('');
-      }
+      setRow2YourTurnString (ggc.numBids > 0 ? 
+                            `The bid to you is ${ggc.allBids[ggc.numBids-1].text}` :
+                            'You bid first');
+      setRow2SpecialPasoString (ggc.numBids > 1 && ggc.allBids[ggc.numBids-1].text == "PASO" ?
+                            `Doubt the PASO or top the bid ${ggc.allBids[ggc.FindLastNonPasoBid()].text}` :
+                            '');
       setSelectedBid (ggc.possibleBids[0]);
     } else {
       //-------------------------------------------
@@ -377,15 +328,20 @@ import { CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYE
       if (ggc.numBids > 0) {
         // there is at least one bid
         const currentBid = ggc.allBids[ggc.numBids-1];
-        if (currentBid.text == "DOUBT") {
-          setRow2CurrentBid('');
-          setRow2BidToWhom('');
-        } else {
-        setRow2CurrentBid(currentBid.bShakeShow ? 
-                          currentBid.playerName + " bid: " + currentBid.text + ", (show and shake)" :
-                          currentBid.playerName + " bid: " + currentBid.text + ", (no show)");
-        
-        setRow2BidToWhom(`Bid is to: ${whosTurnName}...`);
+        let s1= currentBid.playerName + " bid: " + currentBid.text;
+        let s2 = `Bid is to: ${whosTurnName}...`;
+        switch (currentBid.text) {
+          case "DOUBT":
+            setRow2CurrentBid('');
+            setRow2BidToWhom('');
+            break;
+          case "PASO":
+            setRow2CurrentBid(s1);
+            setRow2BidToWhom(s2);
+            break;
+          default:
+            setRow2CurrentBid(currentBid.bShakeShow ? s1 + ", (show and shake)" : s1 + ", (no show)");
+            setRow2BidToWhom(s2);
         }
       } else {
         // waiting for someone to start bidding
@@ -424,10 +380,7 @@ import { CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYE
     setOnNoHandler(() => () => {
       setShowYesNoDlg(false);
       setThisBid('');
-      myShowShakeRef.current = false;
-      //setBidTitle("Select your bid");
-      //setShowBidDlg(true); // start over
-      PrepareBidRow();
+      PrepareBidUI();
     });
 
   }
@@ -466,35 +419,6 @@ import { CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYE
   };
 
   //************************************************************
-  // functions handle Yes, No from ShowShakeDlg
-  //************************************************************
-  const handleShowShakeYes = () => {
-    myShowShakeRef.current = true;
-
-    // Close the dialog
-    setShowShakeDlg(false);
-
-    // confirm the bid
-    PrepareConfirmBidDlg('Your bid is:\n' + thisBid + ', Show and Shake\n\nSubmit this bid?', thisBid);
-    setShowYesNoDlg(true);
-    //setConfirmMessage ('Your bid is:\n' + thisBid + ', Show and Shake\n\nSubmit this bid?');
-    //setShowConfirmBidDlg(true);
-  };
-
-  const handleShowShakeNo = () => {
-    myShowShakeRef.current = false;
-
-    // Close the dialog
-    setShowShakeDlg(false);
-
-    // confirm the bid
-    PrepareConfirmBidDlg('Your bid is:\n' + thisBid + '\n\nSubmit this bid?', thisBid);
-    setShowYesNoDlg(true);
-    //setConfirmMessage ('Your bid is:\n' + thisBid + '\n\nSubmit this bid?');
-    //setShowConfirmBidDlg(true);
-  };
-
-  //************************************************************
   // functions handle Yes, No from ConfirmBidDlg
   //************************************************************
   const handleConfirmBidYes = () => {
@@ -519,11 +443,7 @@ import { CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYE
   const handleConfirmBidNo = () => {
     setShowConfirmBidDlg(false);
     setThisBid('');
-    myShowShakeRef.current = false;
-    //setBidTitle("Select your bid");
-    //setShowBidDlg(true); // start over
-    PrepareBidRow();
-
+    PrepareBidUI();
   };
   
   //************************************************************
@@ -1049,7 +969,7 @@ useEffect(() => {
       } else {
         ggc.PopulateBidListRegular();
       }
-      ggc.PopulateBidListPasoDudo();
+      //ggc.PopulateBidListPasoDudo();
       setPossibleBids(ggc.possibleBids || []);
 
       // show dialog, handle responses
@@ -1067,23 +987,16 @@ useEffect(() => {
         setOnYesHandler(() => () => {
           setShowYesNoDlg(false);
           ggc.whichDirection = 0;
-          //setBidTitle("Select your bid");
-          //setShowBidDlg(true);
-          PrepareBidRow();
+          PrepareBidUI();
       });
         setOnNoHandler(() => () => {
           setShowYesNoDlg(false);
           ggc.whichDirection = 1;
-          //setBidTitle("Select your bid");
-          //setShowBidDlg(true);
-          PrepareBidRow();
+          PrepareBidUI();
         });
         setShowYesNoDlg(true);
       } else {
-        // no need to choose direction, just bid
-        //setBidTitle("Select your bid");
-        //setShowBidDlg(true);
-          PrepareBidRow();
+          PrepareBidUI();
       }
     } else {
       // not my turn
@@ -1103,7 +1016,7 @@ useEffect(() => {
         yPos += 40;
         ctx.fillText(`Bid is to: ${whosTurnName}...`, xPos, yPos);
       }
-      PrepareBidRow();
+      PrepareBidUI();
     }
   }
   }, [gameState, lobbyPlayers, isMyTurn, screenSize, imagesReady, socketId]);
@@ -1115,7 +1028,10 @@ useEffect(() => {
     if (ggc.GetNumberPlayersStillIn() < 2) {
       setRow2CurrentBid(`Waiting for 2 or more players in the lobby to start a game...`);
     } else {
-      setRow2CurrentBid(`Waiting for ${lobby.host} to start the game...`);
+      setRow2CurrentBid(myName == lobby.host ? 
+                        'Waiting for you to start the game...' :
+                        `Waiting for ${lobby.host} to start the game...`);
+      
     }
     setRow2BidToWhom('');
   }
@@ -1156,25 +1072,7 @@ useEffect(() => {
     setRow2DoubtResult('');
     setRow2DoubtStick('');
     setRow2DoubtWin('');
-
-    console.log ('DEBUGG - doubt in progress', row2DoubtResult, row2DoubtStick, row2DoubtWin);
-
-
-    let msg = s1 + "\n" + s2 + "\n" + s3; 
-
-    setIsMyTurn(false);   //chatgpt
-
-    // show the string in message box
-    setDoubtMessage(msg);
-    if (ggc.result.doubtMustLiftCup[myIndex] && !ggc.result.doubtDidLiftCup[myIndex]) {
-      setDoubtShowButton(true);
-    } else {
-      setDoubtShowButton(false);
-    }
-    setDoubtTitle('DOUBT');
-    setDoubtButtonText('Lift Cup');
-    setDoubtEvent('liftCup');
-    //setShowDoubtDlg(true);
+    setIsMyTurn(false);
   }
 
   //************************************************************
@@ -1222,18 +1120,7 @@ useEffect(() => {
       msg += "\n\n" + s5;
       setRow2DoubtWin(s5);
     }
-
-    console.log ('DEBUGG - doubt result', row2DoubtResult, row2DoubtStick, row2DoubtWin);
-
-
     setIsMyTurn(false);
-
-    // show the string in message box
-    setDoubtMessage(msg);
-    setDoubtShowButton(ggc.allConnectionStatus[myIndex] == CONN_PLAYER_IN);
-    setDoubtButtonText('OK');
-    setDoubtEvent('nextRound');
-    //setShowDoubtDlg(true);
   }
 
 
@@ -1307,7 +1194,7 @@ useEffect(() => {
           {isMyTurn ? (
             //----- MY TURN -----//
             <div className="border border-primary rounded p-1">
-              <div className="row mb-2">
+              <div className="row">
                 <div className="col text-center">
                   <p className="fw-bold">{row2YourTurnString}</p>
                   <p className="fw-bold">{row2SpecialPasoString}</p>
@@ -1315,7 +1202,7 @@ useEffect(() => {
               </div>
 
               <div className="border border-secondary rounded p-1 d-inline-block">
-                <div className="row align-items-center mb-0">
+                <div className="row align-items-center mb-1">
                   {/* dropbox */}
                   <div className="col-auto">
                     <select
@@ -1365,6 +1252,7 @@ useEffect(() => {
                   {/* DOUBT button */}
                   <button
                     className="btn btn-danger btn-sm text-white me-2"
+                    disabled={!ggc.numBids > 0}
                     onClick={() => handleBidOK('DOUBT', bidShowShake)}
                   >
                     Doubt
@@ -1372,6 +1260,7 @@ useEffect(() => {
                   {/* PASO button */}
                   <button
                     className="btn btn-outline-secondary btn-sm"
+                    disabled={!ggc.CanPaso()}
                     onClick={() => handleBidOK('PASO', bidShowShake)}
                   >
                     Paso
@@ -1397,16 +1286,17 @@ useEffect(() => {
           -----------------------------------------------*/}
           {ggc.bDoubtInProgress || ggc.bShowDoubtResult ? (
             <div className="border border-primary rounded p-1">
-              <div className="row mb-2">
+              <div className="row">
                 <div className="col text-center">
-                  <h4 className="fw-bold">{row2DoubtWho}</h4>
-                  <p className="fw-bold">{row2DoubtBid}</p>
-                  <p className="fw-bold">{row2DoubtResult}</p>
-                  <p className="fw-bold">{row2DoubtStick}</p>
-                  <p className="fw-bold">{row2DoubtWin}</p>
+                  <div className="fw-bold">{row2DoubtWho}</div>
+                  <div className="fw-bold">{row2DoubtBid}</div>
+                  <div className="fw-bold">{row2DoubtResult}</div>
+                  <div className="fw-bold">{row2DoubtStick}</div>
+                  <div className="fw-bold">{row2DoubtWin}</div>
                   {ggc.bDoubtInProgress ? (
                   <button
                     className="ff-style-button"
+                    disabled = {ggc.result.doubtDidLiftCup[myIndex]}
                     onClick={() => socket.emit('liftCup', { lobbyId, index: myIndex })}
                   >
                     Lift Cup
@@ -1415,6 +1305,7 @@ useEffect(() => {
                   {ggc.bShowDoubtResult ? (
                   <button
                     className="ff-style-button"
+                    disabled = {ggc.nextRoundDidSay[myIndex]}
                     onClick={() => socket.emit('nextRound', { lobbyId, index: myIndex })}
                   >
                     OK
@@ -1436,7 +1327,7 @@ useEffect(() => {
             ref={canvasRef}
             className="img-fluid w-100"
             style={{
-              pointerEvents: showBidDlg || showYesNoDlg || showDoubtDlg || showShowShakeDlg || showOkDlg || showConfirmBidDlg ? 'none' : 'auto'
+              pointerEvents: showYesNoDlg || showOkDlg || showConfirmBidDlg ? 'none' : 'auto'
             }}
           />
         </div>
@@ -1452,63 +1343,6 @@ useEffect(() => {
       {/*-------------------------------------------------------------------
         DIALOGS
       --------------------------------------------------------------------*/      }
-
-      {showBidDlg && (
-        <BidDlg
-          open={showBidDlg}
-          position={bidPosition}
-          setPosition={setBidPosition}          
-          onClose={() => setShowBidDlg(false)}
-          onSubmit={handleBidOK}
-          bids={possibleBids}
-          title={bidTitle}
-          CanShowShake={CanShowShake}
-          yourTurnString={
-            ggc.allBids && ggc.allBids.length > 0 && ggc.numBids > 0
-              ? `The bid to you is ${ggc.allBids[ggc.numBids-1].text}`
-              : 'You bid first'
-          }
-          specialPasoString={
-            ggc.allBids && ggc.allBids.length > 1 && ggc.numBids > 1 && ggc.allBids[ggc.numBids-1].text == "PASO"
-              ? `Doubt the PASO or top the bid ${ggc.allBids[ggc.FindLastNonPasoBid()].text}`
-              : ''
-          }
-        />
-      )}
-
-      {showDoubtDlg && (
-        <DoubtDlg
-          open={showDoubtDlg}
-          position={doubtPosition}
-          setPosition={setDoubtPosition}          
-          title={doubtTitle}
-          message={doubtMessage}
-          doubtButtonText={doubtButtonText}
-          doubtShowButton={doubtShowButton}
-          doubtEvent={doubtEvent}
-          onClose={() => {
-            setShowDoubtDlg(false);
-            socket.emit(doubtEvent, { lobbyId, index: myIndex })
-            //socket.emit('liftCup', { lobbyId, index: myIndex })
-            //socket.emit('nextRound', { lobbyId, index: myIndex })
-          }}
-          x = {200}
-          y = {240}
-        />
-      )}
-
-      {showShowShakeDlg && (
-        <ShowShakeDlg
-          open={showShowShakeDlg}
-          position={showShakePosition}
-          setPosition={setShowShakePosition}          
-          title={showShakeTitle}
-          message={showShakeMessage}
-          onYes={handleShowShakeYes}
-          onNo={handleShowShakeNo}
-        />
-      )}
-
       {showConfirmBidDlg && (
         <ConfirmBidDlg
           open={showConfirmBidDlg}

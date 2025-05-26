@@ -815,50 +815,6 @@ export class DudoGame {
     }
 
     //****************************************************************
-    // Populate possible bid with PASO and DUDO
-    //****************************************************************
-    PopulateBidListPasoDudo () {
-
-        // is PASO a valid bid?
-        var bPasoValidBid;
-        if (this.bPasoAllowed) {
-            if (this.bPaloFijoRound) {
-                if (this.IsPaloFijo(this.whosTurn)) {
-                    bPasoValidBid = true;
-                } else {
-                    bPasoValidBid = false;
-                }
-            } else {
-                bPasoValidBid = true;
-            }
-        } else {
-            bPasoValidBid = false;
-        }
-        // overridding everything is, no paso on first bid
-        if (this.numBids == 0) {
-            bPasoValidBid = false;
-        }
-        // can't paso twice in the same wound
-        if (this.allPasoUsed[this.whosTurn]) {
-            bPasoValidBid = false;
-        }
-
-        // if paso is valid, put it at the beginning of the array
-        if (bPasoValidBid) {
-            //this.possibleBids.unshift("PASO");
-            this.possibleBids.push("PASO");
-        }
-
-        // add DOUBT
-        if (this.numBids > 0) {
-            this.possibleBids.push("DOUBT")
-        }
-
-        // get final array length
-        this.numPossibleBids = this.possibleBids.length;
-
-}
-    //****************************************************************
     // Parse the bid string into integers
     //****************************************************************
     parseBid(s) {
@@ -914,6 +870,32 @@ export class DudoGame {
             }
         }
         return result;
+    }
+
+    //****************************************************************
+    // Can we PASO?
+    //****************************************************************
+    CanPaso () {
+        // can't paso if not allowed by game setting
+        if (!this.bPasoAllowed) {
+            return false;
+        }
+        // can't paso on first bid
+        if (this.numBids == 0) {
+            return false;
+        }
+        // can't paso twice in the same wound
+        if (this.allPasoUsed[this.whosTurn]) {
+            return false;
+        }
+
+        if (this.bPaloFijoRound) {
+            // only palofijos can paso in palofijo round
+            return (this.IsPaloFijo(this.whosTurn));
+        } else {
+            // otherwise ok
+            return (true);
+        }
     }
 
     //****************************************************************
