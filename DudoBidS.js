@@ -10,7 +10,7 @@ export class DudoBid {
   bPaso;
   bDudo;
   bDiceHidden = [];
-  bShakeShow;
+  bShowShake;
   howManyShaken;
   bWhichShaken = [];
 
@@ -22,7 +22,7 @@ export class DudoBid {
     this.ofWhat = -1;
     this.bPaso = false;
     this.bDudo = false;
-    this.bShakeShow = false;
+    this.bShowShake = false;
     this.howManyShaken = 0;
 
     this.bDiceHidden = Array(5).fill(false);
@@ -37,7 +37,7 @@ export class DudoBid {
     this.ofWhat = -1;
     this.bPaso = false;
     this.bDudo = false;
-    this.bShakeShow = false;
+    this.bShowShake = false;
     this.howManyShaken = 0;
     
     this.bDiceHidden = Array(5).fill(false);

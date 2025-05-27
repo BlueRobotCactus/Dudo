@@ -103,8 +103,7 @@ import { CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYE
     const diceImagesRef = useRef({});
     const diceHiddenImageRef = useRef({});
     const myShowShakeRef = useRef(false);
-    const needRejoin = useRef(false);
-    const amIHost = useRef(null);
+    const bidHistoryRef = useRef([]);
     
     // Refs debugging
     const prevReconnect = useRef(null);
@@ -212,6 +211,7 @@ import { CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYE
     // is it my turn to bid?
     setIsMyTurn(index == ggc.whosTurn);
 
+/*    
     // &&& nuke?
     if (isMyTurn) {
       if (ggc.bPaloFijoRound) {
@@ -222,6 +222,7 @@ import { CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYE
       //ggc.PopulateBidListPasoDudo();
       setPossibleBids(ggc.possibleBids || []);
     }
+*/    
   };
 
   //************************************************************
@@ -280,24 +281,27 @@ import { CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYE
   // based on currently selected bid
   //************************************************************
   const CanShowShake = (bid) => {
-    if (bid != "PASO" && bid != "DOUBT") {
-    // does player have any of hidden dice of what they bid?
-      ggc.parseBid(bid);
-      for (let i = 0; i < 5; i++) {
-          if (ggc.bDiceHidden[myIndex][i]) {
-              if (ggc.dice[myIndex][i] == ggc.parsedOfWhat) {
-                  return (true);
-              }
-              if (!ggc.bPaloFijoRound) {
-                  // aces wild if not palofijo
-                  if (ggc.dice[myIndex][i] == 1) {
-                    return (true);
-                  }
-              }
-          }
-      }
-      return (false);
+    // no, if special strings
+    if (bid == "PASO" || bid == "DOUBT" || bid == "--Select--") {
+      return false;
     }
+
+    // does player have any of hidden dice of what they bid?
+    ggc.parseBid(bid);
+    for (let i = 0; i < 5; i++) {
+        if (ggc.bDiceHidden[myIndex][i]) {
+            if (ggc.dice[myIndex][i] == ggc.parsedOfWhat) {
+                return true;
+            }
+            if (!ggc.bPaloFijoRound) {
+                // aces wild if not palofijo
+                if (ggc.dice[myIndex][i] == 1) {
+                  return true;
+                }
+            }
+        }
+    }
+    return (false);
   }
 
   //************************************************************
@@ -340,7 +344,7 @@ import { CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYE
             setRow2BidToWhom(s2);
             break;
           default:
-            setRow2CurrentBid(currentBid.bShakeShow ? s1 + ", (show and shake)" : s1 + ", (no show)");
+            setRow2CurrentBid(currentBid.bShowShake ? s1 + ", (show and shake)" : s1 + ", (no show)");
             setRow2BidToWhom(s2);
         }
       } else {
@@ -352,7 +356,7 @@ import { CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYE
   }
 
   //************************************************************
-  // function to prepare the bid row
+  // function to prepare the confirm bid dialog
   // (sets up to use the YesNoDlg)
   //************************************************************
   const PrepareConfirmBidDlg = (msg, bid) => {
@@ -370,7 +374,7 @@ import { CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYE
         socket?.emit('bid', {
           lobbyId,
           bidText: bid,
-          bidShakeShow: myShowShakeRef.current,
+          bidShowShake: myShowShakeRef.current,
           index: myIndex,
           name: myName,
           direction: ggc.whichDirection,
@@ -425,15 +429,11 @@ import { CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYE
     setShowConfirmBidDlg(false);
 
     // Now send the bid to the server
-
-    console.log ("DEBUGGING - sending to server ", thisBid, " ",  myShowShakeRef.current);
-
-
     if (connected) {
       socket?.emit('bid', {
         lobbyId,
         bidText: thisBid,
-        bidShakeShow: myShowShakeRef.current,
+        bidShowShake: myShowShakeRef.current,
         index: myIndex,
         name: myName,
       });
@@ -730,6 +730,7 @@ useEffect(() => {
   // draw bid history
   if (ggc.bGameInProgress) {
     DrawBidHistory();
+    DrawBidHistoryOld();
   }
 
   // draw observer names
@@ -884,6 +885,24 @@ useEffect(() => {
   //  function Draw bid history
   //************************************************************
   function DrawBidHistory () {
+    // clear out any previous values
+    bidHistoryRef.current.length = 0;
+
+    // add bids from scratch
+    for (let i=0;  i<ggc.numBids; i++) {
+      let ss = ggc.allBids[i].text;
+      if (ggc.allBids[i].bShowShake) {
+        ss += (' (show and shake');
+      }
+      bidHistoryRef.current.push({ Player: ggc.allBids[i].playerName,
+                                   Bid: ss});
+    }
+  }
+  
+  //************************************************************
+  //  function Draw bid history
+  //************************************************************
+  function DrawBidHistoryOld () {
     ctx.font = '12px Arial';
     ctx.fillText("Bidding History", 210, 400);
     if (ggc.numBids === 0) {
@@ -945,12 +964,10 @@ useEffect(() => {
     setXShowButton(false);
     setOnYesHandler(() => () => {
       setShowYesNoDlg(false);
-      ggc.allConnectionStatus[myIndex] = CONN_PLAYER_IN;
       socket.emit('inOrOut', { lobbyId, index: myIndex, status: CONN_PLAYER_IN })
     });
     setOnNoHandler(() => () => {
       setShowYesNoDlg(false);
-      ggc.allConnectionStatus[myIndex] = CONN_OBSERVER;
       socket.emit('inOrOut', { lobbyId, index: myIndex, status: CONN_OBSERVER })
     });
     setShowYesNoDlg(true);
@@ -1010,7 +1027,7 @@ useEffect(() => {
         const currentBid = ggc.allBids[ggc.numBids-1];
         ctx.fillText(currentBid.playerName + " bid: " + currentBid.text, xPos, yPos);
         yPos += 20;
-        if (currentBid.bShakeShow) {
+        if (currentBid.bShowShake) {
           ctx.fillText('(show and shake)', xPos, yPos);
         }
         yPos += 40;
@@ -1195,7 +1212,7 @@ useEffect(() => {
             //----- MY TURN -----//
             <div className="border border-primary rounded p-1">
               <div className="row">
-                <div className="col text-center">
+                <div className="col">
                   <p className="fw-bold">{row2YourTurnString}</p>
                   <p className="fw-bold">{row2SpecialPasoString}</p>
                 </div>
@@ -1220,6 +1237,7 @@ useEffect(() => {
                   <div className="col-auto">
                     <button
                       className="ff-style-button"
+                      disabled={selectedBid=='--Select--'}
                       onClick={() => handleBidOK(selectedBid, bidShowShake)}
                     >
                       Bid
@@ -1317,6 +1335,27 @@ useEffect(() => {
           ) : null}
         </div>
       </div>
+
+
+<div style={{ maxHeight: '60px', overflowY: 'auto' }}>
+  <div className="container">
+    <div className="row fw-bold border-bottom pb-1 mb-1">
+      <div className="col-2">Player</div>
+      <div className="col-2">Bid</div>
+    </div>
+    {bidHistoryRef.current.map((row, index) => (
+      <div className="row py-1 border-bottom" key={index}>
+        <div className="col-2">{row.Player}</div>
+        <div className="col-2">{row.Bid}</div>
+      </div>
+    ))}
+  </div>
+</div>
+
+
+
+
+
 
       {/*-------------------------------------------------------------------
         Row 3: Canvas

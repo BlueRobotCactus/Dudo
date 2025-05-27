@@ -208,11 +208,8 @@ io.on('connection', (socket) => {
     }
     ggs.getInOutMustSay();
     
-    if (lobby.hostSocketId === socket.id) {
-      ggs.bAskInOut = true;
-      io.to(lobbyId).emit('gameStateUpdate', lobby.game);
-      return;
-    }
+    ggs.bAskInOut = true;
+    io.to(lobbyId).emit('gameStateUpdate', lobby.game);
 
     //&&&
 
@@ -405,7 +402,7 @@ io.on('connection', (socket) => {
   // socket.on
   // PROCESS THE BID
   //************************************************************
-  socket.on('bid', ({ lobbyId, bidText, bidShakeShow, index, name, direction }) => {
+  socket.on('bid', ({ lobbyId, bidText, bidShowShake, index, name, direction }) => {
     const lobby = lobbies[lobbyId];
     const ggs = lobby.game;
 
@@ -427,18 +424,18 @@ io.on('connection', (socket) => {
       ggs.allBids[ptr].ofWhat = ggs.parsedOfWhat;
       ggs.allBids[ptr].bPaso = false;
       ggs.allBids[ptr].bDudo = false;
-      ggs.allBids[ptr].bShakeShow = bidShakeShow;
+      ggs.allBids[ptr].bShowShake = bidShowShake;
     }
     if (bidText === "PASO") {
       ggs.allBids[ptr].bPaso = true;
       ggs.allBids[ptr].bDudo = false;
-      ggs.allBids[ptr].bShakeShow = false;
+      ggs.allBids[ptr].bShowShake = false;
       ggs.allPasoUsed[index] = true;
     }
     if (bidText === "DOUBT") {
       ggs.allBids[ptr].bPaso = false;
       ggs.allBids[ptr].bDudo = true;
-      ggs.allBids[ptr].bShakeShow = false;
+      ggs.allBids[ptr].bShowShake = false;
     }
     ggs.numBids++;
 
@@ -446,7 +443,7 @@ io.on('connection', (socket) => {
     // show and shake?
     //----------------------------------------------------
     ptr = ggs.numBids - 1;
-    if (ggs.allBids[ptr].bShakeShow) {
+    if (ggs.allBids[ptr].bShowShake) {
         ggs.allBids[ptr].howManyShaken = 0;
         for (let i = 0; i < 5; i++) {
             ggs.allBids[ptr].bWhichShaken[i] = true;
@@ -598,7 +595,7 @@ io.on('connection', (socket) => {
     // is that everybody we need to hear from?
     let okToGo = true;
     for (let i=0; i<ggs.maxConnections; i++) {
-      if (ggs.allConnectionStatus[i] == CONN_PLAYER_IN) {
+      if (ggs.inOutMustSay[i]) {
         if (!ggs.inOutDidSay[i]) {
           okToGo = false;
           break;

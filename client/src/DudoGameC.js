@@ -556,6 +556,9 @@ export class DudoGame {
         this.possibleBids.length = 0;
         this.numPossibleBids = 0;
         
+        this.possibleBids.push("--Select--");
+        this.numPossibleBids = 1;
+
         //------------------------------------------------------------
         // special case of first bid
         //------------------------------------------------------------
@@ -706,7 +709,10 @@ export class DudoGame {
         //------------------------------------------------------------
         this.possibleBids.length = 0;
         this.numPossibleBids = 0;
-        
+
+        this.possibleBids.push("--Select--");
+        this.numPossibleBids = 1;
+
         //------------------------------------------------------------
         // special case of first bid
         //------------------------------------------------------------
