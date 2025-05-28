@@ -50,16 +50,21 @@ import { CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYE
     const [countdownMessage, setCountdownMessage] = useState('');
     
     // row2
-    // bid
-    const [thisBid, setThisBid] = useState('');
-    const [selectedBid, setSelectedBid] = useState('');
-    const [canShowShake, setCanShowShake] = useState(false);
-    const [bidShowShake, setBidShowShake] = useState(false);
+    // game settings
+    const [row2NumSticks, setRow2NumSticks] = useState("3");
+    const [row2PasoAllowed, setRow2PasoAllowed] = useState(true);
+    const [row2PalofijoAllowed, setRow2PalofijoAllowed] = useState(true);
 
+    // bid
     const [row2YourTurnString, setRow2YourTurnString] = useState('');
     const [row2SpecialPasoString, setRow2SpecialPasoString] = useState('');
     const [row2CurrentBid, setRow2CurrentBid] = useState('');
     const [row2BidToWhom, setRow2BidToWhom] = useState('');
+
+    const [thisBid, setThisBid] = useState('');
+    const [selectedBid, setSelectedBid] = useState('');
+    const [canShowShake, setCanShowShake] = useState(false);
+    const [bidShowShake, setBidShowShake] = useState(false);
 
     // show doubt
     const [row2DoubtWho, setRow2DoubtWho] = useState('');
@@ -110,7 +115,7 @@ import { CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYE
     const prevReconnect = useRef(null);
     const prevDraw = useRef(null);
 
-
+    // for drawing player and dice
     const cupWidth = 40;
     const cupHeight = 56;
     const diceSize = 18;
@@ -229,19 +234,6 @@ import { CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYE
 
     // is it my turn to bid?
     setIsMyTurn(index == ggc.whosTurn);
-
-/*    
-    // &&& nuke?
-    if (isMyTurn) {
-      if (ggc.bPaloFijoRound) {
-        ggc.PopulateBidListPaloFijo();
-      } else {
-        ggc.PopulateBidListRegular();
-      }
-      //ggc.PopulateBidListPasoDudo();
-      setPossibleBids(ggc.possibleBids || []);
-    }
-*/    
   };
 
   //************************************************************
@@ -261,6 +253,33 @@ import { CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYE
       console.log ('GamePage: emiting "startGame"');
     }
   };
+
+  //************************************************************
+  // Click: Host set game parameters
+  //************************************************************
+  const handleGameSettings = () => {
+    if (connected) {
+
+      setRow2NumSticks (ggc.maxSticks);
+      setRow2PasoAllowed (ggc.bPasoAllowed);
+      setRow2PalofijoAllowed (ggc.bPaloFijoAllowed);
+
+      socket.emit('setGameParms', lobbyId);
+      console.log ('GamePage: emiting "setGameParms"');
+    }
+  };
+  const handleSaveSettings = () => {
+    if (connected) {
+      socket.emit('saveGameParms', lobbyId, row2NumSticks, row2PasoAllowed, row2PalofijoAllowed);
+      console.log ('GamePage: emiting "SaveGameParms"');
+    }
+  }
+  const handleCancelSettings = () => {
+    if (connected) {
+      socket.emit('cancelGameParms', lobbyId);
+      console.log ('GamePage: emiting "cancelGameParms"');
+    }
+  }
 
   //************************************************************
   // Click: Leave Lobby
@@ -498,7 +517,6 @@ import { CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYE
   useEffect(() => {
     console.log("GamePage: useEffect: WINDOW RESIZE");
 
-    // Resize the canvas when the window resizes
     const updateScreenSize = () => {
       setScreenSize({
         width: window.innerWidth,
@@ -738,7 +756,7 @@ useEffect(() => {
   ggc.AssignGameState(gameState);
 
   // Start drawing
-  DrawSomeText ();
+  //DrawSomeText ();
 
   let yPos = 140;   //&&& obsolete
   const yPosIncr = 110;
@@ -1149,7 +1167,13 @@ useEffect(() => {
   //  function Draw InOrOut
   //************************************************************
   function DrawInOrOut() {
-    let msg = "Starting a new game\nAre you in?";
+    let msg = "Starting a new game\n\n";
+    msg += `Number of sticks: ${ggc.maxSticks}\n`;
+    if (ggc.maxSticks == 1) msg += ' (one and done)';
+    msg += ggc.bPasoAllowed ? "Paso allowed: Yes\n" : "Paso allowed: No\n";
+    msg += ggc.bPaloFijoAllowed ? "Palofijo: Yes\n" : "Palofijo: No\n";
+    msg += "\nAre you in?";
+    
     // who has not yet said in or out
     let ss = "\n\nWaiting to hear from:";
     for (let cc = 0; cc < ggc.maxConnections; cc++) {
@@ -1352,12 +1376,10 @@ useEffect(() => {
     setIsMyTurn(false);
   }
 
-
   //************************************************************
   //  Render
   //************************************************************
-  return (
-
+  /*
     <div
       className="container mx-auto"
       style={{
@@ -1369,270 +1391,371 @@ useEffect(() => {
         backgroundColor: 'white',
       }}
     >
+*/
+  return (
 
-      {/*-------------------------------------------------------------------
-        Row 1: Lobby title and buttons
-      --------------------------------------------------------------------*/}
-      <div className="row mb-2 my-2">
-        <div className="col">
-          <div className="border border-primary rounded p-1 d-flex justify-content-between align-items-center">
-            <div className="fw-bold text-start">
-              <div>Game Lobby Host: {lobbyHost}</div>
-              <div>Your Name: {myName}</div>
-            </div>
-            <div className="d-flex justify-content-end gap-2">
-              {(!ggc.bGameInProgress && lobby.host === myName) && (
-                <>
-                  <button
-                    onClick={handleStartGame}
-                    className="btn btn-primary btn-sm"
-                    disabled={ggc.GetNumberPlayersInLobby() < 2}
-                  >
-                    Start Game
-                  </button>
-                  <button
-                    onClick={handleLeaveLobby}
-                    className="btn btn-secondary btn-sm"
-                  >
-                    Close lobby
-                  </button>
-                </>
-              )}
-              {((ggc.allConnectionStatus[myIndex] === CONN_OBSERVER) ||
-                (!ggc.bGameInProgress && lobby.host !== myName)) && (
+<div
+  className="container mx-auto"
+  style={{
+    maxWidth: '100%',
+    position: 'relative',
+    padding: '10px',
+    backgroundColor: 'white',
+  }}
+>
+
+    {/*-------------------------------------------------------------------
+      Row 1: Lobby title and buttons
+    --------------------------------------------------------------------*/}
+    <div className="row mb-2 my-2">
+      <div className="col">
+        <div className="border border-primary rounded p-1 d-flex justify-content-between align-items-center">
+          <div className="fw-bold text-start">
+            <div>Game Lobby Host: {lobbyHost}</div>
+            <div>Your Name: {myName}</div>
+          </div>
+          <div className="d-flex justify-content-end gap-2">
+            {(!ggc.bGameInProgress && lobby.host === myName) && (
+              <>
+                <button
+                  onClick={handleStartGame}
+                  className="btn btn-primary btn-sm"
+                  disabled={ggc.GetNumberPlayersInLobby() < 2}
+                >
+                  Start Game
+                </button>
+                <button
+                  onClick={handleGameSettings}
+                  className="btn btn-primary btn-sm"
+                >
+                  Game Settings
+                </button>
                 <button
                   onClick={handleLeaveLobby}
                   className="btn btn-secondary btn-sm"
                 >
-                  Leave lobby
+                  Close lobby
                 </button>
-              )}
-            </div>
+              </>
+            )}
+            {((ggc.allConnectionStatus[myIndex] === CONN_OBSERVER) ||
+              (!ggc.bGameInProgress && lobby.host !== myName)) && (
+              <button
+                onClick={handleLeaveLobby}
+                className="btn btn-secondary btn-sm"
+              >
+                Leave lobby
+              </button>
+            )}
           </div>
         </div>
       </div>
+    </div>
 
-      {/*-------------------------------------------------------------------
-        Row 2: Game status, current bid, doubt info
-      --------------------------------------------------------------------*/}
-      <div className="row mb-3">
-        <div className="col">
-          {/*----------------------------------------------
-                  BID
-          -----------------------------------------------*/}
-          {isMyTurn ? (
-            //----- MY TURN -----//
-            <div className="border border-primary rounded p-1">
-              <div className="row">
-                <div className="col">
-                  <p className="fw-bold">{row2YourTurnString}</p>
-                  <p className="fw-bold">{row2SpecialPasoString}</p>
-                </div>
+    {/*-------------------------------------------------------------------
+      Row 2: Game status, current bid, doubt info
+    --------------------------------------------------------------------*/}
+    <div className="row mb-3">
+      <div className="col">
+        {/*----------------------------------------------
+                GAME SETTINGS
+        -----------------------------------------------*/}
+        {ggc.bSettingGameParms ? (
+          <div className="border border-primary rounded p-3 mb-1">
+            <div className="fw-bold text-center mb-2">
+              Set Game Parameters
+            </div>
+
+            <div className="row align-items-center mb-1">
+              {/* number of sticks (dropbox) */}
+              <div className="col-4 text-end">
+                Number of sticks:
+              </div>
+              <div className="col-4">
+                <select
+                  className="form-select form-select-sm w-auto"
+                  value={row2NumSticks}
+                  onChange={(e) => setRow2NumSticks(e.target.value)}
+                >
+                  <option value="1">1</option>
+                  <option value="2">2</option>
+                  <option value="3">3</option>
+                </select>
               </div>
 
-              <div className="border border-secondary rounded p-1 d-inline-block">
-                <div className="row align-items-center mb-1">
-                  {/* dropbox */}
-                  <div className="col-auto">
-                    <select
-                      value={selectedBid}
-                      onChange={(e) => setSelectedBid(e.target.value)}
-                      className="form-select w-auto"
-                    >
-                      {possibleBids.map((bid) => (
-                        <option key={bid} value={bid}>{bid}</option>
-                      ))}
-                    </select>
-                  </div>
-
-                  {/* Bid button */}
-                  <div className="col-auto">
-                    <button
-                      className="ff-style-button"
-                      disabled={selectedBid=='--Select--'}
-                      onClick={() => handleBidOK(selectedBid, bidShowShake)}
-                    >
-                      Bid
-                    </button>
-                  </div>
-                </div>
-
-                {/* checkbox */}
-                <div className="row">
-                  <div className="col-auto">
-                    <div className="form-check">
-                      <input
-                        className="form-check-input"
-                        type="checkbox"
-                        id="showShakeCheckbox"
-                        disabled={!canShowShake}
-                        checked={bidShowShake}
-                        onChange={(e) => setBidShowShake(e.target.checked)}
-                      />
-                      <label className="form-check-label" htmlFor="showShakeCheckbox">
-                        Show/shake
-                      </label>
-                    </div>
-                  </div>
-                </div>
+              <div className="col-4 d-flex justify-content-end">
+                {/* Save button */}
+                <button
+                  onClick={handleSaveSettings}
+                  className="btn btn-primary btn-sm me-2"
+                >
+                  Save
+                </button>
+                {/* Cancel button */}
+                <button
+                  onClick={handleCancelSettings}
+                  className="btn btn-secondary btn-sm me-2"
+                >
+                  Cancel
+                </button>
               </div>
+            </div>
 
-              <div className="row justify-content-between mt-2">
+            {/* paso allowed? (checkbox) */}
+            <div className="row align-items-center mb-1">
+              <div className="col-4 text-end">
+                Paso allowed:
+              </div>
+              <div className="col-4">
+                {/* paso checkbox */}
+                <input
+                  type="checkbox"
+                  className="form-check-input"
+                  id="pasoAllowedCheckbox"
+                  checked={row2PasoAllowed}
+                  onChange={(e) => setRow2PasoAllowed(e.target.checked)}                  
+                />
+              </div>
+            </div>
+
+            {/* palofijo allowed? (checkbox) */}
+            <div className="row align-items-center">
+              <div className="col-4 text-end">
+                Palo Fijo allowed:
+              </div>
+              <div className="col-4">
+                {/* palo fijo checkbox */}
+                <input
+                  type="checkbox"
+                  className="form-check-input"
+                  id="palofijoAllowedCheckbox"
+                  checked={row2PalofijoAllowed}
+                  onChange={(e) => setRow2PalofijoAllowed(e.target.checked)}                  
+                />
+              </div>
+            </div>
+          </div>
+        ) : null}
+
+
+        {/*----------------------------------------------
+                BID
+        -----------------------------------------------*/}
+        {isMyTurn ? (
+          //----- MY TURN -----//
+          <div className="border border-primary rounded p-1">
+            <div className="row">
+              <div className="col">
+                <p className="fw-bold">{row2YourTurnString}</p>
+                <p className="fw-bold">{row2SpecialPasoString}</p>
+              </div>
+            </div>
+
+            <div className="border border-secondary rounded p-1 d-inline-block">
+              <div className="row align-items-center mb-1">
+                {/* dropbox */}
                 <div className="col-auto">
-                  {/* DOUBT button */}
-                  <button
-                    className="btn btn-danger btn-sm text-white me-2"
-                    disabled={!ggc.numBids > 0}
-                    onClick={() => handleBidOK('DOUBT', bidShowShake)}
+                  <select
+                    value={selectedBid}
+                    onChange={(e) => setSelectedBid(e.target.value)}
+                    className="form-select w-auto"
                   >
-                    Doubt
-                  </button>
-                  {/* PASO button */}
+                    {possibleBids.map((bid) => (
+                      <option key={bid} value={bid}>{bid}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Bid button */}
+                <div className="col-auto">
                   <button
-                    className="btn btn-outline-secondary btn-sm"
-                    disabled={!ggc.CanPaso()}
-                    onClick={() => handleBidOK('PASO', bidShowShake)}
+                    className="ff-style-button"
+                    disabled={selectedBid=='--Select--'}
+                    onClick={() => handleBidOK(selectedBid, bidShowShake)}
                   >
-                    Paso
+                    Bid
                   </button>
                 </div>
               </div>
-            </div>
-          ) : null}
 
-
-          {!ggc.bDoubtInProgress && !ggc.bShowDoubtResult && !isMyTurn ? (
-            //----- NOT MY TURN -----//
-            <div className="border border-primary rounded p-1">
-              <div className="fw-bold text-center">
-                <div>{row2CurrentBid}</div>
-                <div>{row2BidToWhom}</div>
-              </div>
-            </div>
-          ) : null}
-
-          {/*----------------------------------------------
-                  DOUBT
-          -----------------------------------------------*/}
-          {ggc.bDoubtInProgress || ggc.bShowDoubtResult ? (
-            <div className="border border-primary rounded p-1">
+              {/* checkbox */}
               <div className="row">
-                <div className="col text-center">
-                  <div className="fw-bold">{row2DoubtWho}</div>
-                  <div className="fw-bold">{row2DoubtBid}</div>
-                  <div className="fw-bold">{row2DoubtResult}</div>
-                  <div className="fw-bold">{row2DoubtStick}</div>
-                  <div className="fw-bold">{row2DoubtWin}</div>
-                  {ggc.bDoubtInProgress ? (
-                  <button
-                    className="ff-style-button"
-                    disabled = {ggc.result.doubtDidLiftCup[myIndex]}
-                    onClick={() => socket.emit('liftCup', { lobbyId, index: myIndex })}
-                  >
-                    Lift Cup
-                  </button>
-                  ) : null}
-                  {ggc.bShowDoubtResult ? (
-                  <button
-                    className="ff-style-button"
-                    disabled = {ggc.nextRoundDidSay[myIndex]}
-                    onClick={() => socket.emit('nextRound', { lobbyId, index: myIndex })}
-                  >
-                    OK
-                  </button>
-                  ) : null}
+                <div className="col-auto">
+                  <div className="form-check">
+                    <input
+                      className="form-check-input"
+                      type="checkbox"
+                      id="showShakeCheckbox"
+                      disabled={!canShowShake}
+                      checked={bidShowShake}
+                      onChange={(e) => setBidShowShake(e.target.checked)}
+                    />
+                    <label className="form-check-label" htmlFor="showShakeCheckbox">
+                      Show/shake
+                    </label>
+                  </div>
                 </div>
               </div>
             </div>
-          ) : null}
-        </div>
-      </div>
 
-      {/*-------------------------------------------------------------------
-        Row 3: Canvas
-      --------------------------------------------------------------------*/}
-      <div className="row">
-        <div className="col">
-          <canvas
-            ref={canvasRef}
-            className="img-fluid w-100"
-            style={{
-              pointerEvents: showYesNoDlg || showOkDlg || showConfirmBidDlg ? 'none' : 'auto'
-            }}
-          />
-        </div>
-      </div>
+            <div className="row justify-content-between mt-2">
+              <div className="col-auto">
+                {/* DOUBT button */}
+                <button
+                  className="btn btn-danger btn-sm text-white me-2"
+                  disabled={!ggc.numBids > 0}
+                  onClick={() => handleBidOK('DOUBT', bidShowShake)}
+                >
+                  Doubt
+                </button>
+                {/* PASO button */}
+                <button
+                  className="btn btn-outline-secondary btn-sm"
+                  disabled={!ggc.CanPaso()}
+                  onClick={() => handleBidOK('PASO', bidShowShake)}
+                >
+                  Paso
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : null}
 
-      {/* existing overlays and dialogs stay outside the layout grid */}
-      {showCountdown && (
-        <div className="position-absolute top-50 start-50 translate-middle bg-dark text-white p-1 rounded" style={{ zIndex: 3000 }}>
-          {countdownMessage}
-        </div>
-      )}
 
-{!ggc.bGameInProgress ? (
-  // Bid History
-  <div style={{ maxHeight: '60px', overflowY: 'auto' }}>
-    <div className="container">
-      <div className="row fw-bold border-bottom pb-1 mb-1">
-        <div className="col-2">Player</div>
-        <div className="col-2">Bid</div>
+        {!ggc.bDoubtInProgress && !ggc.bShowDoubtResult && !isMyTurn ? (
+          //----- NOT MY TURN -----//
+          <div className="border border-primary rounded p-1">
+            <div className="fw-bold text-center">
+              <div>{row2CurrentBid}</div>
+              <div>{row2BidToWhom}</div>
+            </div>
+          </div>
+        ) : null}
+
+        {/*----------------------------------------------
+                DOUBT
+        -----------------------------------------------*/}
+        {ggc.bDoubtInProgress || ggc.bShowDoubtResult ? (
+          <div className="border border-primary rounded p-1">
+            <div className="row">
+              <div className="col text-center">
+                <div className="fw-bold">{row2DoubtWho}</div>
+                <div className="fw-bold">{row2DoubtBid}</div>
+                <div className="fw-bold">{row2DoubtResult}</div>
+                <div className="fw-bold">{row2DoubtStick}</div>
+                <div className="fw-bold">{row2DoubtWin}</div>
+                {ggc.bDoubtInProgress && (ggc.result.doubtMustLiftCup[myIndex]) ? (
+                <button
+                  className="ff-style-button"
+                  disabled = {ggc.result.doubtDidLiftCup[myIndex]}
+                  onClick={() => socket.emit('liftCup', { lobbyId, index: myIndex })}
+                >
+                  Lift Cup
+                </button>
+                ) : null}
+                {ggc.bShowDoubtResult && (ggc.nextRoundMustSay[myIndex]) ? (
+                <button
+                  className="ff-style-button"
+                  disabled = {ggc.nextRoundDidSay[myIndex]}
+                  onClick={() => socket.emit('nextRound', { lobbyId, index: myIndex })}
+                >
+                  OK
+                </button>
+                ) : null}
+              </div>
+            </div>
+          </div>
+        ) : null}
       </div>
-      {bidHistoryRef.current.map((row, index) => (
-        <div className="row py-1 border-bottom" key={index}>
-          <div className="col-2">{row.Player}</div>
-          <div className="col-2">{row.Bid}</div>
-        </div>
-      ))}
     </div>
+
+    {/*-------------------------------------------------------------------
+      Row 3: Canvas
+    --------------------------------------------------------------------*/}
+    <div className="row">
+      <div className="col">
+        <canvas
+          ref={canvasRef}
+          className="img-fluid w-100"
+          style={{
+            pointerEvents: showYesNoDlg || showOkDlg || showConfirmBidDlg ? 'none' : 'auto'
+          }}
+        />
+      </div>
+    </div>
+
+    {/* existing overlays and dialogs stay outside the layout grid */}
+    {showCountdown && (
+      <div className="position-absolute top-50 start-50 translate-middle bg-dark text-white p-1 rounded" style={{ zIndex: 3000 }}>
+        {countdownMessage}
+      </div>
+    )}
+
+    {/*-------------------------------------------------------------------
+      Bid History
+    --------------------------------------------------------------------*/}
+    {ggc.bGameInProgress && (ggc.numBids > 0)? (
+      // Bid History
+      <div style={{ maxHeight: '200px', overflowY: 'auto' }}>
+        <div className="container">
+          <div className="row fw-bold border-bottom pb-1 mb-1">
+            <div className="col-2">Player</div>
+            <div className="col-2">Bid</div>
+          </div>
+          {bidHistoryRef.current.map((row, index) => (
+            <div className="row py-1 border-bottom" key={index}>
+              <div className="col-2">{row.Player}</div>
+              <div className="col-2">{row.Bid}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+    ) : null}
+
+
+    {/*-------------------------------------------------------------------
+      DIALOGS
+    --------------------------------------------------------------------*/      }
+    {showConfirmBidDlg && (
+      <ConfirmBidDlg
+        open={showConfirmBidDlg}
+        position={confirmPosition}
+        setPosition={setConfirmPosition}          
+        message={confirmMessage}
+        onYes={handleConfirmBidYes}
+        onNo={handleConfirmBidNo}
+      />
+    )}
+
+    {showOkDlg && (
+      <OkDlg
+        open={showOkDlg}
+        position={okPosition}
+        setPosition={setOkPosition}          
+        title={okTitle}
+        message={okMessage}
+        onOk={onOkHandler}
+      />
+    )}
+
+    {showYesNoDlg && (
+      <YesNoDlg
+        open={showYesNoDlg}
+        position={yesNoPosition}
+        setPosition={setYesNoPosition}          
+        title={yesNoTitle}
+        message={yesNoMessage}
+        yesText={yesText}
+        noText={noText}
+        yesShowButton = {yesShowButton}
+        noShowButton = {noShowButton}
+        xShowButton = {xShowButton}
+        onYes={onYesHandler}
+        onNo={onNoHandler}
+      />
+    )}
   </div>
-) : null}
-
-
-
-      {/*-------------------------------------------------------------------
-        DIALOGS
-      --------------------------------------------------------------------*/      }
-      {showConfirmBidDlg && (
-        <ConfirmBidDlg
-          open={showConfirmBidDlg}
-          position={confirmPosition}
-          setPosition={setConfirmPosition}          
-          message={confirmMessage}
-          onYes={handleConfirmBidYes}
-          onNo={handleConfirmBidNo}
-        />
-      )}
-
-      {showOkDlg && (
-        <OkDlg
-          open={showOkDlg}
-          position={okPosition}
-          setPosition={setOkPosition}          
-          title={okTitle}
-          message={okMessage}
-          onOk={onOkHandler}
-        />
-      )}
-
-      {showYesNoDlg && (
-        <YesNoDlg
-          open={showYesNoDlg}
-          position={yesNoPosition}
-          setPosition={setYesNoPosition}          
-          title={yesNoTitle}
-          message={yesNoMessage}
-          yesText={yesText}
-          noText={noText}
-          yesShowButton = {yesShowButton}
-          noShowButton = {noShowButton}
-          xShowButton = {xShowButton}
-          onYes={onYesHandler}
-          onNo={onNoHandler}
-        />
-      )}
-    </div>
-    
+  
   );
 }
 

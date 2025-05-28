@@ -189,12 +189,56 @@ io.on('connection', (socket) => {
 
   //************************************************************
   // socket.on
+  // SET GAME PARAMETERS (HOST ENTERS 'DIALOG')
+  //************************************************************
+  socket.on('setGameParms', (lobbyId) => {
+    const lobby = lobbies[lobbyId];
+    const ggs = lobby.game;
+    if (!lobby) return;
+
+    ggs.bSettingGameParms = true;
+    io.to(lobbyId).emit('gameStateUpdate', lobby.game);
+  });
+
+  //************************************************************
+  // socket.on
+  // SAVE GAME PARAMETERS (HOST HAS CHOSEN)
+  //************************************************************
+  socket.on('saveGameParms', (lobbyId, sticks, paso, palofijo) => {
+    const lobby = lobbies[lobbyId];
+    const ggs = lobby.game;
+    if (!lobby) return;
+
+    ggs.maxSticks = sticks;
+    ggs.bPasoAllowed = paso;
+    ggs.bPaloFijoAllowed = palofijo;
+
+    ggs.bSettingGameParms = false;
+
+    io.to(lobbyId).emit('gameStateUpdate', lobby.game);
+  });
+
+  //************************************************************
+  // socket.on
+  // CANCEL GAME PARAMETERS (HOST HAS CANCELLED)
+  //************************************************************
+  socket.on('cancelGameParms', (lobbyId) => {
+    const lobby = lobbies[lobbyId];
+    const ggs = lobby.game;
+    if (!lobby) return;
+
+    ggs.bSettingGameParms = false;
+
+    io.to(lobbyId).emit('gameStateUpdate', lobby.game);
+  });
+
+  //************************************************************
+  // socket.on
   // START GAME
   //************************************************************
   socket.on('startGame', (lobbyId) => {
     const lobby = lobbies[lobbyId];
     const ggs = lobby.game;
-
     if (!lobby) return;
 
     // for debugging:  show what sockets are actually in the room

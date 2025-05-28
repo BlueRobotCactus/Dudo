@@ -42,6 +42,7 @@ export class DudoGame {
 */
     firstRound;
     whichDirection;          // 0 = left (clockwise); 1 = right (counter-clockwise)
+    bSettingGameParms;
     bGameInProgress;
     bRoundInProgress;
     bDoubtInProgress;
@@ -106,6 +107,7 @@ export class DudoGame {
             this.bDiceHidden[i] = new Array(5);
         }
 
+        this.bSettingGameParms = false;
         this.bGameInProgress = false;
         this.bRoundInProgress = false;
         this.bDoubtInProgress = false;
@@ -155,6 +157,7 @@ export class DudoGame {
 
         this.firstRound = state.firstRound;
         this.whichDirection = state.whichDirection;
+        this.bSettingGameParms = state.bSettingGameParms;
         this.bGameInProgress = state.bGameInProgress;
         this.bRoundInProgress = state.bRoundInProgress;
         this.bDoubtInProgress = state.bDoubtInProgress;
@@ -208,6 +211,7 @@ export class DudoGame {
         this.bPaloFijoRound =  false;
         this.firstRound = false;
 
+        this.bSettingGameParms = false;
         this.bGameInProgress = false;
         this.bRoundInProgress = false;
         this.bDoubtInProgress = false;
