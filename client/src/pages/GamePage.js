@@ -282,6 +282,17 @@ import { CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYE
   }
 
   //************************************************************
+  // Click: In or out?
+  //************************************************************
+  const handleYesImIn = () => {
+    socket.emit('inOrOut', { lobbyId, index: myIndex, status: CONN_PLAYER_IN })
+  }
+
+  const handleNoIllWatch = () => {
+    socket.emit('inOrOut', { lobbyId, index: myIndex, status: CONN_OBSERVER })
+  }
+
+  //************************************************************
   // Click: Leave Lobby
   //************************************************************
   const handleLeaveLobby = () => {
@@ -796,7 +807,7 @@ useEffect(() => {
 
   // dialogs
   if (ggc.bAskInOut) {
-    DrawInOrOut();
+    //DrawInOrOut();
   }
 
   if (ggc.bDoubtInProgress) {
@@ -1164,7 +1175,7 @@ useEffect(() => {
   }
 
   //************************************************************
-  //  function Draw InOrOut
+  //  function Draw InOrOut (obsolete)
   //************************************************************
   function DrawInOrOut() {
     let msg = "Starting a new game\n\n";
@@ -1420,12 +1431,13 @@ useEffect(() => {
                 <button
                   onClick={handleStartGame}
                   className="btn btn-primary btn-sm"
-                  disabled={ggc.GetNumberPlayersInLobby() < 2}
+                  disabled={(ggc.GetNumberPlayersInLobby() < 2) || ggc.bSettingGameParms}
                 >
                   Start Game
                 </button>
                 <button
                   onClick={handleGameSettings}
+                  disabled={ggc.bAskInOut}
                   className="btn btn-primary btn-sm"
                 >
                   Game Settings
@@ -1460,7 +1472,7 @@ useEffect(() => {
         {/*----------------------------------------------
                 GAME SETTINGS
         -----------------------------------------------*/}
-        {ggc.bSettingGameParms ? (
+        {ggc.bSettingGameParms && (lobby.host == myName)? (
           <div className="border border-primary rounded p-3 mb-1">
             <div className="fw-bold text-center mb-2">
               Set Game Parameters
@@ -1491,13 +1503,6 @@ useEffect(() => {
                 >
                   Save
                 </button>
-                {/* Cancel button */}
-                <button
-                  onClick={handleCancelSettings}
-                  className="btn btn-secondary btn-sm me-2"
-                >
-                  Cancel
-                </button>
               </div>
             </div>
 
@@ -1515,6 +1520,15 @@ useEffect(() => {
                   checked={row2PasoAllowed}
                   onChange={(e) => setRow2PasoAllowed(e.target.checked)}                  
                 />
+              </div>
+              <div className="col-4 d-flex justify-content-end">
+                {/* Cancel button */}
+                <button
+                  onClick={handleCancelSettings}
+                  className="btn btn-secondary btn-sm me-2"
+                >
+                  Cancel
+                </button>
               </div>
             </div>
 
@@ -1537,6 +1551,68 @@ useEffect(() => {
           </div>
         ) : null}
 
+        {/*----------------------------------------------
+                IN OR OUT
+        -----------------------------------------------*/}
+        {ggc.bAskInOut ? (
+          <div className="border border-primary rounded p-3 mb-1">
+            <div className="fw-bold text-center mb-1">
+              Starting a new game
+            </div>
+            <div className="fw-bold text-center mb-1">
+              Are you in?
+            </div>
+
+            <div className="row align-items-center mb-1">
+              {/* number of sticks (dropbox) */}
+              <div className="col-4 text-end">
+                Number of sticks:
+              </div>
+              <div className="col-4">
+                {ggc.maxSticks}
+              </div>
+
+              <div className="col-4 d-flex justify-content-end">
+                {/* Yes button */}
+                <button
+                  onClick={handleYesImIn}
+                  className="btn btn-primary btn-sm me-2"
+                >
+                  Yes, I'm in
+                </button>
+              </div>
+            </div>
+
+            {/* paso allowed? (value) */}
+            <div className="row align-items-center mb-1">
+              <div className="col-4 text-end">
+                Paso allowed:
+              </div>
+              <div className="col-4">
+                {ggc.bPasoAllowed? ("Yes") : ("No")}  
+              </div>
+              <div className="col-4 d-flex justify-content-end">
+                {/* No button */}
+                <button
+                  onClick={handleNoIllWatch}
+                  className="btn btn-secondary btn-sm me-2"
+                >
+                  No, I'll watch
+                </button>
+              </div>
+            </div>
+
+            {/* palofijo allowed? (checkbox) */}
+            <div className="row align-items-center">
+              <div className="col-4 text-end">
+                Palo Fijo allowed:
+              </div>
+              <div className="col-4">
+                {ggc.bPaloFijoAllowed? ("Yes") : ("No")}
+              </div>
+            </div>
+          </div>
+        ) : null}
 
         {/*----------------------------------------------
                 BID
@@ -1621,8 +1697,7 @@ useEffect(() => {
           </div>
         ) : null}
 
-
-        {!ggc.bDoubtInProgress && !ggc.bShowDoubtResult && !isMyTurn ? (
+        {!ggc.bDoubtInProgress && !ggc.bShowDoubtResult && !ggc.bAskInOut && !isMyTurn ? (
           //----- NOT MY TURN -----//
           <div className="border border-primary rounded p-1">
             <div className="fw-bold text-center">
