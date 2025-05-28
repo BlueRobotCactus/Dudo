@@ -102,6 +102,7 @@ import { CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYE
     const cupUpImageRef = useRef(null);
     const diceImagesRef = useRef({});
     const diceHiddenImageRef = useRef({});
+    const stickImageRef = useRef({});
     const myShowShakeRef = useRef(false);
     const bidHistoryRef = useRef([]);
     
@@ -109,6 +110,24 @@ import { CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYE
     const prevReconnect = useRef(null);
     const prevDraw = useRef(null);
 
+
+    const cupWidth = 40;
+    const cupHeight = 56;
+    const diceSize = 18;
+    const stickSize = 18;
+    const playerBoxInnerMargin = 5;
+    const playerBoxWidth = cupWidth + 5*diceSize + 8*playerBoxInnerMargin;
+
+    const playerBoxTopHeight = 66;
+    const playerBoxBottomHeight = 28;
+    const playerBoxHeight = playerBoxTopHeight + playerBoxBottomHeight;
+
+    let xArray = [];
+    let yArray = [];
+    const directionBoxWidth = playerBoxWidth / 2;
+    const directionBoxHeight = playerBoxHeight / 2;
+    let directionBoxX;
+    let directionBoxY;
 
     //************************************************************
     // UseEffect CHECKBOX [selectedBid, CanShowShake]
@@ -498,7 +517,7 @@ import { CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYE
     console.log("GamePage: useEffect: LOAD IMAGES");
   
     let loaded = 0;
-    const totalToLoad = 9;  // cup down, cup up, 6 dice, hidden die
+    const totalToLoad = 10;  // cup down, cup up, 6 dice, hidden die, stick
     const diceImgs = {};
   
     const checkIfDone = () => {
@@ -554,6 +573,17 @@ import { CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYE
       checkIfDone();
     };
     imgDiceHidden.onerror = (e) => {
+      console.error("Failed to load DiceHidden.jpg", e);
+    };
+  
+    // Stick image
+    const imgStick = new Image();
+    imgStick.src = '/images/Stick.jpg';
+    imgStick.onload = () => {
+      stickImageRef.current = imgStick;
+      checkIfDone();
+    };
+    imgStick.onerror = (e) => {
       console.error("Failed to load DiceHidden.jpg", e);
     };
   
@@ -672,7 +702,7 @@ useEffect(() => {
 //************************************************************
 useEffect(() => {
   console.log("GamePage: useEffect DRAW");
-
+/*
   // for debugging
   if (prevReconnect.current) {
     const p = prevReconnect.current;
@@ -684,6 +714,7 @@ useEffect(() => {
     if (p.socketId      !== socketId)     console.log ('DRAW: socketId changed', p.socketId, '→', socketId);
   }
   prevReconnect.current = { gameState, lobbyPlayers, isMyTurn, screenSize, imagesReady, socketId };
+*/
 
   // wait for images to be loaded
   if (!imagesReady) {
@@ -709,12 +740,13 @@ useEffect(() => {
   // Start drawing
   DrawSomeText ();
 
-  let yPos = 140;
-  const offset = 110;
+  let yPos = 140;   //&&& obsolete
+  const yPosIncr = 110;
   let arrayObserverNames = [];
   arrayObserverNames.length = 0;
   
   // Loop through participants
+  SetPlayerCoords ();
   for (let cc=0; cc<ggc.maxConnections; cc++) {
     if (ggc.allConnectionStatus[cc] == CONN_UNUSED) {
       continue;
@@ -724,18 +756,18 @@ useEffect(() => {
       continue;
     }
     DrawPlayerCupDice (cc, yPos);
-    yPos += offset;
+    yPos += yPosIncr;
   }
 
   // draw bid history
   if (ggc.bGameInProgress) {
     DrawBidHistory();
-    DrawBidHistoryOld();
+    //DrawBidHistoryOld();
   }
 
   // draw observer names
   yPos += 20;
-  DrawObserverNames (yPos);
+  //DrawObserverNames (yPos);
 
   // Draw bid status
   if (ggc.bGameInProgress) {
@@ -757,10 +789,145 @@ useEffect(() => {
     DrawDoubtResult();
   }
 
+  //****************************************************************
+  // Set up coordinates of player boxes 
+  //****************************************************************
+  function SetPlayerCoords() {
+
+    const clientWidth = window.innerWidth;
+    const clientHeight = window.innerHeight;
+    const dividingLine = clientHeight *.8;
+
+    let marginX;
+    let marginY;
+    let offset;
+
+    //--------------------------------------------------------
+    // 1 player
+    //--------------------------------------------------------
+    if (ggc.GetNumberPlayersPlaying() == 1) {
+        marginX = (clientWidth - playerBoxWidth) / 2;
+        marginY = (dividingLine - playerBoxHeight) / 2;
+        xArray[0] = marginX;
+        yArray[0] = marginY;
+    }
+    //--------------------------------------------------------
+    // 2 players
+    //--------------------------------------------------------
+    if (ggc.GetNumberPlayersPlaying() == 2) {
+        marginX = (clientWidth - 2 *playerBoxWidth) / 3;
+        marginY = (dividingLine - playerBoxHeight) / 2;
+        xArray[0] = marginX;
+        yArray[0] = marginY;
+        
+        xArray[1] = 2 * marginX + playerBoxWidth;
+        yArray[1] = marginY;
+    }
+    //--------------------------------------------------------
+    // 3 players
+    //--------------------------------------------------------
+    if (ggc.GetNumberPlayersPlaying() == 3) {
+        marginX = (clientWidth - playerBoxWidth) / 2;
+        marginY = (dividingLine - 2 * playerBoxHeight) / 3;
+        xArray[0] = marginX;
+        yArray[0] = marginY;
+        
+        offset = 4;
+        marginX = (clientWidth - 2 * playerBoxWidth) / 3;
+        xArray[1] = 2 * marginX + playerBoxWidth + offset;
+        yArray[1] = 2 * marginY + playerBoxHeight;
+
+        xArray[2] = marginX - offset;
+        yArray[2] = 2 * marginY + playerBoxHeight;
+        
+        directionBoxX = (clientWidth - directionBoxWidth) / 2;
+        directionBoxY = 2 * marginY + playerBoxHeight - directionBoxHeight / 2;
+    }
+    //--------------------------------------------------------
+    // 4 players
+    //--------------------------------------------------------
+    if (ggc.GetNumberPlayersPlaying() == 4) {
+        marginX = (clientWidth - playerBoxWidth) / 2;
+        marginY = (dividingLine - 3 * playerBoxHeight) / 4;
+        xArray[0] = marginX;
+        yArray[0] = marginY;
+
+        xArray[2] = marginX;
+        yArray[2] = 3 * marginY + 2 *playerBoxHeight;
+
+        marginX = (clientWidth - 2 * playerBoxWidth) / 3;
+        offset = marginX / 2;
+        xArray[1] = 2 * marginX + playerBoxWidth + offset;
+        yArray[1] = 2 * marginY + playerBoxHeight;
+
+        xArray[3] = marginX - offset;
+        yArray[3] = 2 * marginY + playerBoxHeight;
+        
+        directionBoxX = (clientWidth - directionBoxWidth) / 2;
+        directionBoxY = (dividingLine - directionBoxHeight) / 2;
+    }
+    //--------------------------------------------------------
+    // 5 players
+    //--------------------------------------------------------
+    if (ggc.GetNumberPlayersPlaying() == 5) {
+        marginX = (clientWidth - playerBoxWidth) / 2;
+        marginY = (dividingLine - 3 * playerBoxHeight) / 4;
+        xArray[0] = marginX;
+        yArray[0] = marginY;
+
+        offset = playerBoxWidth / 2;
+        marginX = (clientWidth - 2 *playerBoxWidth) / 3;
+        xArray[4] = marginX - offset;
+        yArray[4] = 2 * marginY + playerBoxHeight;
+        
+        xArray[1] = 2 * marginX + playerBoxWidth + offset;
+        yArray[1] = 2 * marginY + playerBoxHeight;
+        
+        xArray[3] = marginX;
+        yArray[3] = 3 * marginY + 2 * playerBoxHeight;
+
+        xArray[2] = 2 * marginX + playerBoxWidth;
+        yArray[2] = 3 * marginY + 2 * playerBoxHeight;
+        
+        directionBoxX = (clientWidth - directionBoxWidth) / 2;
+        directionBoxY = (dividingLine - directionBoxHeight) / 2;
+    }
+    //--------------------------------------------------------
+    // 6 players
+    //--------------------------------------------------------
+    if (ggc.GetNumberPlayersPlaying() == 6) {
+        marginX = (clientWidth - playerBoxWidth) / 2;
+        marginY = (dividingLine - 3 * playerBoxHeight) / 4;
+        xArray[0] = marginX;
+        yArray[0] = marginY;
+
+        xArray[3] = marginX;
+        yArray[3] = 3 * marginY + 2 * playerBoxHeight;
+
+        marginX = (clientWidth - 3 *playerBoxWidth) / 4;
+        marginY = (dividingLine - 2 * playerBoxHeight) / 3;
+        xArray[5] = marginX;
+        yArray[5] = marginY;
+        
+        xArray[4] = marginX;
+        yArray[4] = 2 * marginY + playerBoxHeight;
+        
+        xArray[1] = 3 * marginX + 2 * playerBoxWidth;
+        yArray[1] = marginY;
+
+        xArray[2] = 3 * marginX + 2 * playerBoxWidth;
+        yArray[2] = 2 * marginY + playerBoxHeight;
+
+        directionBoxX = (clientWidth - directionBoxWidth) / 2;
+        directionBoxY = (dividingLine - directionBoxHeight) / 2;
+    }
+  }
+
   //************************************************************
   //  function Draw Some Text
   //************************************************************
   function DrawSomeText () {
+    
     ctx.fillStyle = 'black';
     ctx.font = '12px Arial';
     ctx.fillText('Game Lobby: ' + lobbyId, 20, 40);
@@ -809,18 +976,23 @@ useEffect(() => {
   //  function Draw players' cup and dice
   //************************************************************
   function DrawPlayerCupDice (p, yPos) {
+
     // draw and fill rectangles for player
-    if (ggc.allConnectionStatus[p] == CONN_PLAYER_OUT) {
-      ctx.fillStyle = 'lightgray';
-    } else {
-      ctx.fillStyle = 'white';
-    }
-    ctx.fillRect(20, yPos, 170, 66);
+    ctx.fillStyle = (ggc.allConnectionStatus[p] == CONN_PLAYER_OUT ? 'lightgray' : 'white');
+    ctx.fillRect(xArray[p], 
+                yArray[p], 
+                playerBoxWidth, 
+                playerBoxTopHeight);
     ctx.fillStyle = 'blue';
     ctx.fillStyle = (ggc.allConnectionStatus[myIndex] == CONN_OBSERVER ? 'lightgray' : 'lightblue');
-    ctx.fillRect(20, yPos + 66, 170, 28);
+    ctx.fillRect(xArray[p], 
+                 yArray[p] + playerBoxTopHeight, 
+                 playerBoxWidth, playerBoxBottomHeight);
     ctx.strokeStyle = 'black';
-    ctx.strokeRect(20, yPos + 66, 170, 28);
+    ctx.strokeRect(xArray[p], 
+                   yArray[p] + playerBoxTopHeight, 
+                   playerBoxWidth, 
+                   playerBoxBottomHeight);
 
     // red box around player whose turn it is
     if (ggc.bGameInProgress) {
@@ -831,25 +1003,42 @@ useEffect(() => {
         ctx.lineWidth = 2;
         ctx.strokeStyle = 'black'
       }
-      ctx.strokeRect(20, yPos, 170, 66 + 28);
+      ctx.strokeRect(xArray[p], 
+                     yArray[p], 
+                     playerBoxWidth, 
+                     playerBoxHeight);
       ctx.strokeStyle = 'black'
       ctx.lineWidth = 2;
     }
 
+    // draw name
+    ctx.fillStyle = 'black'
+    ctx.font = '24px Arial';
+    ctx.fillText(`${ggc.allParticipantNames[p]}`, 
+                  xArray[p] + cupWidth + 2*playerBoxInnerMargin, 
+                  yArray[p] + 33);
+
     // draw cup
     if (ggc.allConnectionStatus[p] == CONN_PLAYER_OUT || !ggc.bGameInProgress) {
-      ctx.drawImage(cupUpImageRef.current, 25, yPos + 5, 40, 56);
+      ctx.drawImage(cupUpImageRef.current, 
+                    xArray[p] + playerBoxInnerMargin, 
+                    yArray[p] + playerBoxInnerMargin, 
+                    cupWidth, cupHeight);
     } else if ((ggc.bDoubtInProgress || ggc.bShowDoubtResult) && ggc.result.doubtDidLiftCup[p]) {
-      ctx.drawImage(cupUpImageRef.current, 25, yPos + 5, 40, 56);
+      ctx.drawImage(cupUpImageRef.current, 
+                    xArray[p] + playerBoxInnerMargin, 
+                    yArray[p] + playerBoxInnerMargin, 
+                    cupWidth, cupHeight);
     } else {
-      ctx.drawImage(cupDownImageRef.current, 25, yPos + 5, 40, 56);
+      ctx.drawImage(cupDownImageRef.current, 
+                    xArray[p] + playerBoxInnerMargin, 
+                    yArray[p] + playerBoxInnerMargin, 
+                    cupWidth, cupHeight);
     }
 
     // draw dice
     if (ggc.bGameInProgress) {
-      if (ggc.allConnectionStatus[p] == CONN_PLAYER_OUT) {
-        // this player is out out; do nothing
-      } else {
+      if (ggc.allConnectionStatus[p] == CONN_PLAYER_IN) {
         const diceImages = diceImagesRef.current;
         for (let i = 0; i < 5; i++) {
           const value = ggc.dice[p][i];
@@ -857,28 +1046,50 @@ useEffect(() => {
             // hidden dice in upper box
             if (p == myIndex) {
               // if me, show the die
-              ctx.drawImage(diceImages[value], 70 + i*23, yPos + 43, 18, 18);
+              ctx.drawImage(diceImages[value], 
+                            xArray[p] + cupWidth + 2*playerBoxInnerMargin + i*(diceSize + playerBoxInnerMargin), 
+                            yArray[p] + 43, 
+                            diceSize, diceSize);
             } else {
               // other player
               if ((ggc.bDoubtInProgress || ggc.bShowDoubtResult) && ggc.result.doubtDidLiftCup[p]) {
                 // cup lifted, show dice
-                ctx.drawImage(diceImages[value], 70 + i*23, yPos + 43, 18, 18);
+                ctx.drawImage(diceImages[value], 
+                              xArray[p] + cupWidth + 2*playerBoxInnerMargin + i*(diceSize + playerBoxInnerMargin), 
+                              yArray[p] + 43, 
+                              diceSize, diceSize);
               } else {
                 // cup not lifted, show the empty box
-                ctx.drawImage(diceHiddenImageRef.current, 70 + i*23, yPos + 43, 18, 18);
+                ctx.drawImage(diceHiddenImageRef.current, 
+                              xArray[p] + cupWidth + 2*playerBoxInnerMargin + i*(diceSize + playerBoxInnerMargin), 
+                              yArray[p] + 43, 
+                              diceSize, diceSize);
               }
             }
           } else {
             // shown dice in bottom box
-            ctx.drawImage(diceImages[value], 70 + i*23, yPos + 43 + 28, 18, 18);
+            ctx.drawImage(diceImages[value], 
+                          xArray[p] + cupWidth + 2*playerBoxInnerMargin + i*(diceSize + playerBoxInnerMargin), 
+                          yArray[p] + playerBoxTopHeight + playerBoxInnerMargin, 
+                          diceSize, diceSize);
           }
         }
       }
     }
-    // draw name
-    ctx.fillStyle = 'black'
-    ctx.font = '24px Arial';
-    ctx.fillText(`${ggc.allParticipantNames[p]}`, 70, yPos + 33);
+
+    // draw sticks
+    if (ggc.bGameInProgress) {
+      if (ggc.allConnectionStatus[p] == CONN_PLAYER_IN) {
+        const stickImage = stickImageRef.current;
+        let sticks = ggc.allSticks[p];
+        for (let i=0; i<sticks; i++) {
+            ctx.drawImage(stickImage, 
+                          xArray[p] + i*stickSize + (i+1)*playerBoxInnerMargin,
+                          yArray[p] + playerBoxTopHeight + playerBoxInnerMargin, 
+                          stickSize, stickSize);
+        }
+      }
+    }
   }
 
   //************************************************************
@@ -900,7 +1111,7 @@ useEffect(() => {
   }
   
   //************************************************************
-  //  function Draw bid history
+  //  function Draw bid history (old way)
   //************************************************************
   function DrawBidHistoryOld () {
     ctx.font = '12px Arial';
@@ -1018,6 +1229,7 @@ useEffect(() => {
     } else {
       // not my turn
       // show current bid
+      /*
       if (ggc.numBids > 0) {
         ctx.fillStyle = 'black';
         ctx.font = '16px Arial';
@@ -1032,7 +1244,7 @@ useEffect(() => {
         }
         yPos += 40;
         ctx.fillText(`Bid is to: ${whosTurnName}...`, xPos, yPos);
-      }
+*/
       PrepareBidUI();
     }
   }
@@ -1336,27 +1548,6 @@ useEffect(() => {
         </div>
       </div>
 
-
-<div style={{ maxHeight: '60px', overflowY: 'auto' }}>
-  <div className="container">
-    <div className="row fw-bold border-bottom pb-1 mb-1">
-      <div className="col-2">Player</div>
-      <div className="col-2">Bid</div>
-    </div>
-    {bidHistoryRef.current.map((row, index) => (
-      <div className="row py-1 border-bottom" key={index}>
-        <div className="col-2">{row.Player}</div>
-        <div className="col-2">{row.Bid}</div>
-      </div>
-    ))}
-  </div>
-</div>
-
-
-
-
-
-
       {/*-------------------------------------------------------------------
         Row 3: Canvas
       --------------------------------------------------------------------*/}
@@ -1378,6 +1569,26 @@ useEffect(() => {
           {countdownMessage}
         </div>
       )}
+
+{!ggc.bGameInProgress ? (
+  // Bid History
+  <div style={{ maxHeight: '60px', overflowY: 'auto' }}>
+    <div className="container">
+      <div className="row fw-bold border-bottom pb-1 mb-1">
+        <div className="col-2">Player</div>
+        <div className="col-2">Bid</div>
+      </div>
+      {bidHistoryRef.current.map((row, index) => (
+        <div className="row py-1 border-bottom" key={index}>
+          <div className="col-2">{row.Player}</div>
+          <div className="col-2">{row.Bid}</div>
+        </div>
+      ))}
+    </div>
+  </div>
+) : null}
+
+
 
       {/*-------------------------------------------------------------------
         DIALOGS

@@ -85,7 +85,7 @@ export class DudoGame {
         }
 
         // default game parameters
-        this.maxSticks = 1;
+        this.maxSticks = 3;
         this.bPasoAllowed = true;
         this.bPaloFijoAllowed = true;
         this.bPaloFijoRound =  false;
@@ -203,7 +203,6 @@ export class DudoGame {
     // initialize game parameters
     //************************************************************
     PrepareNextGame () {
-        this.maxSticks = 1;
         this.bPasoAllowed = true;
         this.bPaloFijoAllowed = true;
         this.bPaloFijoRound =  false;
@@ -335,7 +334,9 @@ export class DudoGame {
                 this.result.doubtLoserOut = false;
             }
             // did somebody win the game?
-            if (this.GetNumberPlayersStillIn() == 2) {
+            // we won't actually assign the stick and make the player out until PostRound()
+            // This is so it doesn't show in the UI prematurely
+            if (this.GetNumberPlayersStillIn() == 2 && this.result.doubtLoserOut) {
                 this.bWinnerGame = true;
                 this.whoWonGame = this.result.doubtWinner;
             }
@@ -432,8 +433,10 @@ export class DudoGame {
 
         //------------------------------------------------------------
         // did somebody win the game?
+        // we won't actually assign the stick and make the player out until PostRound()
+        // This is so it doesn't show in the UI prematurely
         //------------------------------------------------------------
-        if (this.GetNumberPlayersStillIn() == 2) {
+        if (this.GetNumberPlayersStillIn() == 2 && this.result.doubtLoserOut) {
             this.bWinnerGame = true;
             this.whoWonGame = this.result.doubtWinner;
         }
@@ -556,6 +559,9 @@ export class DudoGame {
         this.possibleBids.length = 0;
         this.numPossibleBids = 0;
         
+        this.possibleBids.push("--Select--");
+        this.numPossibleBids = 1;
+
         //------------------------------------------------------------
         // special case of first bid
         //------------------------------------------------------------
@@ -706,7 +712,10 @@ export class DudoGame {
         //------------------------------------------------------------
         this.possibleBids.length = 0;
         this.numPossibleBids = 0;
-        
+
+        this.possibleBids.push("--Select--");
+        this.numPossibleBids = 1;
+
         //------------------------------------------------------------
         // special case of first bid
         //------------------------------------------------------------
@@ -846,6 +855,7 @@ export class DudoGame {
 
     //****************************************************************
     // Get number of players in the lobby (and connected)
+    //  IN, OUT, OBSERVER
     //****************************************************************
     GetNumberPlayersInLobby () {
         let result = 0;
@@ -860,7 +870,23 @@ export class DudoGame {
     }
 
     //****************************************************************
+    // Get number of players playing this game
+    //  IN, OUT
+    //****************************************************************
+    GetNumberPlayersPlaying () {
+        let result = 0;
+        for (let cc = 0; cc < this.maxConnections; cc++) {
+            if (this.allConnectionStatus[cc] == CONN_PLAYER_IN ||
+                this.allConnectionStatus[cc] == CONN_PLAYER_OUT) {
+                result++;
+            }
+        }
+        return result;
+    }
+
+    //****************************************************************
     // Get number of players still in
+    //  IN
     //****************************************************************
     GetNumberPlayersStillIn () {
         let result = 0;
