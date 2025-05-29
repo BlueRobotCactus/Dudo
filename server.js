@@ -1,7 +1,6 @@
 'use strict';
 
-import { DudoGame } from './DudoGameS.js';
-import { DudoBid } from './DudoBidS.js';
+import { DudoGame, DudoBid } from './DudoGameS.js';
 
 import { CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYER_LEFT,
   CONN_PLAYER_IN_DISCONN, CONN_PLAYER_OUT_DISCONN, CONN_OBSERVER_DISCONN } from './DudoGameS.js';
@@ -488,7 +487,7 @@ io.on('connection', (socket) => {
     //----------------------------------------------------
     ptr = ggs.numBids - 1;
     if (ggs.allBids[ptr].bShowShake) {
-        ggs.allBids[ptr].howManyShaken = 0;
+        ggs.allBids[ptr].howManyShown = 0;
         for (let i = 0; i < 5; i++) {
             ggs.allBids[ptr].bWhichShaken[i] = true;
             ggs.allBids[ptr].bDiceHidden[i] = ggs.bDiceHidden[index][i];
@@ -497,7 +496,7 @@ io.on('connection', (socket) => {
                 if (ggs.bPaloFijoRound) {
                     if (die == ggs.allBids[ptr].ofWhat) {
                         // they just showed this one, don't shake it
-                        ggs.allBids[ptr].howManyShaken++;
+                        ggs.allBids[ptr].howManyShown++;
                         ggs.allBids[ptr].bWhichShaken[i] = false;
                         ggs.allBids[ptr].bDiceHidden[i] = false;
                         ggs.bDiceHidden[index][i] = false;
@@ -506,7 +505,7 @@ io.on('connection', (socket) => {
                 } else {
                     if ((die == ggs.allBids[ptr].ofWhat) || (die == 1)) {
                         // they just showed this one, don't shake it
-                        ggs.allBids[ptr].howManyShaken++;
+                        ggs.allBids[ptr].howManyShown++;
                         ggs.allBids[ptr].bWhichShaken[i] = false;
                         ggs.allBids[ptr].bDiceHidden[i] = false;
                         ggs.bDiceHidden[index][i] = false;

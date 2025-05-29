@@ -326,6 +326,26 @@ import { CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYE
   };
 
   //************************************************************
+  //  functions to handle Options menu
+  //************************************************************
+  const handleOptBidHistory = () => {
+
+  }
+  const handleOptObservers = () => {
+
+  }
+  const handleOptHowToPlay = () => {
+
+  }
+  const handleOptAbout = () => {
+
+  }
+  const handleOptHelp = () => {
+
+  }
+
+
+  //************************************************************
   // function to say whether they can show/shake 
   // based on currently selected bid
   //************************************************************
@@ -367,9 +387,18 @@ import { CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYE
       //-------------------------------------------
       // my turn
       //-------------------------------------------
-      setRow2YourTurnString (ggc.numBids > 0 ? 
-                            `The bid to you is ${ggc.allBids[ggc.numBids-1].text}` :
-                            'You bid first');
+      // show previous bid
+      let turnString = '';
+      if (ggc.numBids == 0) {
+        turnString = 'You bid first';
+      } else {
+        turnString = `The bid to you is ${ggc.allBids[ggc.numBids-1].text}:`;
+        let showed = ggc.allBids[ggc.numBids-1].howManyShown;
+        if (showed > 0) {
+          turnString += ` (showed ${showed})`;
+        }
+      }
+      setRow2YourTurnString(turnString);
       setRow2SpecialPasoString (ggc.numBids > 1 && ggc.allBids[ggc.numBids-1].text == "PASO" ?
                             `Doubt the PASO or top the bid ${ggc.allBids[ggc.FindLastNonPasoBid()].text}` :
                             '');
@@ -1446,18 +1475,97 @@ useEffect(() => {
 */
   return (
 
-<div
-  className="container mx-auto"
-  style={{
-    maxWidth: '100%',
-    position: 'relative',
-    padding: '10px',
-    backgroundColor: 'white',
-  }}
->
+    <div
+      className="container mx-auto"
+      style={{
+        maxWidth: '100%',
+        position: 'relative',
+        padding: '10px',
+        backgroundColor: 'white',
+      }}
+    >
 
     {/*-------------------------------------------------------------------
-      Row 1: Lobby title and buttons
+      Navigation bar
+    --------------------------------------------------------------------*/}
+    <nav className="navbar navbar-expand bg-primary text-white rounded px-3 py-2">
+      <div className="container-fluid">
+
+        {/* Dropdown Menu */}
+        <div className="dropdown me-3">
+          <button
+            className="btn btn-primary dropdown-toggle"
+            type="button"
+            id="optionsMenu"
+            data-bs-toggle="dropdown"
+            aria-expanded="false"
+          >
+            Options
+          </button>
+          <ul className="dropdown-menu" aria-labelledby="optionsMenu">
+            <li><button className="dropdown-item" 
+              onClick={handleOptBidHistory}
+              disabled={!ggc.bGameInProgress || ggc.numBids < 1}
+            >
+              Bid History</button></li>          
+            <li><button className="dropdown-item" 
+              onClick={handleOptObservers}
+            >
+              Observers</button></li>          
+            <li><button className="dropdown-item" 
+              onClick={handleOptHowToPlay}
+            >
+              How To Play</button></li>          
+            <li><button className="dropdown-item" 
+              onClick={handleOptAbout}
+            >
+              About</button></li>          
+            <li><button className="dropdown-item" 
+              onClick={handleOptHelp}
+            >
+              Help</button></li>          
+          </ul>
+        </div>
+
+        {/* Other buttons */}
+        {(!ggc.bGameInProgress && lobby.host === myName) && (
+          <>
+          <button
+            onClick={handleStartGame}
+            className="btn btn-primary btn-outline-light btn-sm"
+            disabled={(ggc.GetNumberPlayersInLobby() < 2) || ggc.bSettingGameParms}
+          >
+            Start Game
+          </button>
+          <button
+            onClick={handleGameSettings}
+            disabled={ggc.bAskInOut}
+            className="btn btn-primary btn-outline-light btn-sm"
+          >
+            Game Settings
+          </button>
+          <button
+            onClick={handleLeaveLobby}
+            className="btn btn-secondary btn-outline-light btn-sm"
+          >
+            Close lobby
+          </button>
+          </>
+        )}
+        {(!ggc.bGameInProgress && lobby.host !== myName) && (
+          <button
+            onClick={handleLeaveLobby}
+            className="btn btn-secondary btn-outline-light btn-sm"
+          >
+            Leave lobby
+          </button>
+        )}
+      </div>
+    </nav>
+
+
+    {/*-------------------------------------------------------------------
+      Row 1: Lobby title and player name
     --------------------------------------------------------------------*/}
     <div className="row mb-2 my-2">
       <div className="col">
@@ -1465,41 +1573,9 @@ useEffect(() => {
           <div className="fw-bold text-start">
             <div>Game Lobby Host: {lobbyHost}</div>
             <div>Your Name: {myName}</div>
-          </div>
-          <div className="d-flex justify-content-end gap-2">
-            {(!ggc.bGameInProgress && lobby.host === myName) && (
-              <>
-                <button
-                  onClick={handleStartGame}
-                  className="btn btn-primary btn-sm"
-                  disabled={(ggc.GetNumberPlayersInLobby() < 2) || ggc.bSettingGameParms}
-                >
-                  Start Game
-                </button>
-                <button
-                  onClick={handleGameSettings}
-                  disabled={ggc.bAskInOut}
-                  className="btn btn-primary btn-sm"
-                >
-                  Game Settings
-                </button>
-                <button
-                  onClick={handleLeaveLobby}
-                  className="btn btn-secondary btn-sm"
-                >
-                  Close lobby
-                </button>
-              </>
-            )}
-            {((ggc.allConnectionStatus[myIndex] === CONN_OBSERVER) ||
-              (!ggc.bGameInProgress && lobby.host !== myName)) && (
-              <button
-                onClick={handleLeaveLobby}
-                className="btn btn-secondary btn-sm"
-              >
-                Leave lobby
-              </button>
-            )}
+<div className="fs-1">
+  {'\u2680'} {'\u2681'} {'\u2682'} {'\u2683'} {'\u2684'} {'\u2685'}
+</div>
           </div>
         </div>
       </div>

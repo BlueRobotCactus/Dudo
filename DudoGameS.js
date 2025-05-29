@@ -1,7 +1,5 @@
 'use strict';
 
-import { DudoBid } from './DudoBidS.js';
-
 // connectionStatus codes
 // &&& these are more like player status codes
 const CONN_UNUSED = 0;
@@ -607,12 +605,12 @@ export class DudoGame {
                         for (let j = 1; j < 6; j++) {
                             this.possibleBids[this.numPossibleBids] = (this.parsedHowMany + 1 + i).toString() + " - ";
                             this.possibleBids[this.numPossibleBids] += (j + 1).toString();
-                            this.numpossibleBids++;
+                            this.numPossibleBids++;
                         }
                         // then put aces after
                         this.possibleBids[this.numPossibleBids] = (this.parsedHowMany + 1 + i).toString() + " - ";
                         this.possibleBids[this.numPossibleBids] += "aces";
-                        this.numpossibleBids++;
+                        this.numPossibleBids++;
                     }
                     return;
                 }
@@ -702,6 +700,30 @@ export class DudoGame {
                 }
             }
         }
+
+        //&&& testing
+        const testString1 = "1 - \u2680";
+        const testString2 = "1 - \u2681";
+        const testString3 = "1 - \u2682";
+        const testString4 = "1 - \u2683";
+        const testString5 = "1 - \u2684";
+        const testString6 = "1 - \u2685";
+
+
+
+        this.possibleBids[this.numPossibleBids] = testString1;
+                        this.numPossibleBids++;
+        this.possibleBids[this.numPossibleBids] = testString2;
+                        this.numPossibleBids++;
+        this.possibleBids[this.numPossibleBids] = testString3;
+                        this.numPossibleBids++;
+        this.possibleBids[this.numPossibleBids] = testString4;
+                        this.numPossibleBids++;
+        this.possibleBids[this.numPossibleBids] = testString5;
+                        this.numPossibleBids++;
+        this.possibleBids[this.numPossibleBids] = testString6;
+                        this.numPossibleBids++;
+
     }
 
     //****************************************************************
@@ -1004,5 +1026,49 @@ class DoubtResult {
     }
 }
 
+export class DudoBid {
+  text;
+  playerIndex;
+  playerName;
+  howMany;
+  ofWhat;
+  bPaso;
+  bDudo;
+  bDiceHidden = [];
+  bShowShake;
+  howManyShown;
+  bWhichShaken = [];
+
+  constructor() {
+    this.text = "";
+    this.playerIndex = 0;
+    this.playerName = '';
+    this.howMany = -1;
+    this.ofWhat = -1;
+    this.bPaso = false;
+    this.bDudo = false;
+    this.bShowShake = false;
+    this.howManyShown = 0;
+
+    this.bDiceHidden = Array(5).fill(false);
+    this.bWhichShaken = Array(5).fill(false);
+  }
+
+  InitDudoBid() {
+    this.text = "";
+    this.playerIndex = 0;
+    this.playerName = ''
+    this.howMany = -1;
+    this.ofWhat = -1;
+    this.bPaso = false;
+    this.bDudo = false;
+    this.bShowShake = false;
+    this.howManyShown = 0;
+
+    this.bDiceHidden = Array(5).fill(false);
+    this.bWhichShaken = Array(5).fill(false);
+  }
+}
+  
 export { CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYER_LEFT,
     CONN_PLAYER_IN_DISCONN, CONN_PLAYER_OUT_DISCONN, CONN_OBSERVER_DISCONN };

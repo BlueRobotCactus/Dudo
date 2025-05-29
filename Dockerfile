@@ -9,7 +9,7 @@ COPY package*.json ./
 RUN npm install
 
 # Step 3: Copy backend code
-COPY server.js DudoGameS.js DudoBidS.js ./
+COPY server.js DudoGameS.js ./
 
 # 4) Build the React app (client)
 #    - Step into /usr/src/app/client
