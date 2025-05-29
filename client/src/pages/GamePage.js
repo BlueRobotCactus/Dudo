@@ -1068,6 +1068,7 @@ useEffect(() => {
     // draw dice
     if (ggc.bGameInProgress) {
       if (ggc.allConnectionStatus[p] == CONN_PLAYER_IN) {
+        let x, y, w, h;
         const diceImages = diceImagesRef.current;
         for (let i = 0; i < 5; i++) {
           const value = ggc.dice[p][i];
@@ -1075,32 +1076,54 @@ useEffect(() => {
             // hidden dice in upper box
             if (p == myIndex) {
               // if me, show the die
-              ctx.drawImage(diceImages[value], 
-                            xArray[p] + cupWidth + 2*playerBoxInnerMargin + i*(diceSize + playerBoxInnerMargin), 
-                            yArray[p] + 43, 
-                            diceSize, diceSize);
+              x = xArray[p] + cupWidth + 2*playerBoxInnerMargin + i*(diceSize + playerBoxInnerMargin);
+              y = yArray[p] + 43;
+              w = diceSize;
+              h = diceSize;
+              ctx.drawImage(diceImages[value], x, y, w, h); 
+              if (ggc.bDiceHilite[p][i]) {
+                ctx.strokeStyle = 'red';
+                ctx.lineWidth = 1;
+                drawRoundedRect(ctx, x, y, w, h);
+                //ctx.strokeRect(x, y, w, h);
+              }
             } else {
               // other player
               if ((ggc.bDoubtInProgress || ggc.bShowDoubtResult) && ggc.result.doubtDidLiftCup[p]) {
                 // cup lifted, show dice
-                ctx.drawImage(diceImages[value], 
-                              xArray[p] + cupWidth + 2*playerBoxInnerMargin + i*(diceSize + playerBoxInnerMargin), 
-                              yArray[p] + 43, 
-                              diceSize, diceSize);
+                x = xArray[p] + cupWidth + 2*playerBoxInnerMargin + i*(diceSize + playerBoxInnerMargin);
+                y = yArray[p] + 43;
+                w = diceSize;
+                h = diceSize;
+                ctx.drawImage(diceImages[value], x, y, w, h);
+                if (ggc.bDiceHilite[p][i]) {
+                  ctx.strokeStyle = 'red';
+                  ctx.lineWidth = 1;
+                  drawRoundedRect(ctx, x, y, w, h);
+                  //ctx.strokeRect(x, y, w, h);
+                }
               } else {
                 // cup not lifted, show the empty box
-                ctx.drawImage(diceHiddenImageRef.current, 
-                              xArray[p] + cupWidth + 2*playerBoxInnerMargin + i*(diceSize + playerBoxInnerMargin), 
-                              yArray[p] + 43, 
-                              diceSize, diceSize);
+                x = xArray[p] + cupWidth + 2*playerBoxInnerMargin + i*(diceSize + playerBoxInnerMargin);
+                y = yArray[p] + 43;
+                w = diceSize;
+                h = diceSize;
+                ctx.drawImage(diceHiddenImageRef.current, x, y, w, h);
               }
             }
           } else {
             // shown dice in bottom box
-            ctx.drawImage(diceImages[value], 
-                          xArray[p] + cupWidth + 2*playerBoxInnerMargin + i*(diceSize + playerBoxInnerMargin), 
-                          yArray[p] + playerBoxTopHeight + playerBoxInnerMargin, 
-                          diceSize, diceSize);
+            x = xArray[p] + cupWidth + 2*playerBoxInnerMargin + i*(diceSize + playerBoxInnerMargin);
+            y = yArray[p] + playerBoxTopHeight + playerBoxInnerMargin;
+            w = diceSize;
+            h = diceSize;
+            ctx.drawImage(diceImages[value], x, y, w, h);
+            if (ggc.bDiceHilite[p][i]) {
+              ctx.strokeStyle = 'red';
+              ctx.lineWidth = 1;
+              drawRoundedRect(ctx, x, y, w, h);
+              //ctx.strokeRect(x, y, w, h);
+            }
           }
         }
       }
@@ -1119,6 +1142,24 @@ useEffect(() => {
         }
       }
     }
+  }
+
+  //************************************************************
+  //  function Draw a rounded rectangle
+  //************************************************************
+  function drawRoundedRect(ctx, x, y, width, height, radius = 4) {
+  ctx.beginPath();
+  ctx.moveTo(x + radius, y);
+  ctx.lineTo(x + width - radius, y);
+  ctx.arcTo(x + width, y, x + width, y + radius, radius);
+  ctx.lineTo(x + width, y + height - radius);
+  ctx.arcTo(x + width, y + height, x + width - radius, y + height, radius);
+  ctx.lineTo(x + radius, y + height);
+  ctx.arcTo(x, y + height, x, y + height - radius, radius);
+  ctx.lineTo(x, y + radius);
+  ctx.arcTo(x, y, x + radius, y, radius);
+  ctx.closePath();
+  ctx.stroke();
   }
 
   //************************************************************

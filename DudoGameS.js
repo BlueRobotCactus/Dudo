@@ -107,6 +107,11 @@ export class DudoGame {
             this.bDiceHidden[i] = new Array(5);
         }
 
+        this.bDiceHilite = new Array(6);
+        for (let i = 0; i < 6; i++) {
+            this.bDiceHilite[i] = new Array(5);
+        }
+
         this.bSettingGameParms = false;
         this.bGameInProgress = false;
         this.bRoundInProgress = false;
@@ -172,6 +177,7 @@ export class DudoGame {
             for (let j=0; j<5; j++) {
                 this.dice[i][j] = state.dice[i][j];
                 this.bDiceHidden[i][j] = state.bDiceHidden[i][j];
+                this.bDiceHilite[i][j] = state.bDiceHilite[i][j];
             }
         }
 
@@ -242,18 +248,9 @@ export class DudoGame {
             for (let j=0; j < 5; j++) {
                 this.dice[i][j] = undefined;
                 this.bDiceHidden[i][j] = true;
+                this.bDiceHilite[i][j] = false;
             }
         }
-/*
-        this.dice = new Array(6);
-        for (let i = 0; i < 6; i++) {
-            this.dice[i] = new Array(5);
-        }
-        this.bDiceHidden = new Array(6);
-        for (let i = 0; i < 6; i++) {
-            this.bDiceHidden[i] = new Array(5);
-        }
-*/
         this.result.init();
     }
 
@@ -369,6 +366,7 @@ export class DudoGame {
                     for (let j = 0; j < 5; j++) {
                         if (this.dice[cc][j] == this.result.doubtOfWhat) {
                             this.result.doubtCount++;
+                            this.bDiceHilite[cc][j] = true;
                         }
                     }
                 }
@@ -390,6 +388,7 @@ export class DudoGame {
                         for (let j = 0; j < 5; j++) {
                             if (this.dice[cc][j] == this.result.doubtOfWhat) {
                                 this.result.doubtCount++;
+                                this.bDiceHilite[cc][j] = true;
                             }
                         }
                     }
@@ -406,6 +405,7 @@ export class DudoGame {
                         for (let j = 0; j < 5; j++) {
                             if ((this.dice[cc][j] == this.result.doubtOfWhat)|| this.dice[cc][j] == 1){
                                 this.result.doubtCount ++;
+                                this.bDiceHilite[cc][j] = true;
                             }
                         }
                     }

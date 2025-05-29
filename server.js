@@ -867,6 +867,7 @@ function StartRound (ggs) {
                 //int r = randomGenerator.nextInt(6) + 1;
                 ggs.dice[cc][j] = random;
                 ggs.bDiceHidden[cc][j] = true;
+                ggs.bDiceHilite[cc][j] = false;
             }
         }
     }
