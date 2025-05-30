@@ -1,26 +1,53 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useContext } from 'react';
 import { SocketContext } from '../SocketContext.js';
 
-function LandingPage({ playerName }) {
+
+
+function LandingPage({ playerName, setPlayerName }) {
   const navigate = useNavigate();
   const [lobbies, setLobbies] = useState([]);
 
   const { socket, connected } = useContext(SocketContext);
-  
+
+
+  // for input name
+  //const [askName, setAskName] = useState(false);
+  const [name, setName] = useState('');
+  const inputRef = useRef(null); // Reference to input field
+  const isAskingName = (playerName === '');
+
+//************************************************************
+// useEffect:  put focus on input, if as need to ask name
+//             Trigger:  playerName
+//************************************************************
+useEffect(() => {
+  if (playerName === '' && inputRef.current) {
+    inputRef.current.focus();
+    inputRef.current.select();
+  }
+}, [playerName]);
+
+
 //************************************************************
 // useEffect:  handle landing page stuff
 //             Trigger:  <none>
 //************************************************************
 useEffect(() => {
-    if (!connected) {
-      console.log("LandingPage: socket not connected yet");
-      return;
+  if (!connected) {
+    console.log("LandingPage: socket not connected yet");
+    return;
+  }
+  console.log("LandingPage: socket is connected, setting up lobbies");
+
+  // set focus to name input if name is blank
+  if (playerName == '') {
+    if (inputRef.current) {
+      inputRef.current.focus();
     }
-  
-    console.log("LandingPage: socket is connected, setting up lobbies");
-  
+  }
+
   //-------------------------------------------
   // Fetch the lobbies once the component mounts
   //-------------------------------------------
@@ -41,13 +68,14 @@ useEffect(() => {
   //-------------------------------------------
   // Create lobby
   //-------------------------------------------
-  const handleCreateLobby = () => {
+  const onCreateLobby = () => {
     if (!connected) return;
     
     if (!playerName) {
       alert('No player name found.');
       return;
     }
+
     socket.emit('createLobby', playerName, ({ lobbyId, hostName }) => {
       // If successful, navigate to the new lobby
       navigate(`/game/${lobbyId}`, {
@@ -59,7 +87,7 @@ useEffect(() => {
   //-------------------------------------------
   // Join lobby
   //-------------------------------------------
-  const handleJoinLobby = (lobbyId) => {
+  const onJoinLobby = (lobbyId) => {
     if (!playerName) {
       alert('No player name found.');
       return;
@@ -77,33 +105,53 @@ useEffect(() => {
   };
 
   //-------------------------------------------
-  // Change name
+  // Change name button handler
+  //-------------------------------------------
+  const onChangeName = () => {
+    setName(playerName);  // pre-fill for the UI
+    setPlayerName('');
+    localStorage.removeItem('playerName');
+    if (inputRef.current) {
+      inputRef.current.focus();
+      inputRef.current.select();
+    }
+  };
+
+  //-------------------------------------------
+  // Change name: Process keystroke
+  //-------------------------------------------
+  const onKeyDown = (event) => {
+    if (event.key === 'Enter') {
+      handleChangeName(); // Trigger submit on Enter key
+    }
+  };
+
+  //-------------------------------------------
+  // Change name 
   //-------------------------------------------
   const handleChangeName = () => {
-    // Clear out the saved name
-    localStorage.removeItem('playerName');
-    // Optionally, if you track playerName in state in App.js,
-    // you can also call setPlayerName('') there.
-    // Then navigate the user to the EnterName page to pick a new name.
-    navigate('/enter-name');
+    if (name.trim() !== '') {
+      setPlayerName(name.trim());
+      localStorage.setItem('playerName', name.trim());
+    }
   };
 
   //************************************************************
   //  functions to handle Options menu
   //************************************************************
-  const handleOptBidHistory = () => {
+  const onOptBidHistory = () => {
 
   }
-  const handleOptObservers = () => {
+  const onOptObservers = () => {
 
   }
-  const handleOptHowToPlay = () => {
+  const onOptHowToPlay = () => {
 
   }
-  const handleOptAbout = () => {
+  const onOptAbout = () => {
 
   }
-  const handleOptHelp = () => {
+  const onOptHelp = () => {
 
   }
 
@@ -140,15 +188,18 @@ useEffect(() => {
           </button>
           <ul className="dropdown-menu" aria-labelledby="optionsMenu">
             <li><button className="dropdown-item" 
-              onClick={handleOptHowToPlay}
+              onClick={onOptHowToPlay}
+              disabled={isAskingName}
             >
               How To Play</button></li>          
             <li><button className="dropdown-item" 
-              onClick={handleOptAbout}
+              disabled={isAskingName}
+              onClick={onOptAbout}
             >
               About</button></li>          
             <li><button className="dropdown-item" 
-              onClick={handleOptHelp}
+              disabled={isAskingName}
+              onClick={onOptHelp}
             >
               Help</button></li>          
           </ul>
@@ -157,13 +208,15 @@ useEffect(() => {
         {/* Other buttons */}
         <>
         <button
-          onClick={handleCreateLobby}
+          onClick={onCreateLobby}
+          disabled={isAskingName }
           className="btn btn-primary btn-outline-light btn-sm"
         >
           Create Lobby
         </button>
         <button
-          onClick={handleChangeName}
+          onClick={onChangeName}
+          disabled={isAskingName}
           className="btn btn-primary btn-outline-light btn-sm"
         >
           Change Name
@@ -192,24 +245,45 @@ useEffect(() => {
         <h1>
           <span id="landing-page-welcome">Welcome to Dudo!</span>
         </h1>
-        <p>Join a lobby, or create your own</p>
 
-        <h2>Available Lobbies</h2>
-        {lobbies.length === 0 && <p>No lobbies yet</p>}
-
-        <ul>
-          {lobbies.map((lobby) => (
-            <li key={lobby.id}>
-              <strong>{lobby.host}</strong>'s lobby ({lobby.playerCount} players)
-              &nbsp;
-              <button 
-                className="btn btn-primary btn-sm"
-                onClick={() => handleJoinLobby(lobby.id)}>
-                Join
-              </button>
-            </li>
-          ))}
-        </ul>
+        {isAskingName ? (
+          <div style={{ textAlign: 'center', padding: '20px' }}>
+            <input
+              ref={inputRef} // Attach ref to input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              onKeyDown={onKeyDown} // Listen for Enter key
+              placeholder="Enter your name"
+              style={{ marginTop: '10px', padding: '5px', fontSize: '16px' }}
+            />
+            <br />
+            <button 
+              className="btn btn-primary btn-sm mt-3"
+              onClick={handleChangeName}>
+              Continue
+            </button>
+          </div>
+        ) : (
+          <>
+            <p>Join a lobby, or create your own</p>
+            <h2>Available Lobbies</h2>
+            {lobbies.length === 0 && <p>No lobbies yet</p>}
+              <ul>
+                {lobbies.map((lobby) => (
+                  <li key={lobby.id}>
+                    <strong>{lobby.host}</strong>'s lobby ({lobby.playerCount} players)
+                    &nbsp;
+                    <button 
+                      className="btn btn-primary btn-sm"
+                      onClick={() => onJoinLobby(lobby.id)}>
+                      Join
+                    </button>
+                  </li>
+                ))}
+              </ul>
+          </>
+        )}
       </div>
     </div>
   );

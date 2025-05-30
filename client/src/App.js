@@ -9,7 +9,6 @@ import {
 } from 'react-router-dom';
 import './App.css';
 
-import EnterNamePage from './pages/EnterNamePage';
 import LandingPage from './pages/LandingPage';
 import GamePage from './pages/GamePage';
 
@@ -30,15 +29,7 @@ function App() {
       <Routes>
         <Route
           path="/"
-          element={
-            playerName
-              ? <LandingPage playerName={playerName} />
-              : <Navigate to="/enter-name" />
-          }
-        />
-        <Route
-          path="/enter-name"
-          element={<EnterNamePage onNameSubmitted={savePlayerName} />}
+          element={<LandingPage playerName={playerName} setPlayerName={setPlayerName} />}
         />
         <Route path="/game/:lobbyId" element={<GamePage />} />
       </Routes>
