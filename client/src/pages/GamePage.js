@@ -1474,21 +1474,20 @@ useEffect(() => {
     >
 */
   return (
-
-    <div
-      className="container mx-auto"
-      style={{
-        maxWidth: '100%',
-        position: 'relative',
-        padding: '10px',
-        backgroundColor: 'white',
-      }}
-    >
+  <div
+    className="container mx-auto"
+    style={{
+      maxWidth: '100%',
+      position: 'relative',
+      padding: '10px',
+      backgroundColor: 'white',
+    }}
+  >
 
     {/*-------------------------------------------------------------------
       Navigation bar
     --------------------------------------------------------------------*/}
-    <nav className="navbar navbar-expand bg-primary text-white rounded px-3 py-2">
+    <nav className="navbar navbar-expand bg-primary text-white rounded px-0 py-1">
       <div className="container-fluid">
 
         {/* Dropdown Menu */}
@@ -1569,13 +1568,10 @@ useEffect(() => {
     --------------------------------------------------------------------*/}
     <div className="row mb-2 my-2">
       <div className="col">
-        <div className="border border-primary rounded p-1 d-flex justify-content-between align-items-center">
-          <div className="fw-bold text-start">
+        <div className="border border-primary rounded p-1 d-flex justify-content-center align-items-center"> 
+          <div className="fw-bold text-center">
             <div>Game Lobby Host: {lobbyHost}</div>
             <div>Your Name: {myName}</div>
-<div className="fs-1">
-  {'\u2680'} {'\u2681'} {'\u2682'} {'\u2683'} {'\u2684'} {'\u2685'}
-</div>
           </div>
         </div>
       </div>
@@ -1947,7 +1943,6 @@ useEffect(() => {
       />
     )}
   </div>
-  
   );
 }
 

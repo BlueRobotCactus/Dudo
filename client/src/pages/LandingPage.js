@@ -88,39 +88,129 @@ useEffect(() => {
     navigate('/enter-name');
   };
 
+  //************************************************************
+  //  functions to handle Options menu
+  //************************************************************
+  const handleOptBidHistory = () => {
+
+  }
+  const handleOptObservers = () => {
+
+  }
+  const handleOptHowToPlay = () => {
+
+  }
+  const handleOptAbout = () => {
+
+  }
+  const handleOptHelp = () => {
+
+  }
+
+  //************************************************************
+  //  Render
+  //************************************************************
   return (
-    <div style={{ padding: '20px' }}>
-      <h1>
-        <span id="landing-page-welcome">Welcome, {playerName}!</span>
-        <button 
-          className="btn btn-primary btn-sm"
-          onClick={handleChangeName}>Change Name
+    <div
+      className="container mx-auto"
+      style={{
+        maxWidth: '100%',
+        position: 'relative',
+        padding: '10px',
+        backgroundColor: 'white',
+      }}
+    >
+    
+    {/*-------------------------------------------------------------------
+      Navigation bar
+    --------------------------------------------------------------------*/}
+      <nav className="navbar navbar-expand bg-primary text-white rounded px-0 py-1">
+        <div className="container-fluid">
+
+        {/* Dropdown Menu */}
+        <div className="dropdown me-3">
+          <button
+            className="btn btn-primary dropdown-toggle"
+            type="button"
+            id="optionsMenu"
+            data-bs-toggle="dropdown"
+            aria-expanded="false"
+          >
+            Options
+          </button>
+          <ul className="dropdown-menu" aria-labelledby="optionsMenu">
+            <li><button className="dropdown-item" 
+              onClick={handleOptHowToPlay}
+            >
+              How To Play</button></li>          
+            <li><button className="dropdown-item" 
+              onClick={handleOptAbout}
+            >
+              About</button></li>          
+            <li><button className="dropdown-item" 
+              onClick={handleOptHelp}
+            >
+              Help</button></li>          
+          </ul>
+        </div>
+
+        {/* Other buttons */}
+        <>
+        <button
+          onClick={handleCreateLobby}
+          className="btn btn-primary btn-outline-light btn-sm"
+        >
+          Create Lobby
         </button>
-      </h1>
+        <button
+          onClick={handleChangeName}
+          className="btn btn-primary btn-outline-light btn-sm"
+        >
+          Change Name
+        </button>
+        </>
+        </div>
+      </nav>
 
-      <button 
-        onClick={handleCreateLobby} 
-        className="btn btn-primary btn-sm"
-        disabled={!connected}>
-        Create Lobby
-      </button>
+      {/*-------------------------------------------------------------------
+        Row 1: Player name
+      --------------------------------------------------------------------*/}
+      <div className="row mb-2 my-2">
+        <div className="col">
+        <div className="border border-primary rounded p-1 d-flex justify-content-center align-items-center"> 
+            <div className="fw-bold text-center">
+              Your Name: {playerName}
+            </div>
+          </div>
+        </div>
+      </div>
 
-      <h2>Available Lobbies</h2>
-      {lobbies.length === 0 && <p>No lobbies yet</p>}
 
-      <ul>
-        {lobbies.map((lobby) => (
-          <li key={lobby.id}>
-            <strong>{lobby.host}</strong>'s lobby ({lobby.playerCount} players)
-            &nbsp;
-            <button 
-              className="btn btn-primary btn-sm"
-              onClick={() => handleJoinLobby(lobby.id)}>
-              Join
-            </button>
-          </li>
-        ))}
-      </ul>
+
+      {/* Existing Page Content */}
+      <div style={{ padding: '20px' }}>
+        <h1>
+          <span id="landing-page-welcome">Welcome to Dudo!</span>
+        </h1>
+        <p>Join a lobby, or create your own</p>
+
+        <h2>Available Lobbies</h2>
+        {lobbies.length === 0 && <p>No lobbies yet</p>}
+
+        <ul>
+          {lobbies.map((lobby) => (
+            <li key={lobby.id}>
+              <strong>{lobby.host}</strong>'s lobby ({lobby.playerCount} players)
+              &nbsp;
+              <button 
+                className="btn btn-primary btn-sm"
+                onClick={() => handleJoinLobby(lobby.id)}>
+                Join
+              </button>
+            </li>
+          ))}
+        </ul>
+      </div>
     </div>
   );
 }
