@@ -990,6 +990,21 @@ export class DudoGame {
         }
         return result;
     }
+
+    //****************************************************************
+    // Get bid string
+    //****************************************************************
+    GetBidString (idx) {
+        if ([this.numBids] < 1) {
+            return '';
+        }
+        let bidString = this.allBids[idx].text;
+        let showed = this.allBids[idx].howManyShown;
+        if (showed > 0) {
+            bidString += ` (showed ${showed})`;
+        }
+        return bidString;
+    }
 }
 
 class DoubtResult {

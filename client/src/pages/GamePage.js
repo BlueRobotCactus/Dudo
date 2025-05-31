@@ -101,6 +101,10 @@ import { CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYE
     const [onYesHandler, setOnYesHandler] = useState(() => () => {});  // default no-op
     const [onNoHandler, setOnNoHandler] = useState(() => () => {});  // default no-op
 
+    // Bid History
+    const [histCurrentBid, setHistCurrentBid] = useState('');
+    const [histShowing, setHistShowing] = useState('');
+    const [histLookage, setHistLookage] = useState('');
 
     // Refs
     const canvasRef = useRef(null);
@@ -235,6 +239,23 @@ import { CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYE
 
     // is it my turn to bid?
     setIsMyTurn(index == ggc.whosTurn);
+
+    // update Bid History
+    if (ggc.numBids < 1) {
+      return;
+    }
+    const lastBidText = ggc.allBids[ggc.numBids-1].text;
+    setHistCurrentBid(lastBidText);
+    if (lastBidText == "PASO" || lastBidText == "DOUBT") {
+      setHistShowing('');
+      setHistLookage('');
+    } else {
+      ggc.parseBid(lastBidText);
+      const showing = ggc.GetHowManyShowing (ggc.parsedOfWhat, ggc.bPaloFijoRound);
+      setHistShowing(showing);
+      const lookage = ggc.parsedHowMany - showing;
+      setHistLookage(lookage);
+    }
   };
 
   //************************************************************
@@ -287,10 +308,12 @@ import { CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYE
   //************************************************************
   const handleYesImIn = () => {
     socket.emit('inOrOut', { lobbyId, index: myIndex, status: CONN_PLAYER_IN })
+    console.log ('GamePage: emiting "inOrOut" with IN response');
   }
 
   const handleNoIllWatch = () => {
     socket.emit('inOrOut', { lobbyId, index: myIndex, status: CONN_OBSERVER })
+    console.log ('GamePage: emiting "inOrOut" with WATCH response');
   }
 
   //************************************************************
@@ -389,16 +412,8 @@ import { CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYE
       // my turn
       //-------------------------------------------
       // show previous bid
-      let turnString = '';
-      if (ggc.numBids == 0) {
-        turnString = 'You bid first';
-      } else {
-        turnString = `The bid to you is ${ggc.allBids[ggc.numBids-1].text}:`;
-        let showed = ggc.allBids[ggc.numBids-1].howManyShown;
-        if (showed > 0) {
-          turnString += ` (showed ${showed})`;
-        }
-      }
+      let turnString = (ggc.numBids < 1 ? 'You bid first' : 
+                                          `The bid to you is: ${ggc.GetBidString(ggc.numBids-1)}`);
       setRow2YourTurnString(turnString);
       setRow2SpecialPasoString (ggc.numBids > 1 && ggc.allBids[ggc.numBids-1].text == "PASO" ?
                             `Doubt the PASO or top the bid ${ggc.allBids[ggc.FindLastNonPasoBid()].text}` :
@@ -411,7 +426,7 @@ import { CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYE
       if (ggc.numBids > 0) {
         // there is at least one bid
         const currentBid = ggc.allBids[ggc.numBids-1];
-        let s1= currentBid.playerName + " bid: " + currentBid.text;
+        let s1= currentBid.playerName + " bid: " + ggc.GetBidString(ggc.numBids-1);
         let s2 = `Bid is to: ${whosTurnName}...`;
         switch (currentBid.text) {
           case "DOUBT":
@@ -423,7 +438,7 @@ import { CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYE
             setRow2BidToWhom(s2);
             break;
           default:
-            setRow2CurrentBid(currentBid.bShowShake ? s1 + ", (show and shake)" : s1 + ", (no show)");
+            setRow2CurrentBid(s1);
             setRow2BidToWhom(s2);
         }
       } else {
@@ -806,6 +821,7 @@ useEffect(() => {
   
   // Loop through participants
   SetPlayerCoords ();
+  let ptrCoords = 0;
   for (let cc=0; cc<ggc.maxConnections; cc++) {
     if (ggc.allConnectionStatus[cc] == CONN_UNUSED) {
       continue;
@@ -814,7 +830,11 @@ useEffect(() => {
       arrayObserverNames.push(ggc.allParticipantNames[cc]);
       continue;
     }
-    DrawPlayerCupDice (cc, yPos);
+
+    console.log (`DEBUGG - drawing player + ${cc}`);
+
+    DrawPlayerCupDice (cc, ptrCoords);
+    ptrCoords++;
     yPos += yPosIncr;
   }
 
@@ -1033,23 +1053,27 @@ useEffect(() => {
 
   //************************************************************
   //  function Draw players' cup and dice
+  //  p = player connection ID (cc)           [who]
+  //  ptr = index into the xArray and yArray  [where]
   //************************************************************
-  function DrawPlayerCupDice (p, yPos) {
+  function DrawPlayerCupDice (p, ptr) {
+
+    console.log (`DEBUGG - drawing player ${p} at ${xArray[ptr]}, ${yArray[ptr]}`);
 
     // draw and fill rectangles for player
     ctx.fillStyle = (ggc.allConnectionStatus[p] == CONN_PLAYER_OUT ? 'lightgray' : 'white');
-    ctx.fillRect(xArray[p], 
-                yArray[p], 
+    ctx.fillRect(xArray[ptr], 
+                yArray[ptr], 
                 playerBoxWidth, 
                 playerBoxTopHeight);
     ctx.fillStyle = 'blue';
     ctx.fillStyle = (ggc.allConnectionStatus[myIndex] == CONN_OBSERVER ? 'lightgray' : 'lightblue');
-    ctx.fillRect(xArray[p], 
-                 yArray[p] + playerBoxTopHeight, 
+    ctx.fillRect(xArray[ptr], 
+                 yArray[ptr] + playerBoxTopHeight, 
                  playerBoxWidth, playerBoxBottomHeight);
     ctx.strokeStyle = 'black';
-    ctx.strokeRect(xArray[p], 
-                   yArray[p] + playerBoxTopHeight, 
+    ctx.strokeRect(xArray[ptr], 
+                   yArray[ptr] + playerBoxTopHeight, 
                    playerBoxWidth, 
                    playerBoxBottomHeight);
 
@@ -1062,8 +1086,8 @@ useEffect(() => {
         ctx.lineWidth = 2;
         ctx.strokeStyle = 'black'
       }
-      ctx.strokeRect(xArray[p], 
-                     yArray[p], 
+      ctx.strokeRect(xArray[ptr], 
+                     yArray[ptr], 
                      playerBoxWidth, 
                      playerBoxHeight);
       ctx.strokeStyle = 'black'
@@ -1074,24 +1098,24 @@ useEffect(() => {
     ctx.fillStyle = 'black'
     ctx.font = '24px Arial';
     ctx.fillText(`${ggc.allParticipantNames[p]}`, 
-                  xArray[p] + cupWidth + 2*playerBoxInnerMargin, 
-                  yArray[p] + 33);
+                  xArray[ptr] + cupWidth + 2*playerBoxInnerMargin, 
+                  yArray[ptr] + 33);
 
     // draw cup
     if (ggc.allConnectionStatus[p] == CONN_PLAYER_OUT || !ggc.bGameInProgress) {
       ctx.drawImage(cupUpImageRef.current, 
-                    xArray[p] + playerBoxInnerMargin, 
-                    yArray[p] + playerBoxInnerMargin, 
+                    xArray[ptr] + playerBoxInnerMargin, 
+                    yArray[ptr] + playerBoxInnerMargin, 
                     cupWidth, cupHeight);
     } else if ((ggc.bDoubtInProgress || ggc.bShowDoubtResult) && ggc.result.doubtDidLiftCup[p]) {
       ctx.drawImage(cupUpImageRef.current, 
-                    xArray[p] + playerBoxInnerMargin, 
-                    yArray[p] + playerBoxInnerMargin, 
+                    xArray[ptr] + playerBoxInnerMargin, 
+                    yArray[ptr] + playerBoxInnerMargin, 
                     cupWidth, cupHeight);
     } else {
       ctx.drawImage(cupDownImageRef.current, 
-                    xArray[p] + playerBoxInnerMargin, 
-                    yArray[p] + playerBoxInnerMargin, 
+                    xArray[ptr] + playerBoxInnerMargin, 
+                    yArray[ptr] + playerBoxInnerMargin, 
                     cupWidth, cupHeight);
     }
 
@@ -1106,8 +1130,8 @@ useEffect(() => {
             // hidden dice in upper box
             if (p == myIndex) {
               // if me, show the die
-              x = xArray[p] + cupWidth + 2*playerBoxInnerMargin + i*(diceSize + playerBoxInnerMargin);
-              y = yArray[p] + 43;
+              x = xArray[ptr] + cupWidth + 2*playerBoxInnerMargin + i*(diceSize + playerBoxInnerMargin);
+              y = yArray[ptr] + 43;
               w = diceSize;
               h = diceSize;
               ctx.drawImage(diceImages[value], x, y, w, h); 
@@ -1121,8 +1145,8 @@ useEffect(() => {
               // other player
               if ((ggc.bDoubtInProgress || ggc.bShowDoubtResult) && ggc.result.doubtDidLiftCup[p]) {
                 // cup lifted, show dice
-                x = xArray[p] + cupWidth + 2*playerBoxInnerMargin + i*(diceSize + playerBoxInnerMargin);
-                y = yArray[p] + 43;
+                x = xArray[ptr] + cupWidth + 2*playerBoxInnerMargin + i*(diceSize + playerBoxInnerMargin);
+                y = yArray[ptr] + 43;
                 w = diceSize;
                 h = diceSize;
                 ctx.drawImage(diceImages[value], x, y, w, h);
@@ -1134,8 +1158,8 @@ useEffect(() => {
                 }
               } else {
                 // cup not lifted, show the empty box
-                x = xArray[p] + cupWidth + 2*playerBoxInnerMargin + i*(diceSize + playerBoxInnerMargin);
-                y = yArray[p] + 43;
+                x = xArray[ptr] + cupWidth + 2*playerBoxInnerMargin + i*(diceSize + playerBoxInnerMargin);
+                y = yArray[ptr] + 43;
                 w = diceSize;
                 h = diceSize;
                 ctx.drawImage(diceHiddenImageRef.current, x, y, w, h);
@@ -1143,8 +1167,8 @@ useEffect(() => {
             }
           } else {
             // shown dice in bottom box
-            x = xArray[p] + cupWidth + 2*playerBoxInnerMargin + i*(diceSize + playerBoxInnerMargin);
-            y = yArray[p] + playerBoxTopHeight + playerBoxInnerMargin;
+            x = xArray[ptr] + cupWidth + 2*playerBoxInnerMargin + i*(diceSize + playerBoxInnerMargin);
+            y = yArray[ptr] + playerBoxTopHeight + playerBoxInnerMargin;
             w = diceSize;
             h = diceSize;
             ctx.drawImage(diceImages[value], x, y, w, h);
@@ -1166,8 +1190,8 @@ useEffect(() => {
         let sticks = ggc.allSticks[p];
         for (let i=0; i<sticks; i++) {
             ctx.drawImage(stickImage, 
-                          xArray[p] + i*stickSize + (i+1)*playerBoxInnerMargin,
-                          yArray[p] + playerBoxTopHeight + playerBoxInnerMargin, 
+                          xArray[ptr] + i*stickSize + (i+1)*playerBoxInnerMargin,
+                          yArray[ptr] + playerBoxTopHeight + playerBoxInnerMargin, 
                           stickSize, stickSize);
         }
       }
@@ -1201,12 +1225,8 @@ useEffect(() => {
 
     // add bids from scratch
     for (let i=0;  i<ggc.numBids; i++) {
-      let ss = ggc.allBids[i].text;
-      if (ggc.allBids[i].bShowShake) {
-        ss += (' (show and shake');
-      }
       bidHistoryRef.current.push({ Player: ggc.allBids[i].playerName,
-                                   Bid: ss});
+                                   Bid: ggc.GetBidString(i)});
     }
   }
   
@@ -1887,14 +1907,23 @@ useEffect(() => {
       // Bid History
       <div style={{ maxHeight: '200px', overflowY: 'auto' }}>
         <div className="container">
+          <div className="row">
+            Current Bid is: {histCurrentBid}
+          </div>
+          <div className="row">
+            Showing: {histShowing}
+          </div>
+          <div className="row">
+            Looking For: {histLookage}
+          </div>
           <div className="row fw-bold border-bottom pb-1 mb-1">
             <div className="col-2">Player</div>
-            <div className="col-2">Bid</div>
+            <div className="col">Bid</div>
           </div>
           {bidHistoryRef.current.map((row, index) => (
             <div className="row py-1 border-bottom" key={index}>
               <div className="col-2">{row.Player}</div>
-              <div className="col-2">{row.Bid}</div>
+              <div className="col">{row.Bid}</div>
             </div>
           ))}
         </div>
