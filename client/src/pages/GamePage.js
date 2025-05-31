@@ -7,6 +7,7 @@ import { DudoGame } from '../DudoGameC.js'
 import { ConfirmBidDlg } from '../Dialogs.js';
 import { OkDlg } from '../Dialogs.js';
 import { YesNoDlg } from '../Dialogs.js';
+import PlayerGrid from './PlayerGrid';
 
 import { CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYER_LEFT,
   CONN_PLAYER_IN_DISCONN, CONN_PLAYER_OUT_DISCONN, CONN_OBSERVER_DISCONN } from '../DudoGameC.js';;
@@ -1899,6 +1900,9 @@ useEffect(() => {
         </div>
       </div>
     ) : null}
+
+
+    <PlayerGrid />
 
 
     {/*-------------------------------------------------------------------
