@@ -9,6 +9,8 @@ import {
 } from 'react-router-dom';
 import './App.css';
 
+import { ImageRefsProvider } from './ImageRefsContext';
+
 import LandingPage from './pages/LandingPage';
 import GamePage from './pages/GamePage';
 
@@ -28,16 +30,18 @@ function App() {
   };
 
   return (
-    <Router>
-      <Routes>
-        <Route
-          path="/"
-          element={<LandingPage playerName={playerName} setPlayerName={setPlayerName} />}
-        />
-        <Route path="/game/:lobbyId" element={<GamePage />} />
-        <Route path="/grid-test" element={<PlayerGrid />} />
-      </Routes>
-    </Router>
+    <ImageRefsProvider>
+      <Router>
+        <Routes>
+          <Route
+            path="/"
+            element={<LandingPage playerName={playerName} setPlayerName={setPlayerName} />}
+          />
+          <Route path="/game/:lobbyId" element={<GamePage />} />
+          <Route path="/grid-test" element={<PlayerGrid />} />
+        </Routes>
+      </Router>
+    </ImageRefsProvider>
   );
 }
 

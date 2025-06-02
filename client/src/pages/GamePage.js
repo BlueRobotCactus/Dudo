@@ -2,12 +2,13 @@ import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import { useContext } from 'react';
 import { SocketContext } from '../SocketContext.js';
+import { ImageRefsContext } from '../ImageRefsContext.js';
 import { DudoGame } from '../DudoGameC.js'
+import { PlayerGrid } from './PlayerGrid.js'
 
 import { ConfirmBidDlg } from '../Dialogs.js';
 import { OkDlg } from '../Dialogs.js';
 import { YesNoDlg } from '../Dialogs.js';
-import PlayerGrid from './PlayerGrid';
 
 import { CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYER_LEFT,
   CONN_PLAYER_IN_DISCONN, CONN_PLAYER_OUT_DISCONN, CONN_OBSERVER_DISCONN } from '../DudoGameC.js';;
@@ -25,6 +26,15 @@ import { CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYE
     const { lobbyId } = useParams();
     const location = useLocation();
     const navigate = useNavigate();
+
+    const {
+      cupDownImageRef,
+      cupUpImageRef,
+      diceImagesRef,
+      diceHiddenImageRef,
+      stickImageRef,
+      imagesReady
+    } = useContext(ImageRefsContext);
 
     const playerName = location.state?.playerName || sessionStorage.getItem('playerName') || '';
 
@@ -44,7 +54,7 @@ import { CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYE
     const [myName, setMyName] = useState('');
     const [isMyTurn, setIsMyTurn] = useState(false);
     const [whosTurnName, setWhosTurnName] = useState('');
-    const [imagesReady, setImagesReady] = useState(false);
+    //const [imagesReady, setImagesReady] = useState(false);
 
     const [showCountdown, setShowCountdown] = useState(false);
     // structure: { playerName: 'Alice', secondsRemaining: 23 }
@@ -108,11 +118,11 @@ import { CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYE
 
     // Refs
     const canvasRef = useRef(null);
-    const cupDownImageRef = useRef(null);
-    const cupUpImageRef = useRef(null);
-    const diceImagesRef = useRef({});
-    const diceHiddenImageRef = useRef({});
-    const stickImageRef = useRef({});
+    //const cupDownImageRef = useRef(null);
+    //const cupUpImageRef = useRef(null);
+    //const diceImagesRef = useRef({});
+    //const diceHiddenImageRef = useRef({});
+    //const stickImageRef = useRef({});
     const myShowShakeRef = useRef(false);
     const bidHistoryRef = useRef([]);
     
@@ -584,85 +594,6 @@ import { CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYE
     return () => window.removeEventListener('resize', updateScreenSize);
   }, []);
 
-  //************************************************************
-  // useEffect:  LOAD IMAGES []
-  //************************************************************
-  useEffect(() => {
-    console.log("GamePage: useEffect: LOAD IMAGES");
-  
-    let loaded = 0;
-    const totalToLoad = 10;  // cup down, cup up, 6 dice, hidden die, stick
-    const diceImgs = {};
-  
-    const checkIfDone = () => {
-      loaded++;
-      console.log(`Image loaded: ${loaded}/${totalToLoad}`);
-      if (loaded === totalToLoad) {
-        diceImagesRef.current = diceImgs;
-        setImagesReady(true);
-        console.log("GamePage: useEffect LOAD IMAGES; All images loaded");
-      }
-    };
-  
-    // Load cup down image
-    const imgCupDown = new Image();
-    imgCupDown.src = '/images/CupDown.jpg';
-    imgCupDown.onload = () => {
-      cupDownImageRef.current = imgCupDown;
-      checkIfDone();
-    };
-    imgCupDown.onerror = (e) => {
-      console.error("Failed to load CupDown.jpg", e);
-    };
-
-    // Load cup up image
-    const imgCupUp = new Image();
-    imgCupUp.src = '/images/CupUp.jpg';
-    imgCupUp.onload = () => {
-      cupUpImageRef.current = imgCupUp;
-      checkIfDone();
-    };
-    imgCupUp.onerror = (e) => {
-      console.error("Failed to load CupUp.jpg", e);
-    };
-  
-    // Load dice images
-    for (let i = 1; i <= 6; i++) {
-      const imgDice = new Image();
-      imgDice.src = `/images/Dice${i}.jpg`;
-      imgDice.onload = () => {
-        diceImgs[i] = imgDice;
-        checkIfDone();
-      };
-      imgDice.onerror = (e) => {
-        console.error(`Failed to load Dice${i}.jpg`, e);
-      };
-    }
-
-    // Hidden die image
-    const imgDiceHidden = new Image();
-    imgDiceHidden.src = '/images/DiceHidden.jpg';
-    imgDiceHidden.onload = () => {
-      diceHiddenImageRef.current = imgDiceHidden;
-      checkIfDone();
-    };
-    imgDiceHidden.onerror = (e) => {
-      console.error("Failed to load DiceHidden.jpg", e);
-    };
-  
-    // Stick image
-    const imgStick = new Image();
-    imgStick.src = '/images/Stick.jpg';
-    imgStick.onload = () => {
-      stickImageRef.current = imgStick;
-      checkIfDone();
-    };
-    imgStick.onerror = (e) => {
-      console.error("Failed to load DiceHidden.jpg", e);
-    };
-  
-  }, []);
-  
 //************************************************************
 // useEffect:  REQUEST LOBBY DATA [lobbyId]
 //             Request from server with callback
@@ -1931,8 +1862,8 @@ useEffect(() => {
     ) : null}
 
 
-    <PlayerGrid />
-
+    < PlayerGrid >
+    </PlayerGrid>
 
     {/*-------------------------------------------------------------------
       DIALOGS
