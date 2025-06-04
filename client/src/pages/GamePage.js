@@ -1810,8 +1810,7 @@ useEffect(() => {
     </div>
 
 
-    <TableGrid ggc={ggc} />
-
+    <TableGrid ggc={ggc} myIndex={myIndex} />
 
     {/*-------------------------------------------------------------------
       Row 3: Canvas

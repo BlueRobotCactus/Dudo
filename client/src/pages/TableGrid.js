@@ -6,7 +6,7 @@ import { CONN_PLAYER_IN, CONN_PLAYER_OUT } from '../DudoGameC.js';
 // TableGrid (PlayerGrids placed within it
 // ggc = DudoGame object
 //************************************************************
-export function TableGrid({ggc}) {
+export function TableGrid({ggc, myIndex}) {
 
   // -----------------------------------------------
   // Get list of players (cc's) and how many
@@ -47,7 +47,7 @@ export function TableGrid({ggc}) {
               );
 
             const content = shouldRenderPlayer ? (
-              <PlayerGrid ggc={ggc} cc={ccList[playerIndex++]} />
+              <PlayerGrid ggc={ggc} myIndex={myIndex} cc={ccList[playerIndex++]} />
             ) : null;
 
             return (
