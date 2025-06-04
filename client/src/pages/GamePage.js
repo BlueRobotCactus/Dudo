@@ -5,6 +5,7 @@ import { SocketContext } from '../SocketContext.js';
 import { ImageRefsContext } from '../ImageRefsContext.js';
 import { DudoGame } from '../DudoGameC.js'
 import { PlayerGrid } from './PlayerGrid.js'
+import { TableGrid } from './TableGrid.js'
 
 import { ConfirmBidDlg } from '../Dialogs.js';
 import { OkDlg } from '../Dialogs.js';
@@ -1514,7 +1515,6 @@ useEffect(() => {
       </div>
     </nav>
 
-
     {/*-------------------------------------------------------------------
       Row 1: Lobby title and player name
     --------------------------------------------------------------------*/}
@@ -1809,6 +1809,10 @@ useEffect(() => {
       </div>
     </div>
 
+
+    <TableGrid ggc={ggc} />
+
+
     {/*-------------------------------------------------------------------
       Row 3: Canvas
     --------------------------------------------------------------------*/}
@@ -1861,9 +1865,6 @@ useEffect(() => {
       </div>
     ) : null}
 
-
-    < PlayerGrid >
-    </PlayerGrid>
 
     {/*-------------------------------------------------------------------
       DIALOGS
