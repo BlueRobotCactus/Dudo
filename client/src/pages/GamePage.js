@@ -751,23 +751,33 @@ useEffect(() => {
   let arrayObserverNames = [];
   arrayObserverNames.length = 0;
   
-  // Loop through participants
-  SetPlayerCoords ();
-  let ptrCoords = 0;
-  for (let cc=0; cc<ggc.maxConnections; cc++) {
-    if (ggc.allConnectionStatus[cc] == CONN_UNUSED) {
-      continue;
-    }
-    if (ggc.allConnectionStatus[cc] == CONN_OBSERVER) {
-      arrayObserverNames.push(ggc.allParticipantNames[cc]);
-      continue;
-    }
 
-    console.log (`DEBUGG - drawing player + ${cc}`);
+  const DEBUGGING = 0;    // 0 means no debugging
 
-    DrawPlayerCupDice (cc, ptrCoords);
-    ptrCoords++;
-    yPos += yPosIncr;
+  if (DEBUGGING > 0) {
+    SetPlayerCoords (DEBUGGING);
+    for (let i=0; i<DEBUGGING; i++) {
+      DrawPlayerCupDice (0, i);
+    }
+  } else {
+    // Loop through participants
+    SetPlayerCoords (ggc.GetNumberPlayersPlaying());
+    let ptrCoords = 0;
+    for (let cc=0; cc<ggc.maxConnections; cc++) {
+      if (ggc.allConnectionStatus[cc] == CONN_UNUSED) {
+        continue;
+      }
+      if (ggc.allConnectionStatus[cc] == CONN_OBSERVER) {
+        arrayObserverNames.push(ggc.allParticipantNames[cc]);
+        continue;
+      }
+
+      console.log (`DEBUGG - drawing player + ${cc}`);
+
+      DrawPlayerCupDice (cc, ptrCoords);
+      ptrCoords++;
+      yPos += yPosIncr;
+    }
   }
 
   // draw bid history
@@ -803,7 +813,7 @@ useEffect(() => {
   //****************************************************************
   // Set up coordinates of player boxes 
   //****************************************************************
-  function SetPlayerCoords() {
+  function SetPlayerCoords(players) {
 
     const clientWidth = window.innerWidth;
     const clientHeight = window.innerHeight;
@@ -813,36 +823,28 @@ useEffect(() => {
     let marginY;
     let offset;
 
-    //--------------------------------------------------------
-    // 1 player
-    //--------------------------------------------------------
-    if (ggc.GetNumberPlayersPlaying() == 1) {
+    switch (players) {
+      case 1:
         marginX = (clientWidth - playerBoxWidth) / 2;
         marginY = (dividingLine - playerBoxHeight) / 2;
         xArray[0] = marginX;
         yArray[0] = marginY;
-    }
-    //--------------------------------------------------------
-    // 2 players
-    //--------------------------------------------------------
-    if (ggc.GetNumberPlayersPlaying() == 2) {
+        break;
+      case 2:
         marginX = (clientWidth - 2 *playerBoxWidth) / 3;
         marginY = (dividingLine - playerBoxHeight) / 2;
         xArray[0] = marginX;
         yArray[0] = marginY;
-        
+
         xArray[1] = 2 * marginX + playerBoxWidth;
         yArray[1] = marginY;
-    }
-    //--------------------------------------------------------
-    // 3 players
-    //--------------------------------------------------------
-    if (ggc.GetNumberPlayersPlaying() == 3) {
+        break;
+      case 3:
         marginX = (clientWidth - playerBoxWidth) / 2;
         marginY = (dividingLine - 2 * playerBoxHeight) / 3;
         xArray[0] = marginX;
         yArray[0] = marginY;
-        
+
         offset = 4;
         marginX = (clientWidth - 2 * playerBoxWidth) / 3;
         xArray[1] = 2 * marginX + playerBoxWidth + offset;
@@ -850,14 +852,11 @@ useEffect(() => {
 
         xArray[2] = marginX - offset;
         yArray[2] = 2 * marginY + playerBoxHeight;
-        
+
         directionBoxX = (clientWidth - directionBoxWidth) / 2;
         directionBoxY = 2 * marginY + playerBoxHeight - directionBoxHeight / 2;
-    }
-    //--------------------------------------------------------
-    // 4 players
-    //--------------------------------------------------------
-    if (ggc.GetNumberPlayersPlaying() == 4) {
+        break;
+      case 4:
         marginX = (clientWidth - playerBoxWidth) / 2;
         marginY = (dividingLine - 3 * playerBoxHeight) / 4;
         xArray[0] = marginX;
@@ -873,14 +872,11 @@ useEffect(() => {
 
         xArray[3] = marginX - offset;
         yArray[3] = 2 * marginY + playerBoxHeight;
-        
+
         directionBoxX = (clientWidth - directionBoxWidth) / 2;
         directionBoxY = (dividingLine - directionBoxHeight) / 2;
-    }
-    //--------------------------------------------------------
-    // 5 players
-    //--------------------------------------------------------
-    if (ggc.GetNumberPlayersPlaying() == 5) {
+        break;
+      case 5:
         marginX = (clientWidth - playerBoxWidth) / 2;
         marginY = (dividingLine - 3 * playerBoxHeight) / 4;
         xArray[0] = marginX;
@@ -890,23 +886,20 @@ useEffect(() => {
         marginX = (clientWidth - 2 *playerBoxWidth) / 3;
         xArray[4] = marginX - offset;
         yArray[4] = 2 * marginY + playerBoxHeight;
-        
+
         xArray[1] = 2 * marginX + playerBoxWidth + offset;
         yArray[1] = 2 * marginY + playerBoxHeight;
-        
+
         xArray[3] = marginX;
         yArray[3] = 3 * marginY + 2 * playerBoxHeight;
 
         xArray[2] = 2 * marginX + playerBoxWidth;
         yArray[2] = 3 * marginY + 2 * playerBoxHeight;
-        
+
         directionBoxX = (clientWidth - directionBoxWidth) / 2;
         directionBoxY = (dividingLine - directionBoxHeight) / 2;
-    }
-    //--------------------------------------------------------
-    // 6 players
-    //--------------------------------------------------------
-    if (ggc.GetNumberPlayersPlaying() == 6) {
+        break;
+      case 6:
         marginX = (clientWidth - playerBoxWidth) / 2;
         marginY = (dividingLine - 3 * playerBoxHeight) / 4;
         xArray[0] = marginX;
@@ -919,10 +912,10 @@ useEffect(() => {
         marginY = (dividingLine - 2 * playerBoxHeight) / 3;
         xArray[5] = marginX;
         yArray[5] = marginY;
-        
+
         xArray[4] = marginX;
         yArray[4] = 2 * marginY + playerBoxHeight;
-        
+
         xArray[1] = 3 * marginX + 2 * playerBoxWidth;
         yArray[1] = marginY;
 
@@ -931,6 +924,9 @@ useEffect(() => {
 
         directionBoxX = (clientWidth - directionBoxWidth) / 2;
         directionBoxY = (dividingLine - directionBoxHeight) / 2;
+        break;
+      default:
+        break;
     }
   }
 
