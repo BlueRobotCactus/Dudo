@@ -115,7 +115,7 @@ export function PlayerGrid({ggc, myIndex, cc}) {
         }}
       >
         {/* Top two rows: cup and name/dice */}
-        <div className="playergrid-top">
+        <div className="playergrid-top" style={{ backgroundColor: 'white' }}>        
           <div className="cup-container">
             <img
               src={cupImageToShow.src}

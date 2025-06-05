@@ -20,3 +20,10 @@
 #landing-page-welcome {
   margin-right: 20px;
 }
+
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden; /* Prevent scrolling if not needed */
+}

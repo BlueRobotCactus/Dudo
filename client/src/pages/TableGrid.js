@@ -7,7 +7,7 @@ import { CONN_PLAYER_IN, CONN_PLAYER_OUT } from '../DudoGameC.js';
 // TableGrid (PlayerGrids placed within it
 // ggc = DudoGame object
 //************************************************************
-export function TableGrid({ggc, myIndex}) {
+export function TableGrid({ggc, myIndex, backgroundColor}) {
 
   // -----------------------------------------------
   // Get list of players (cc's) and how many
@@ -16,6 +16,7 @@ export function TableGrid({ggc, myIndex}) {
   const ccList = [];
 
   const debugging = 0;   // 0 means no debugging
+
   if (debugging > 0 ) {
     for (let i=0; i<debugging; i++) {
       ccList.push(0);
@@ -35,57 +36,51 @@ export function TableGrid({ggc, myIndex}) {
   // the coords in the list are zero-based
   // -----------------------------------------------
   const positionsList = [
-    [], // index 0 unused
-    [[3, 3]],
-    [[3, 2], [3, 4]],
-    [[2, 3], [5, 2], [5, 4]],
-    [[2, 3], [4, 1], [4, 5], [6, 3]],
-    [[2, 3], [4, 1], [4, 5], [6, 2], [6, 4]],
-    [[2, 2], [2, 4], [4, 1], [4, 5], [6, 2], [6, 4]],
-    [[1, 3], [3, 1], [3, 5], [5, 1], [5, 5], [7, 2], [7, 4]],
-    [[1, 2], [1, 4], [3, 1], [3, 5], [5, 1], [5, 5], [7, 2], [7, 4]],
+    [],
+    [[3, 4]],
+    [[3, 2], [3, 6]],
+    [[1, 4], [5, 1], [5, 7]],
+    [[1, 4], [4, 1], [4, 7], [7, 4]],
+    [[1, 4], [4, 1], [4, 7], [7, 2], [7, 6]],
+    [[1, 4], [4, 1], [4, 7], [7, 1], [7, 7], [10, 4]],
+    [[1, 4], [4, 1], [4, 7], [7, 1], [7, 7], [10, 2], [10, 6]],
+    [[1, 2], [1, 6], [4, 1], [4, 7], [7, 1], [7, 7], [10, 2], [10, 6]]
   ];
 
-  const positions = positionsList[ccList.length];
-
-  const rowFrs = computeFrArray(9, positions, true); // for 9 rows
-  const colFrs = computeFrArray(7, positions, false); // for 7 cols
+  const positions = positionsList[ccList.length] || [];
 
   // -----------------------------------------------
   // rendering
   // -----------------------------------------------
   return (
     <div
-      className="fullscreen-grid"
+      className="table-grid"
       style={{
         display: 'grid',
+        gridTemplateColumns: 'repeat(11, 1fr)',
+        gridTemplateRows: 'repeat(12, 1fr)',
         width: '100vw',
         height: '100vh',
-        gridTemplateRows: rowFrs,
-        gridTemplateColumns: colFrs,
-        gap: '4px',
-        padding: '4px',
-        boxSizing: 'border-box',
+        gap: '2px',
+        backgroundColor
       }}
     >
-      {[...Array(9)].map((_, row) =>
-        [...Array(7)].map((_, col) => {
-          const posIndex = positions.findIndex(([r, c]) => r === row && c === col);
-          const shouldRenderPlayer = posIndex !== -1;
-          return (
-            <div key={`cell-${row}-${col}`} className="fullscreen-cell">
-              {shouldRenderPlayer && ccList[posIndex] !== undefined ? (
-                <PlayerGrid ggc={ggc} myIndex={myIndex} cc={ccList[posIndex]} />
-              ) : null}
-            </div>
-          );
-        })
-      )}
+      {positions.map(([row, col], index) => (
+        <div
+          key={`player-${index}`}
+          style={{
+            gridRow: `${row + 1} / span 2`,
+            gridColumn: `${col + 1} / span 3`
+          }}
+        >
+          <PlayerGrid ggc={ggc} cc={ccList[index]} myIndex={myIndex} />
+        </div>
+      ))}
     </div>
   );
 
 }
-
+/*
 // -----------------------------------------------
 // function to computer relative sizes (frs)
 // of rows and cols.
@@ -107,7 +102,7 @@ function computeFrArray(size, positions, isRow) {
   });
   return frs.map((fr) => `${fr}fr`).join(' ');
 }
-
+*/
 /*
 function computeFrArray(size, positions, axisIndex) {
   const frs = Array(size).fill(1);
