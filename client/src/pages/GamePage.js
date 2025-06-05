@@ -1522,7 +1522,7 @@ useEffect(() => {
       <div className="col">
         <div className="border border-primary rounded p-1 d-flex justify-content-center align-items-center"> 
           <div className="fw-bold text-center">
-            <div>Game Lobby Host: {lobbyHost}</div>
+            <div>Dudo Lobby Host: {lobbyHost}</div>
             <div>Your Name: {myName}</div>
           </div>
         </div>
