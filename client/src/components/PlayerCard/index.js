@@ -4,24 +4,19 @@ import React, { useContext } from 'react';
 import { ImageRefsContext } from '../../ImageRefsContext.js';
 import { CONN_PLAYER_IN, CONN_PLAYER_OUT } from '../../DudoGameC.js';
 
-/**
- * PlayerCard – Bootstrap‑based replacement for PlayerGrid.
- * Uses a responsive flex‑wrap layout so dice/sticks never spill outside
- * the card, even on narrow screens.
- */
+// Note: flex‑wrap layout guarantees nothing overflows the card
 function PlayerCard({ ggc, myIndex, cc }) {
-  /* ───────────────────────── Context */
+  // Context
   const {
     cupDownImageRef,
     cupUpImageRef,
     diceImagesRef,
     diceHiddenImageRef,
-    stickImageRef,
     imagesReady,
   } = useContext(ImageRefsContext);
   if (!imagesReady) return null;
 
-  /* ───────────────────────── Cup image */
+  // Cup image
   let cupImage;
   if (ggc.allConnectionStatus[cc] === CONN_PLAYER_OUT || !ggc.bGameInProgress) {
     cupImage = cupUpImageRef.current;
@@ -31,7 +26,7 @@ function PlayerCard({ ggc, myIndex, cc }) {
     cupImage = cupDownImageRef.current;
   }
 
-  /* ───────────────────────── Dice + hilites */
+  // Dice arrays + highlights
   const diceTop = Array(5).fill(null);
   const diceBottom = Array(5).fill(null);
   const hiliteTop = Array(5).fill(false);
@@ -59,7 +54,7 @@ function PlayerCard({ ggc, myIndex, cc }) {
     }
   }
 
-  /* ───────────────────────── Turn footer */
+  // Turn footer
   const isTurn = ggc.bGameInProgress && cc === ggc.whosTurn;
   const footerLabel = isTurn
     ? cc === myIndex
@@ -67,54 +62,50 @@ function PlayerCard({ ggc, myIndex, cc }) {
       : `${ggc.allParticipantNames[cc] || '—'}'s Turn`
     : null;
 
-  /* ───────────────────────── Shared item style */
-  const smallImg = { width: 18, height: 18 };
+  // Shared icon size
+  const iconBox = { width: 18, height: 18 };
 
-  /* ───────────────────────── Render */
+  // Render
   return (
-    <div
-      className={`card d-flex flex-column ${isTurn ? 'border-danger' : ''}`}
-      style={{ minWidth: 140 }}
-    >
+    <div className={`card d-flex flex-column ${isTurn ? 'border-danger' : ''}`} style={{ minWidth: 140 }}>
       {/* Header */}
-      <div className="card-header text-center p-1 fw-bold">
-        {ggc.allParticipantNames[cc] || '—'}
-      </div>
+      <div className="card-header text-center p-1 fw-bold">{ggc.allParticipantNames[cc] || '—'}</div>
 
       {/* Body */}
       <div className="card-body p-1 d-flex flex-column align-items-center flex-grow-0">
         {/* Cup */}
         <img src={cupImage?.src} alt="cup" style={{ width: 40, height: 56 }} />
 
-        {/* Top (hidden) dice row */}
-        <div
-          className="d-flex flex-wrap justify-content-center mt-1"
-          style={{ gap: 4 }}
-        >
+        {/* Top dice row */}
+        <div className="d-flex flex-wrap justify-content-center mt-1" style={{ gap: 4 }}>
           {diceTop.map((img, i) =>
             img ? (
               <img
                 key={`top-${i}`}
                 src={img.src}
                 alt="die"
-                style={{ ...smallImg, borderRadius: 4, border: hiliteTop[i] ? '2px solid red' : 'none' }}
+                style={{ ...iconBox, borderRadius: 4, border: hiliteTop[i] ? '2px solid red' : 'none' }}
               />
             ) : (
-              <span key={`top-empty-${i}`} style={{ ...smallImg }} />
+              <span key={`top-empty-${i}`} style={{ ...iconBox }} />
             )
           )}
         </div>
 
         {/* Sticks + bottom dice row */}
-        <div
-          className="d-flex flex-wrap justify-content-center align-items-center mt-1"
-          style={{ gap: 4 }}
-        >
+        <div className="d-flex flex-wrap justify-content-center align-items-center mt-1" style={{ gap: 4 }}>
           {[1, 2].map((n) =>
-            ggc.allSticks[cc] >= n && stickImageRef.current ? (
-              <img key={`stick-${n}`} src={stickImageRef.current.src} alt="stick" style={smallImg} />
+            ggc.allSticks[cc] >= n ? (
+              <span
+                key={`stick-${n}`}
+                role="img"
+                aria-label="skull and crossbones"
+                style={{ ...iconBox, fontSize: 18, lineHeight: '18px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}
+              >
+                ☠️
+              </span>
             ) : (
-              <span key={`nostick-${n}`} style={{ ...smallImg }} />
+              <span key={`nostick-${n}`} style={{ ...iconBox }} />
             )
           )}
 
@@ -124,10 +115,10 @@ function PlayerCard({ ggc, myIndex, cc }) {
                 key={`bot-${i}`}
                 src={img.src}
                 alt="die"
-                style={{ ...smallImg, borderRadius: 4, border: hiliteBottom[i] ? '2px solid red' : 'none' }}
+                style={{ ...iconBox, borderRadius: 4, border: hiliteBottom[i] ? '2px solid red' : 'none' }}
               />
             ) : (
-              <span key={`bot-empty-${i}`} style={{ ...smallImg }} />
+              <span key={`bot-empty-${i}`} style={{ ...iconBox }} />
             )
           )}
         </div>
