@@ -6,6 +6,7 @@ import { ImageRefsContext } from '../ImageRefsContext.js';
 import { DudoGame } from '../DudoGameC.js'
 import { PlayerGrid } from './PlayerGrid.js'
 import { TableGrid } from './TableGrid.js'
+import tableBackground from '../assets/table-background.png';
 
 import { ConfirmBidDlg } from '../Dialogs.js';
 import { OkDlg } from '../Dialogs.js';
@@ -158,8 +159,14 @@ import { CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYE
     let directionBoxX;
     let directionBoxY;
 
-    // background color for TableGrid
-    const bgColor = ggc.allConnectionStatus[myIndex] === CONN_OBSERVER ? 'lightgray' : 'lightblue';
+    // background for TableGrid
+    const backgroundStyle = ggc.allConnectionStatus[myIndex] === CONN_OBSERVER
+      ? { backgroundColor: 'lightgray' }
+      : {
+          backgroundImage: `url(${tableBackground})`,
+          backgroundRepeat: 'repeat',
+          backgroundPosition: '0 0',
+        }
     const UIMargin = 8;
 
     //************************************************************
@@ -1202,7 +1209,7 @@ useEffect(() => {
         height: `${availableHeight}px`,
         overflow: 'hidden',
         padding: '8px',
-        backgroundColor: bgColor,
+        ...backgroundStyle,
         boxSizing: 'border-box',
         border: '2px solid red',
       }}
@@ -1211,7 +1218,7 @@ useEffect(() => {
         style={{
           width: '100%',
           height: '100%',
-          backgroundColor: bgColor
+          ...backgroundStyle
         }}
       >
         <TableGrid ggc={ggc} myIndex={myIndex} backgroundColor="transparent" />
