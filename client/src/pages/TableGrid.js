@@ -15,8 +15,11 @@ export function TableGrid({ggc, myIndex, backgroundColor}) {
   // -----------------------------------------------
   const ccList = [];
 
-  const debugging = 0;   // 0 means no debugging
-
+  let debugging = 0;   // 0 means no debugging
+  const name = localStorage.getItem('playerName');
+  if (name.length == 1) {
+    debugging = Number(name);
+  }
   if (debugging > 0 ) {
     for (let i=0; i<debugging; i++) {
       ccList.push(0);
@@ -35,6 +38,7 @@ export function TableGrid({ggc, myIndex, backgroundColor}) {
   // the list is one-based
   // the coords in the list are zero-based
   // -----------------------------------------------
+  /*
   const positionsList = [
     [],
     [[3, 4]],
@@ -47,7 +51,43 @@ export function TableGrid({ggc, myIndex, backgroundColor}) {
     [[1, 2], [1, 6], [4, 1], [4, 7], [7, 1], [7, 7], [10, 2], [10, 6]]
   ];
 
-  const positions = positionsList[ccList.length] || [];
+  const positions = List.length]positionsList[cc || [];
+*/
+
+  // -----------------------------------------------
+  //  Where to put PlayerGrids, depending on how many
+  //  the list is one-based
+  //  the coords in the list are zero-based
+  //
+  //  [
+  //    [number of TableGrid rows, number of TableGrid cols],
+  //    [span of PlayerGrid rows, span of PlayerGrid cols],
+  //    [PlayerGrid topleft row coord, PlayerGrid topleft col coord],
+  //      ...
+  //    [PlayerGrid topleft row coord, PlayerGrid topleft col coord],
+  //  ]
+  // -----------------------------------------------
+
+  const newPositionList = [
+    [], // index 0 unused
+    [[12, 12], [3, 4],   [3, 4]],   // 1
+    [[12, 11], [3, 4],   [3, 1], [3, 6]],   //2
+    [[12, 12], [3, 4],   [1, 4], [5, 1], [5, 7]],   //3
+    [[12, 12], [3, 4],   [1, 4], [5, 1], [5, 7], [9, 4]],   //4
+    [[12, 12], [3, 4],   [1, 4], [5, 0], [5, 8], [9, 1], [9, 7]],   //5
+    [[12, 11], [2, 3],   [1, 4], [4, 1], [4, 7], [7, 1], [7, 7], [10, 4]],  //6
+    [[12, 11], [2, 3],   [1, 4], [4, 1], [4, 7], [7, 1], [7, 7], [10, 2], [10, 6]],   //7
+    [[12, 11], [2, 3],   [1, 2], [1, 6], [4, 1], [4, 7], [7, 1], [7, 7], [10, 2], [10, 6]] //8
+  ];
+
+  const numPlayers = ccList.length;
+  const layout = newPositionList[numPlayers];
+  if (!layout || layout.length < 3) return null;
+
+  const [gridSize, playerSize, ...positions] = layout;
+  const [numRows, numCols] = gridSize;
+  const [rowSpan, colSpan] = playerSize;
+
 
   // -----------------------------------------------
   // rendering
@@ -57,23 +97,30 @@ export function TableGrid({ggc, myIndex, backgroundColor}) {
       className="table-grid"
       style={{
         display: 'grid',
-        gridTemplateColumns: 'repeat(11, 1fr)',
-        gridTemplateRows: 'repeat(12, 1fr)',
-        width: '100vw',
-        height: '100vh',
-        gap: '2px',
-        backgroundColor
+        gridTemplateRows: `repeat(${numRows}, 1fr)`,
+        gridTemplateColumns: `repeat(${numCols}, 1fr)`,
+        width: '100%',
+        height: '100%',
+        backgroundColor: backgroundColor || 'lightblue'
       }}
     >
       {positions.map(([row, col], index) => (
         <div
-          key={`player-${index}`}
+          key={`pg-${index}`}
           style={{
-            gridRow: `${row + 1} / span 2`,
-            gridColumn: `${col + 1} / span 3`
+            gridRow: `${row + 1} / span ${rowSpan}`,
+            gridColumn: `${col + 1} / span ${colSpan}`,
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            width: '100%',
+            height: '100%',
+            overflow: 'hidden',            
           }}
         >
-          <PlayerGrid ggc={ggc} cc={ccList[index]} myIndex={myIndex} />
+        <div style={{ maxWidth: '300px', width: '100%', height: '100%' }}>
+          <PlayerGrid ggc={ggc} myIndex={myIndex} cc={ccList[index]} />
+        </div>
         </div>
       ))}
     </div>

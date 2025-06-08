@@ -158,6 +158,9 @@ import { CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYE
     let directionBoxX;
     let directionBoxY;
 
+    // background color for TableGrid
+    const bgColor = ggc.allConnectionStatus[myIndex] === CONN_OBSERVER ? 'lightgray' : 'lightblue';
+    const UIMargin = 8;
 
     //************************************************************
     // UseEffect CHECKBOX [selectedBid, CanShowShake]
@@ -590,27 +593,37 @@ import { CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYE
   //************************************************************
   // useEffect:  WINDOW RESIZE []
   //************************************************************
+  const getViewportHeight = () => {
+    // visualWiewport for mobile
+    return window.visualViewport?.height || window.innerHeight;
+  };
+
   useEffect(() => {
     const updateLayout = () => {
-      // Update screen size
       setScreenSize({
         width: window.innerWidth,
-        height: window.innerHeight,
+        height: getViewportHeight(),
       });
 
-      // Update available height
       if (fixedRef.current) {
         const fixedHeight = fixedRef.current.offsetHeight;
-        setAvailableHeight(window.innerHeight - fixedHeight);
+        setAvailableHeight(getViewportHeight() - fixedHeight - 16);
+        //timing issue with UIMargin, use literal instead
+        //setAvailableHeight(getViewportHeight() - fixedHeight - 2 * UIMargin);
       }
     };
 
     // Initial run
-    updateLayout();
+    updateLayout ();
 
-    // Listen to resize
+    // Listen to resize events
     window.addEventListener('resize', updateLayout);
-    return () => window.removeEventListener('resize', updateLayout);
+    window.visualViewport?.addEventListener('resize', updateLayout);
+
+    return () => {
+      window.removeEventListener('resize', updateLayout);
+      window.visualViewport?.removeEventListener('resize', updateLayout);
+    };
   }, []);
 
 //************************************************************
@@ -1143,7 +1156,7 @@ useEffect(() => {
   return (
     <div
       className="d-flex flex-column"
-      style={{ height: '100vh', overflow: 'hidden' }}
+      style={{ height: '100vh', overflow: 'hidden', margin: `${UIMargin}px`}}
     >
     {/* Fixed Content: NavBar + Row1 + Row2 */}
     <div ref={fixedRef}>
@@ -1184,13 +1197,25 @@ useEffect(() => {
     </div>
 
     {/* Row 3: TableGrid takes up remaining height */}
-    <div style={{ flexGrow: 1, overflow: 'hidden' }}>
-      <TableGrid
-        ggc={ggc}
-        myIndex={myIndex}
-        backgroundColor={ggc.allConnectionStatus[myIndex] == CONN_OBSERVER ? 
-                        'lightgray' : 'lightblue'}
-      />
+    <div
+      style={{
+        height: `${availableHeight}px`,
+        overflow: 'hidden',
+        padding: '8px',
+        backgroundColor: bgColor,
+        boxSizing: 'border-box',
+        border: '2px solid red',
+      }}
+    >
+      <div
+        style={{
+          width: '100%',
+          height: '100%',
+          backgroundColor: bgColor
+        }}
+      >
+        <TableGrid ggc={ggc} myIndex={myIndex} backgroundColor="transparent" />
+      </div>
     </div>
 
     {/* Floating countdown overlay */}
