@@ -1,5 +1,6 @@
 import './TableGrid.css';
-import PlayerGrid from './PlayerGrid'; 
+// import PlayerGrid from './PlayerGrid';
+import PlayerCard from '../components/PlayerCard';
 
 import { CONN_PLAYER_IN, CONN_PLAYER_OUT } from '../DudoGameC.js';
 
@@ -115,11 +116,12 @@ export function TableGrid({ggc, myIndex, backgroundColor}) {
             alignItems: 'center',
             width: '100%',
             height: '100%',
-            overflow: 'hidden',            
+            overflow: 'visible',            
           }}
         >
         <div style={{ maxWidth: '300px', width: '100%', height: '100%' }}>
-          <PlayerGrid ggc={ggc} myIndex={myIndex} cc={ccList[index]} />
+          {/* <PlayerGrid ggc={ggc} myIndex={myIndex} cc={ccList[index]} /> */}
+          <PlayerCard ggc={ggc} cc={ccList[index]} myIndex={myIndex} />
         </div>
         </div>
       ))}
