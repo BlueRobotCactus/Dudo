@@ -29,13 +29,29 @@ export function TableGrid({ggc, myIndex, backgroundColor}) {
     }
   } else {
     // the normal thing (not debugging)
+    let cc = myIndex;
+    for (let i = 0; i < ggc.maxConnections; i++) {
+      if (ggc.allConnectionStatus[cc] === CONN_PLAYER_IN ||
+          ggc.allConnectionStatus[cc] === CONN_PLAYER_OUT) {
+        ccList.push(cc);
+      }
+      cc++;
+      if (cc == ggc.maxConnections) {
+        cc = 0;
+      }
+    }
+
+
+/*
     for (let cc = 0; cc < ggc.maxConnections; cc++) {
         if (ggc.allConnectionStatus[cc] == CONN_PLAYER_IN ||
             ggc.allConnectionStatus[cc] == CONN_PLAYER_OUT) {
             ccList.push(cc);
         }
     }
-  }
+*/
+
+    }
 
   // -----------------------------------------------
   // Where to put PlayerGrids, depending on how many
