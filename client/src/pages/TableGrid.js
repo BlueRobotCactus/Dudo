@@ -1,14 +1,15 @@
 import './TableGrid.css';
-// import PlayerGrid from './PlayerGrid';
-import PlayerCard from '../components/PlayerCard';
+import PlayerGrid from './PlayerGrid';
+import PlayerCard from './PlayerCard.js';
 
 import { CONN_PLAYER_IN, CONN_PLAYER_OUT } from '../DudoGameC.js';
 
 //************************************************************
-// TableGrid (PlayerGrids placed within it
+// TableGrid (PlayerCards placed within it)
 // ggc = DudoGame object
 //************************************************************
 export function TableGrid({ggc, myIndex, backgroundColor}) {
+  console.log("TableGrid: entering TableGrid ()");
 
   // -----------------------------------------------
   // Get list of players (cc's) and how many
@@ -17,15 +18,17 @@ export function TableGrid({ggc, myIndex, backgroundColor}) {
   const ccList = [];
 
   let debugging = 0;   // 0 means no debugging
-  const name = localStorage.getItem('playerName');
-  if (name.length == 1) {
-    debugging = Number(name);
-  }
-  if (debugging > 0 ) {
-    for (let i=0; i<debugging; i++) {
+  if (debugging) {
+    const name = localStorage.getItem('playerName');
+    let numPlayers = 1;
+    if (name.length == 1) {
+      numPlayers = Number(name);
+    }
+    for (let i=0; i<numPlayers; i++) {
       ccList.push(0);
     }
   } else {
+    // the normal thing (not debugging)
     for (let cc = 0; cc < ggc.maxConnections; cc++) {
         if (ggc.allConnectionStatus[cc] == CONN_PLAYER_IN ||
             ggc.allConnectionStatus[cc] == CONN_PLAYER_OUT) {
@@ -72,16 +75,20 @@ export function TableGrid({ggc, myIndex, backgroundColor}) {
   const newPositionList = [
     [], // index 0 unused
     [[12, 12], [3, 4],   [3, 4]],   // 1
-    [[12, 11], [3, 4],   [3, 1], [3, 6]],   //2
-    [[12, 12], [3, 4],   [1, 4], [5, 1], [5, 7]],   //3
-    [[12, 12], [3, 4],   [1, 4], [5, 1], [5, 7], [9, 4]],   //4
-    [[12, 12], [3, 4],   [1, 4], [5, 0], [5, 8], [9, 1], [9, 7]],   //5
-    [[12, 11], [2, 3],   [1, 4], [4, 1], [4, 7], [7, 1], [7, 7], [10, 4]],  //6
-    [[12, 11], [2, 3],   [1, 4], [4, 1], [4, 7], [7, 1], [7, 7], [10, 2], [10, 6]],   //7
-    [[12, 11], [2, 3],   [1, 2], [1, 6], [4, 1], [4, 7], [7, 1], [7, 7], [10, 2], [10, 6]] //8
+    [[12, 12], [3, 4],   [6, 4], [1, 4]],   //2
+    [[12, 12], [3, 4],   [6, 4], [1, 1], [1, 7]],   //3
+    [[13, 12], [3, 4],   [9, 4], [5, 1], [1, 4], [5, 7]],   //4
+    [[13, 14], [3, 4],   [9, 5], [5, 1], [1, 2], [1, 8], [5, 9]],   //5
+    [[13, 11], [2, 3],   [10, 4], [7, 1], [4, 1], [1, 4], [4, 7], [7, 7]],  //6
+    [[13, 11], [2, 3],   [10, 4], [7, 1], [4, 1], [1, 2], [1, 6], [4, 7], [7, 7]],   //7
+    [[13, 11], [2, 3],   [10, 2], [7, 1], [4, 1], [1, 2], [1, 6], [4, 7], [7, 7], [10, 6]] //8
   ];
 
   const numPlayers = ccList.length;
+
+  console.log("numPlayers: " + numPlayers);
+
+
   const layout = newPositionList[numPlayers];
   if (!layout || layout.length < 3) return null;
 

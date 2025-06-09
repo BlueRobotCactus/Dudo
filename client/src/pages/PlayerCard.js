@@ -1,11 +1,17 @@
 'use strict';
 
 import React, { useContext } from 'react';
-import { ImageRefsContext } from '../../ImageRefsContext.js';
-import { CONN_PLAYER_IN, CONN_PLAYER_OUT } from '../../DudoGameC.js';
+import { ImageRefsContext } from '../ImageRefsContext.js';
+import { CONN_PLAYER_IN, CONN_PLAYER_OUT } from '../DudoGameC.js';
 
+//************************************************************
+// TableGrid (PlayerCards placed within it)
+// ggc = DudoGame object
+//************************************************************
 // Note: flex‑wrap layout guarantees nothing overflows the card
 function PlayerCard({ ggc, myIndex, cc }) {
+  console.log("PlayerCard: entering PlayerCard ()");
+
   // Context
   const {
     cupDownImageRef,
@@ -54,9 +60,9 @@ function PlayerCard({ ggc, myIndex, cc }) {
     }
   }
 
-  // Turn footer
-  const isTurn = ggc.bGameInProgress && cc === ggc.whosTurn;
-  const footerLabel = isTurn
+    // Turn footer
+  let isTurn = ggc.bGameInProgress && cc === ggc.whosTurn;
+  let footerLabel = isTurn
     ? cc === myIndex
       ? 'Your Turn'
       : `${ggc.allParticipantNames[cc] || '—'}'s Turn`
@@ -65,10 +71,26 @@ function PlayerCard({ ggc, myIndex, cc }) {
   // Shared icon size
   const iconBox = { width: 18, height: 18 };
 
-  // Render
+  let debugging = 0;
+  if (debugging) {
+    // force everything to show
+    for (let i = 0; i < 5; i++) {
+      const imgRef1 = diceImagesRef.current[1];
+      diceTop[i] = imgRef1;
+      const imgRef2 = diceImagesRef.current[2];
+      diceBottom[i] = imgRef2;
+    }
+    ggc.allSticks[cc] = 2;
+    isTurn = true;
+    footerLabel = 'Your turn';
+  }
+
+  //************************************************************
+  // rendering
+  //************************************************************
   return (
-    <div className={`card d-flex flex-column ${isTurn ? 'border-danger' : ''}`} style={{ minWidth: 140 }}>
-      {/* Header */}
+     <div className={`card d-flex flex-column ${isTurn ? 'border-danger' : ''}`} style={{ minWidth: 140 }}>
+       {/* Header */}
       <div className="card-header text-center p-1 fw-bold">{ggc.allParticipantNames[cc] || '—'}</div>
 
       {/* Body */}

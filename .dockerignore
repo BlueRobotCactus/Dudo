@@ -10,6 +10,7 @@ tag.bat
 push.bat
 deploy.bat
 DudoEvents.xlsx
+TableGrid.xlsx
 
 # Ignore build output (we build it in Docker)
 client/build

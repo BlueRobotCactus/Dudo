@@ -84,7 +84,7 @@ export class DudoGame {
         }
 
         // default game parameters
-        this.maxSticks = 3;
+        this.maxSticks = 1;
         this.bPasoAllowed = true;
         this.bPaloFijoAllowed = true;
         this.bPaloFijoRound =  false;
