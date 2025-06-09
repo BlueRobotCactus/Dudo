@@ -4,8 +4,7 @@
   grid-Template-Columns: repeat(7, 1fr);
   width: 100%;
   height: 100%;
-  margin: 0 auto;     /* center it horizontally */ 
-  background-color: white;
+  margin: 0 auto;     /* center it horizontally */
 }
 
 .cup {

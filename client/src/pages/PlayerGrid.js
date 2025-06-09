@@ -146,20 +146,8 @@ export function PlayerGrid({ggc, myIndex, cc}) {
         style={{
           gridRow: '1 / span 2',
           gridColumn: '1 / span 7',
-          border: '2px solid black',
-          zIndex: 1,               // Push behind other content
-        }}
-      />
-
-      {/*--------------------------------------------------------
-        Border box around the whole grid
-      --------------------------------------------------------*/}
-      <div
-        style={{
-          gridRow: '1 / span 3',
-          gridColumn: '1 / span 7',
-          border: ggc.bGameInProgress && cc === ggc.whosTurn ? '3px solid red' : '1px solid black',          
-          zIndex: 2,               // Push behind other content
+          border: ggc.bGameInProgress && cc === ggc.whosTurn ? '3px solid red' : '1px solid black',
+          zIndex: 1,
         }}
       />
 
@@ -183,7 +171,7 @@ export function PlayerGrid({ggc, myIndex, cc}) {
           gridRow: '1 / span 1',
           gridColumn: '3 / span 5',
           fontWeight: 'bold',
-          display: 'flex',             // enable flexbox
+          display: 'flex',
           alignItems: 'center',        // vertical centering
           justifyContent: 'center',    // optional: horizontal centering
           zIndex: 0
@@ -195,6 +183,15 @@ export function PlayerGrid({ggc, myIndex, cc}) {
       {/*--------------------------------------------------------
         Hidden dice in cells (2,3) to (2,7)
       --------------------------------------------------------*/}
+      <div
+        style={{
+          gridRow: 2,
+          gridColumn: '3 / span 5',
+          backgroundColor: 'white',
+          zIndex: 0,
+        }}
+      />
+
       {diceImageTopList[cc].map((imgRef, index) => {
         if (!imgRef) return null; // skip nulls
 
@@ -225,19 +222,17 @@ export function PlayerGrid({ggc, myIndex, cc}) {
             }}
           />
         </div>
-
         );
       })}
 
-
       {/*--------------------------------------------------------
-        Row 3 is lightblue
+        Row 3, where shown dice go
       --------------------------------------------------------*/}
       <div
         style={{
           gridRow: 3,
           gridColumn: '1 / span 7',
-          backgroundColor: 'lightblue',
+          backgroundColor: 'transparent',
           zIndex: 0,
         }}
       />
@@ -257,7 +252,7 @@ export function PlayerGrid({ggc, myIndex, cc}) {
             display: 'flex',
             justifyContent: 'center',
             alignItems: 'center',
-            backgroundColor: 'lightblue',
+            backgroundColor: 'transparent',
             zIndex: 0
           }}
         >
@@ -290,7 +285,7 @@ export function PlayerGrid({ggc, myIndex, cc}) {
             display: 'flex',
             justifyContent: 'center',
             alignItems: 'center',
-            backgroundColor: 'lightblue',
+            backgroundColor: 'transparent',
             zIndex: 0,
 
           }}
@@ -318,7 +313,7 @@ export function PlayerGrid({ggc, myIndex, cc}) {
             display: 'flex',
             justifyContent: 'center',
             alignItems: 'center',
-            backgroundColor: 'lightblue',
+            backgroundColor: 'transparent',
             zIndex: 0,
           }}
         >

@@ -102,9 +102,6 @@ export function TableGrid({ggc, myIndex, backgroundColor}) {
 
   const numPlayers = ccList.length;
 
-  console.log("numPlayers: " + numPlayers);
-
-
   const layout = newPositionList[numPlayers];
   if (!layout || layout.length < 3) return null;
 
@@ -144,7 +141,7 @@ export function TableGrid({ggc, myIndex, backgroundColor}) {
         >
         <div style={{ maxWidth: '300px', width: '100%', height: '100%' }}>
           {/* <PlayerGrid ggc={ggc} myIndex={myIndex} cc={ccList[index]} /> */}
-          <PlayerCard ggc={ggc} cc={ccList[index]} myIndex={myIndex} />
+          <PlayerGrid ggc={ggc} cc={ccList[index]} myIndex={myIndex} />
         </div>
         </div>
       ))}
