@@ -2,15 +2,24 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useContext } from 'react';
 import { SocketContext } from '../SocketContext.js';
+import { OkDlg } from '../Dialogs.js';
 
 
-
+//************************************************************
+// LandingPage function
+//************************************************************
 function LandingPage({ playerName, setPlayerName }) {
   const navigate = useNavigate();
   const [lobbies, setLobbies] = useState([]);
 
   const { socket, connected } = useContext(SocketContext);
 
+  // OkDlg
+  const [showOkDlg, setShowOkDlg] = useState(false);
+  const [okPosition, setOkPosition] = useState({ top: 200, left: 200 });
+  const [okTitle, setOkTitle] = useState('');
+  const [okMessage, setOkMessage] = useState('');
+  const [onOkHandler, setOnOkHandler] = useState(() => () => {});
 
   // for input name
   //const [askName, setAskName] = useState(false);
@@ -57,6 +66,9 @@ useEffect(() => {
       .catch((err) => console.error(err));
   
     socket.on('lobbiesList', (updatedList) => {
+
+      console.log ("RECEIVED LOBBIESLIST FROM SERVER");
+
       setLobbies(updatedList);
     });
   
@@ -130,10 +142,24 @@ useEffect(() => {
   // Change name 
   //-------------------------------------------
   const handleChangeName = () => {
+
     if (name.trim() !== '') {
-      setPlayerName(name.trim());
-      localStorage.setItem('playerName', name.trim());
-    }
+      socket.emit('checkNameExists', name.trim(), (exists) => {
+
+      if (exists) {
+        // somebody with this name already in some lobby
+        setOkMessage("This name is already taken.\nPress OK to continue.");
+        setOkTitle("");
+        setOnOkHandler(() => () => {
+          setShowOkDlg(false);
+        });
+        setShowOkDlg(true);
+      } else {
+        setPlayerName(name.trim());
+        localStorage.setItem('playerName', name.trim());
+      }
+    });
+   }
   };
 
   //************************************************************
@@ -238,8 +264,6 @@ useEffect(() => {
         </div>
       </div>
 
-
-
       {/* Existing Page Content */}
       <div style={{ padding: '20px' }}>
         <h1>
@@ -285,6 +309,20 @@ useEffect(() => {
           </>
         )}
       </div>
+
+    {/*-------------------------------------------------------------------
+      DIALOGS
+    --------------------------------------------------------------------*/}
+      {showOkDlg && (
+        <OkDlg
+          open={showOkDlg}
+          position={okPosition}
+          setPosition={setOkPosition}          
+          title={okTitle}
+          message={okMessage}
+          onOk={onOkHandler}
+        />
+      )}
     </div>
   );
 }

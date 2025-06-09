@@ -81,6 +81,8 @@ io.on('connection', (socket) => {
       game: ggs,
     };
 
+    console.log("JUST CREATED LOBBY OBJECT");
+
     // add host to lobby
     ggs.allParticipantNames[0] = hostName;
     ggs.allConnectionID[0] = socket.id;
@@ -184,6 +186,24 @@ io.on('connection', (socket) => {
     } else {
       callback({ error: 'Lobby not found' });
     }
+  });
+
+  //************************************************************
+  // socket.on
+  // CHECK IF NAME EXISTS IN ANY LOBBY, CALLBACK THE RESULT
+  //************************************************************
+  socket.on('checkNameExists', (nameToCheck, callback) => {
+    let nameExists = false;
+
+    for (const lobby of Object.values(lobbies)) {
+      if (!Array.isArray(lobby.players)) continue;
+      if (lobby.players.some(p => p.name === nameToCheck)) {
+        nameExists = true;
+        break;
+      }
+    }
+
+    callback(nameExists); // Send result back to client
   });
 
   //************************************************************
