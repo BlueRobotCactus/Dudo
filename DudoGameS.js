@@ -73,7 +73,7 @@ export class DudoGame {
     // constructor
     //****************************************************************
     constructor() {
-        this.maxPlayers = 6;
+        this.maxPlayers = 8;
         //this.allSticks = [];
         for (let cc = 0; cc < this.maxConnections; cc++) {
             this.allParticipantNames[cc] = '';
@@ -96,17 +96,18 @@ export class DudoGame {
             this.allBids[i] = new DudoBid();
         }
 
-        this.dice = new Array(6);
-        for (let i = 0; i < 6; i++) {
+        // NOTE:  10 literal must be the same as maxConnections
+        this.dice = new Array(10);
+        for (let i = 0; i < 10; i++) {
             this.dice[i] = new Array(5);
         }
-        this.bDiceHidden = new Array(6);
-        for (let i = 0; i < 6; i++) {
+        this.bDiceHidden = new Array(10);
+        for (let i = 0; i < 10; i++) {
             this.bDiceHidden[i] = new Array(5);
         }
 
-        this.bDiceHilite = new Array(6);
-        for (let i = 0; i < 6; i++) {
+        this.bDiceHilite = new Array(10);
+        for (let i = 0; i < 10; i++) {
             this.bDiceHilite[i] = new Array(5);
         }
 
@@ -171,7 +172,7 @@ export class DudoGame {
         this.whosTurnPrev = state.whosTurnPrev;
         this.whosTurnNext = state.whosTurnNext;
         
-        for (let i=0; i<state.maxPlayers; i++) {
+        for (let i=0; i<state.maxConnections; i++) {
             for (let j=0; j<5; j++) {
                 this.dice[i][j] = state.dice[i][j];
                 this.bDiceHidden[i][j] = state.bDiceHidden[i][j];
@@ -242,7 +243,7 @@ export class DudoGame {
             this.allBids[i] = new DudoBid();
         }
 
-        for (let i=0; i < 6; i++) {
+        for (let i=0; i < 10; i++) {
             for (let j=0; j < 5; j++) {
                 this.dice[i][j] = undefined;
                 this.bDiceHidden[i][j] = true;
@@ -270,7 +271,7 @@ export class DudoGame {
         while (true) {
             if (cc == 0) {
                 cc = cc + 1;
-            } else if (cc == this.maxPlayers - 1) {
+            } else if (cc == this.maxConnections - 1) {
                 cc = 0;
             } else {
                 cc = cc + 1;
@@ -288,8 +289,8 @@ export class DudoGame {
     getPlayerToRight (cc) {
         while (true) {
             if (cc == 0) {
-                cc = this.maxPlayers - 1;
-            } else if (cc == this.maxPlayers - 1) {
+                cc = this.maxConnections - 1;
+            } else if (cc == this.maxConnections - 1) {
                 cc = cc - 1;
             } else {
                 cc = cc - 1;
@@ -359,7 +360,7 @@ export class DudoGame {
             //--------------------------------------------------------
             this.result.doubtWasPaso = false;
             this.result.doubtCount = 0;
-            for (let cc = 0; cc < this.maxPlayers; cc++) {
+            for (let cc = 0; cc < this.maxConnections; cc++) {
                 if (this.allConnectionStatus[cc] == CONN_PLAYER_IN) {
                     for (let j = 0; j < 5; j++) {
                         if (this.dice[cc][j] == this.result.doubtOfWhat) {
@@ -381,7 +382,7 @@ export class DudoGame {
                 //----------------------------------------------------
                 this.result.doubtWasPaso = false;
                 this.result.doubtCount = 0;
-                for (let cc = 0; cc < this.maxPlayers; cc++) {
+                for (let cc = 0; cc < this.maxConnections; cc++) {
                     if (this.allConnectionStatus[cc] == CONN_PLAYER_IN) {
                         for (let j = 0; j < 5; j++) {
                             if (this.dice[cc][j] == this.result.doubtOfWhat) {
@@ -398,7 +399,7 @@ export class DudoGame {
                 //----------------------------------------------------
                 this.result.doubtWasPaso = false;
                 this.result.doubtCount = 0;
-                for (let cc = 0; cc < this.maxPlayers; cc++) {
+                for (let cc = 0; cc < this.maxConnections; cc++) {
                     if (this.allConnectionStatus[cc] == CONN_PLAYER_IN) {
                         for (let j = 0; j < 5; j++) {
                             if ((this.dice[cc][j] == this.result.doubtOfWhat)|| this.dice[cc][j] == 1){
