@@ -519,7 +519,7 @@ import { CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYE
   //************************************************************
   const handleForceLeaveLobby = () => {
     setOkMessage("The host has closed the lobby.\nPress OK to continue.");
-    setOkTitle("");
+    setOkTitle("Closing lobby");
     setOnOkHandler(() => () => {
       if (connected) {
         socket.emit('leaveLobby', { playerName, lobbyId });

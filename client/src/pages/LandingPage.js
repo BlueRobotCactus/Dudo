@@ -148,8 +148,8 @@ useEffect(() => {
 
       if (exists) {
         // somebody with this name already in some lobby
-        setOkMessage("This name is already taken.\nPress OK to continue.");
-        setOkTitle("");
+        setOkMessage("This name is already taken.\nPress OK then choose another one.");
+        setOkTitle("Change Name");
         setOnOkHandler(() => () => {
           setShowOkDlg(false);
         });

@@ -1,0 +1,4 @@
+.yesno-sm-modal .modal-dialog {
+  max-width: 200px;  /* was 320px */
+  margin: auto;
+}

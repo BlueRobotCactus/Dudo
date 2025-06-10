@@ -1,6 +1,8 @@
 'use strict';
 
 import React, { useState, useRef, useEffect } from 'react';
+import Modal from 'react-bootstrap/Modal';
+import Button from 'react-bootstrap/Button';
 
 //************************************************************
 // Shared Hook: useDraggableDialog
@@ -172,88 +174,37 @@ export function ConfirmBidDlg({
 //************************************************************
 export function OkDlg({
   open,
-  title = "",
+  title = '',
   message,
-  onOk,
-  position,
-  setPosition,
-  style = {},
+  onOk = () => {},
+  xShowButton = false, // Optional: allow dismiss via "X" if desired
 }) {
-  const dialogRef = useRef(null);
-  const {
-    handleMouseDown,
-    handleMouseMove,
-    handleMouseUp,
-    handleTouchStart,
-    handleTouchMove,
-    handleTouchEnd,
-  } = useDraggableDialog(dialogRef, position, setPosition);
-
-  if (!open) return null;
-
   return (
-    <div
-      onMouseMove={handleMouseMove}
-      onMouseUp={handleMouseUp}
-      onTouchMove={handleTouchMove}
-      onTouchEnd={handleTouchEnd}
-      style={{
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        width: '100vw',
-        height: '100vh',
-        zIndex: 1000,
-        userSelect: 'none',
-      }}
+    <Modal
+      show={open}
+      centered
+      backdrop="static"    // Prevent closing by clicking outside
+      keyboard={false}     // Prevent ESC key closing
+      dialogClassName="yesno-sm-modal" // custom class for size
     >
-      <div
-        ref={dialogRef}
-        style={{
-          position: 'absolute',
-          top: position.y,
-          left: position.x,
-          backgroundColor: 'white',
-          border: '2px solid darkblue',
-          borderRadius: '10px',
-          overflow: 'hidden',
-          paddingBottom: '20px',
-          textAlign: 'center',
-          width: '300px',
-          maxWidth: '90vw',
-          boxShadow: '0 0 10px rgba(0,0,0,0.25)',
-          ...style,
-        }}
+      <Modal.Header
+        closeButton={xShowButton}
+        closeVariant="white"
+        className="bg-primary text-white"
       >
-        {/* Title Bar */}
-        <div
-          onMouseDown={handleMouseDown}
-          onTouchStart={handleTouchStart}
-          style={{
-            backgroundColor: 'darkblue',
-            color: 'white',
-            padding: '10px 12px',
-            fontWeight: 'bold',
-            cursor: 'move',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-          }}
-        >
-          <span>{title}</span>
-        </div>
+        <Modal.Title>{title}</Modal.Title>
+      </Modal.Header>
 
-        {/* Message */}
-        <div style={{ margin: '20px 10px', fontSize: '18px', whiteSpace: 'pre-line' }}>
-          {message}
-        </div>
+      <Modal.Body style={{ whiteSpace: 'pre-line', fontSize: '16px' }}>
+        {message}
+      </Modal.Body>
 
-        {/* OK Button */}
-        <button onClick={onOk} style={{ padding: '10px 20px', fontSize: '16px' }}>
+      <Modal.Footer>
+        <Button variant="primary" onClick={onOk}>
           OK
-        </button>
-      </div>
-    </div>
+        </Button>
+      </Modal.Footer>
+    </Modal>
   );
 }
 
@@ -262,107 +213,51 @@ export function OkDlg({
 //************************************************************
 export function YesNoDlg({
   open,
-  position,
-  setPosition,
   title = "",
-  message,
-  yesText,
-  noText,
-  onYes,
-  onNo,
-  onClose,
-  yesShowButton,
-  noShowButton,
-  xShowButton,
-  style = {},
+  message = "",
+  yesText = "Yes",
+  noText = "No",
+  onYes = () => {},
+  onNo = () => {},
+  onClose = () => {},
+  yesShowButton = true,
+  noShowButton = true,
+  xShowButton = true,
 }) {
-  const { dialogRef, startDrag } = useDraggableDialog(open, position, setPosition);
-
-  if (!open) return null;
-
   return (
-    <div
-      style={{
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        width: '100vw',
-        height: '100vh',
-        zIndex: 1000,
-        userSelect: 'none',
-      }}
+    <Modal
+      show={open}
+      onHide={onClose}
+      centered
+      backdrop="static"
+      keyboard={false}
+      dialogClassName="yesno-sm-modal" // custom class for size
     >
-      <div
-        ref={dialogRef}
-        style={{
-          position: 'absolute',
-          top: position.y,
-          left: position.x,
-          backgroundColor: 'white',
-          border: '2px solid darkblue',
-          borderRadius: '10px',
-          overflow: 'hidden',
-          paddingBottom: '20px',
-          textAlign: 'center',
-          minWidth: '280px',
-          maxWidth: '90vw',
-          boxShadow: '0 0 10px rgba(0,0,0,0.25)',
-          ...style,
-        }}
+      <Modal.Header
+        closeButton={xShowButton}
+        closeVariant="white"
+        className="bg-primary text-white py-2 px-3"
+        style={{ fontSize: '14px' }}
       >
-        {/* Title Bar */}
-        <div
-          onMouseDown={(e) => startDrag(e.clientX, e.clientY)}
-          onTouchStart={(e) => startDrag(e.touches[0].clientX, e.touches[0].clientY)}
-          style={{
-            backgroundColor: 'darkblue',
-            color: 'white',
-            padding: '10px 12px',
-            fontWeight: 'bold',
-            cursor: 'move',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-          }}
-        >
-          <span>{title}</span>
+        <Modal.Title style={{ fontSize: '16px' }}>{title}</Modal.Title>
+      </Modal.Header>
 
-          {xShowButton && (
-            <button
-              onClick={onClose}
-              style={{
-                background: 'none',
-                border: 'none',
-                color: 'white',
-                fontSize: '16px',
-                cursor: 'pointer',
-              }}
-              title="Close"
-            >
-              ✕
-            </button>
-          )}
-        </div>
+      <Modal.Body style={{ whiteSpace: 'pre-line', fontSize: '14px', padding: '12px 16px' }}>
+        {message}
+      </Modal.Body>
 
-        {/* Message */}
-        <div style={{ margin: '20px 10px', fontSize: '18px', whiteSpace: 'pre-line' }}>
-          {message}
-        </div>
-
-        {/* Buttons */}
-        <div className="d-flex justify-content-center gap-3 mt-3">
-          {yesShowButton && (
-            <button className="ff-style-button" onClick={onYes}>
-              {yesText}
-            </button>
-          )}
-          {noShowButton && (
-            <button className="ff-style-button" onClick={onNo}>
-              {noText}
-            </button>
-          )}
-        </div>
-      </div>
-    </div>
+      <Modal.Footer className="d-flex justify-content-center gap-2 py-2">
+        {noShowButton && (
+          <Button variant="secondary" size="sm" onClick={onNo}>
+            {noText}
+          </Button>
+        )}
+        {yesShowButton && (
+          <Button variant="primary" size="sm" onClick={onYes}>
+            {yesText}
+          </Button>
+        )}
+      </Modal.Footer>
+    </Modal>
   );
 }
