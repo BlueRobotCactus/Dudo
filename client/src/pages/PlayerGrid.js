@@ -146,8 +146,10 @@ export function PlayerGrid({ggc, myIndex, cc}) {
         style={{
           gridRow: '1 / span 2',
           gridColumn: '1 / span 7',
+          padding: '2px',
+          boxSizing: 'border-box',          
           border: ggc.bGameInProgress && cc === ggc.whosTurn ? '3px solid red' : '1px solid black',
-          zIndex: 1,
+          zIndex: 2,
         }}
       />
 
@@ -158,7 +160,15 @@ export function PlayerGrid({ggc, myIndex, cc}) {
         <img
           src={cupImageToShow.src}
           alt="Cup"
-          style={{ width: '100%', height: '100%', objectFit: 'contain', zIndex: 0 }}
+          style={{
+            width: '100%', 
+            height: '100%', 
+            objectFit: 'contain', 
+            border: '1px solid lightgray',
+            padding: '2px',
+            boxSizing: 'border-box',          
+            zIndex: 1,
+           }}
         />
       </div>
 
@@ -174,7 +184,10 @@ export function PlayerGrid({ggc, myIndex, cc}) {
           display: 'flex',
           alignItems: 'center',        // vertical centering
           justifyContent: 'center',    // optional: horizontal centering
-          zIndex: 0
+          padding: '2px',
+          boxSizing: 'border-box',          
+          border: '1px solid lightgray',
+          zIndex: 0,
         }}
       >
         {ggc.allParticipantNames[cc]}
@@ -188,7 +201,10 @@ export function PlayerGrid({ggc, myIndex, cc}) {
           gridRow: 2,
           gridColumn: '3 / span 5',
           backgroundColor: 'white',
-          zIndex: 0,
+          padding: '2px',
+          boxSizing: 'border-box',          
+          border: '1px solid lightgray',
+          zIndex: 1,
         }}
       />
 
@@ -205,7 +221,7 @@ export function PlayerGrid({ggc, myIndex, cc}) {
             justifyContent: 'center',
             alignItems: 'center',
             backgroundColor: 'white',
-            zIndex: 0,
+            zIndex: 1,
           }}
         >
           <img
