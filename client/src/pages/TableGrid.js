@@ -140,7 +140,7 @@ export function TableGrid({ggc, myIndex, backgroundColor}) {
           }}
         >
         <div style={{ maxWidth: '300px', width: '100%', height: '100%' }}>
-          {/* <PlayerGrid ggc={ggc} myIndex={myIndex} cc={ccList[index]} /> */}
+          {/* <PlayerCard ggc={ggc} myIndex={myIndex} cc={ccList[index]} /> */}
           <PlayerGrid ggc={ggc} cc={ccList[index]} myIndex={myIndex} />
         </div>
         </div>

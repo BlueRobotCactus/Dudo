@@ -28,14 +28,14 @@ export function ImageRefsProvider({ children }) {
     };
 
     const imgCupDown = new Image();
-    imgCupDown.src = '/images/CupDown.jpg';
+    imgCupDown.src = '/images/CupDown.png';
     imgCupDown.onload = () => { cupDownImageRef.current = imgCupDown; checkIfDone(); };
-    imgCupDown.onerror = (e) => console.error("Failed to load CupDown.jpg", e);
+    imgCupDown.onerror = (e) => console.error("Failed to load CupDown.png", e);
 
     const imgCupUp = new Image();
-    imgCupUp.src = '/images/CupUp.jpg';
+    imgCupUp.src = '/images/CupUp.png';
     imgCupUp.onload = () => { cupUpImageRef.current = imgCupUp; checkIfDone(); };
-    imgCupUp.onerror = (e) => console.error("Failed to load CupUp.jpg", e);
+    imgCupUp.onerror = (e) => console.error("Failed to load CupUp.png", e);
 
     for (let i = 1; i <= 6; i++) {
       const imgDice = new Image();

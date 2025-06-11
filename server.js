@@ -928,6 +928,7 @@ function PostRound(ggs) {
     if (ggs.allSticks[ggs.result.doubtLoser] == ggs.maxSticks) {
         // out! winner of doubt inherits first bid
         ggs.allConnectionStatus[ggs.result.doubtLoser] = CONN_PLAYER_OUT;
+        ggs.allSticks[ggs.result.doubtLoser] = 0;  
         ggs.whosTurn = ggs.result.doubtWinner;
         ggs.bPaloFijoRound = false;
     } else {

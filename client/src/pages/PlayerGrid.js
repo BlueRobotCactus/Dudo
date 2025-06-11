@@ -11,7 +11,7 @@ import { CONN_PLAYER_IN, CONN_PLAYER_OUT } from '../DudoGameC.js';
 // ggc = DudoGame object
 // cc = connection number of this player
 //************************************************************
-export function PlayerGrid({ggc, myIndex, cc}) {
+export function PlayerGrid({ggc, myIndex, cc }) {
 
   const gridRef = useRef();
   const [colSize, setColSize] = useState('1fr');
@@ -50,6 +50,9 @@ export function PlayerGrid({ggc, myIndex, cc}) {
     return () => window.removeEventListener('resize', updateGrid);
   }, []);
 
+  //--------------------------------------------------------
+  // bail out if images are not ready
+  //--------------------------------------------------------
   if (!imagesReady) {
     return <div>Loading images...</div>;
   }
@@ -132,6 +135,27 @@ export function PlayerGrid({ggc, myIndex, cc}) {
     }
   }
 
+  //--------------------------------------------------------
+  // which background colors to use
+  //--------------------------------------------------------
+  const status = ggc?.allConnectionStatus?.[cc];
+  const lifted = (ggc?.bDoubtInProgress || ggc?.bShowDoubtResult) && ggc?.result?.doubtDidLiftCup[cc];
+
+  const bgColor =
+    status === CONN_PLAYER_OUT
+      ? 'gray'
+      : status === CONN_PLAYER_IN && lifted
+      ? 'lightblue'
+      : 'white';
+
+  const lineColor =
+    status === CONN_PLAYER_OUT
+      ? 'lightgray'
+      : status === CONN_PLAYER_IN && lifted
+      ? 'gray'
+      : 'lightgray';
+
+
   //*****************************************************************
   //  render
   //*****************************************************************
@@ -146,7 +170,7 @@ export function PlayerGrid({ggc, myIndex, cc}) {
         style={{
           gridRow: '1 / span 2',
           gridColumn: '1 / span 7',
-          padding: '2px',
+          padding: '4px',
           boxSizing: 'border-box',          
           border: ggc.bGameInProgress && cc === ggc.whosTurn ? '3px solid red' : '1px solid black',
           zIndex: 2,
@@ -156,7 +180,7 @@ export function PlayerGrid({ggc, myIndex, cc}) {
       {/*--------------------------------------------------------
         Cup (2x2)
       --------------------------------------------------------*/}
-      <div className="cup" style={{ gridRow: '1 / span 2', gridColumn: '1 / span 2' }}>
+      <div style={{ gridRow: '1 / span 2', gridColumn: '1 / span 2', backgroundColor: bgColor, }}>
         <img
           src={cupImageToShow.src}
           alt="Cup"
@@ -164,9 +188,9 @@ export function PlayerGrid({ggc, myIndex, cc}) {
             width: '100%', 
             height: '100%', 
             objectFit: 'contain', 
-            border: '1px solid lightgray',
-            padding: '2px',
-            boxSizing: 'border-box',          
+            border: `1px solid ${lineColor}`,
+            padding: '4px',
+            boxSizing: 'border-box',
             zIndex: 1,
            }}
         />
@@ -176,7 +200,6 @@ export function PlayerGrid({ggc, myIndex, cc}) {
         Player name (row 1, cols 3-7)
       --------------------------------------------------------*/}
       <div
-        className="player-name"
         style={{
           gridRow: '1 / span 1',
           gridColumn: '3 / span 5',
@@ -184,9 +207,10 @@ export function PlayerGrid({ggc, myIndex, cc}) {
           display: 'flex',
           alignItems: 'center',        // vertical centering
           justifyContent: 'center',    // optional: horizontal centering
-          padding: '2px',
+          padding: '4px',
           boxSizing: 'border-box',          
-          border: '1px solid lightgray',
+          border: `1px solid ${lineColor}`,
+          backgroundColor: bgColor,
           zIndex: 0,
         }}
       >
@@ -200,10 +224,10 @@ export function PlayerGrid({ggc, myIndex, cc}) {
         style={{
           gridRow: 2,
           gridColumn: '3 / span 5',
-          backgroundColor: 'white',
-          padding: '2px',
+          backgroundColor: bgColor,
+          padding: '4px',
           boxSizing: 'border-box',          
-          border: '1px solid lightgray',
+          border: `1px solid ${lineColor}`,
           zIndex: 1,
         }}
       />
@@ -220,7 +244,7 @@ export function PlayerGrid({ggc, myIndex, cc}) {
             display: 'flex',
             justifyContent: 'center',
             alignItems: 'center',
-            backgroundColor: 'white',
+            backgroundColor: bgColor,
             zIndex: 1,
           }}
         >

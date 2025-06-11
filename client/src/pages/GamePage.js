@@ -1085,7 +1085,7 @@ useEffect(() => {
       // show dialog, handle responses
       if (ggc.whichDirection == undefined) {
         // choose direction if starting a round
-        setYesNoMessage("You start\nWhich way?");
+        setYesNoMessage("You start.\nWhich way?");
         setYesNoTitle("Choose direction");
         let cc = ggc.getPlayerToLeft(myIndex);
         setYesText("to " + ggc.allParticipantNames[cc]);
