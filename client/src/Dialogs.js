@@ -174,39 +174,48 @@ export function ConfirmBidDlg({
 //************************************************************
 export function OkDlg({
   open,
-  title = '',
-  message,
   onOk = () => {},
-  xShowButton = false, // Optional: allow dismiss via "X" if desired
+  title = "Information",
+  message = "",
+  xShowButton = false,
 }) {
   return (
     <Modal
       show={open}
+      onHide={onOk} // close when OK is clicked
       centered
-      backdrop="static"    // Prevent closing by clicking outside
-      keyboard={false}     // Prevent ESC key closing
-      dialogClassName="yesno-sm-modal" // custom class for size
+      backdrop="static"
+      keyboard={false}
+      dialogClassName="yesno-sm-modal" // keep size consistent
     >
       <Modal.Header
         closeButton={xShowButton}
         closeVariant="white"
-        className="bg-primary text-white"
+        className="bg-primary text-white py-2 px-3"
+        style={{ fontSize: '14px' }}
       >
-        <Modal.Title>{title}</Modal.Title>
+        <Modal.Title style={{ fontSize: '16px' }}>{title}</Modal.Title>
       </Modal.Header>
 
-      <Modal.Body style={{ whiteSpace: 'pre-line', fontSize: '16px' }}>
-        {message}
+      <Modal.Body>
+        <div className="container">
+          <div className="row">
+            <div className="col text-center" style={{ whiteSpace: 'pre-line' }}>
+              {message}
+            </div>
+          </div>
+        </div>
       </Modal.Body>
 
-      <Modal.Footer>
-        <Button variant="primary" onClick={onOk}>
+      <Modal.Footer className="d-flex justify-content-center gap-2 py-2">
+        <Button variant="primary" size="sm" onClick={onOk}>
           OK
         </Button>
       </Modal.Footer>
     </Modal>
   );
 }
+
 
 //************************************************************
 // YesNoDlg (reuseable)
@@ -231,7 +240,7 @@ export function YesNoDlg({
       centered
       backdrop="static"
       keyboard={false}
-      dialogClassName="yesno-sm-modal" // custom class for size
+      dialogClassName="yesno-sm-modal"
     >
       <Modal.Header
         closeButton={xShowButton}
@@ -242,19 +251,100 @@ export function YesNoDlg({
         <Modal.Title style={{ fontSize: '16px' }}>{title}</Modal.Title>
       </Modal.Header>
 
-      <Modal.Body style={{ whiteSpace: 'pre-line', fontSize: '14px', padding: '12px 16px' }}>
-        {message}
+      <Modal.Body>
+        <div className="container">
+          <div className="row">
+            <div className="col text-center" style={{ whiteSpace: 'pre-line' }}>
+              {message}
+            </div>
+          </div>
+        </div>
       </Modal.Body>
 
       <Modal.Footer className="d-flex justify-content-center gap-2 py-2">
+        {yesShowButton && (
+          <Button variant="primary" size="sm" onClick={onYes}>
+            {yesText}
+          </Button>
+        )}
         {noShowButton && (
           <Button variant="secondary" size="sm" onClick={onNo}>
             {noText}
           </Button>
         )}
+      </Modal.Footer>
+    </Modal>
+  );
+}
+
+
+//************************************************************
+// InOutDlg
+//************************************************************
+export function InOutDlg({
+  open,
+  onIn = () => {},
+  onOut = () => {},
+  onClose = () => {},
+  yesShowButton = true,
+  noShowButton = true,
+  xShowButton = false,
+  inOutSticks,
+  inOutPaso,
+  inOutPaloFijo,
+}) {
+  return (
+    <Modal
+      show={open}
+      onHide={onClose}
+      centered
+      backdrop="static"
+      keyboard={false}
+      dialogClassName="yesno-sm-modal" // custom class for size
+    >
+      <Modal.Header
+        closeButton={xShowButton}
+        closeVariant="white"
+        className="bg-primary text-white py-2 px-3"
+        style={{ fontSize: '14px' }}
+      >
+        <Modal.Title style={{ fontSize: '16px' }}>Starting a game</Modal.Title>
+      </Modal.Header>
+
+      <Modal.Body>
+        <div className="container">
+          <div className="row mb-3">
+            <div className="col text-center fw-bold" style={{ whiteSpace: 'pre-line' }}>
+              Starting a game{'\n'}Are you in?
+            </div>
+          </div>
+
+          <div className="row mb-2">
+            <div className="col-6 text-end">Number of sticks:</div>
+            <div className="col-6 text-start">{inOutSticks}</div>
+          </div>
+
+          <div className="row mb-2">
+            <div className="col-6 text-end">Paso Allowed</div>
+            <div className="col-6 text-start">{inOutPaso}</div>
+          </div>
+
+          <div className="row">
+            <div className="col-6 text-end">Palo Fijo allowed</div>
+            <div className="col-6 text-start">{inOutPaloFijo}</div>
+          </div>
+        </div>
+      </Modal.Body>
+
+      <Modal.Footer className="d-flex justify-content-center gap-2 py-2">
         {yesShowButton && (
-          <Button variant="primary" size="sm" onClick={onYes}>
-            {yesText}
+          <Button variant="primary" size="sm" onClick={onIn}>
+            Yes, I'm in
+          </Button>
+        )}
+        {noShowButton && (
+          <Button variant="secondary" size="sm" onClick={onOut}>
+            No, I'll watch
           </Button>
         )}
       </Modal.Footer>

@@ -9,6 +9,7 @@ import { TableGrid } from './TableGrid.js'
 import tableBackground from '../assets/table-background.png';
 
 import { ConfirmBidDlg } from '../Dialogs.js';
+import { InOutDlg } from '../Dialogs.js';
 import { OkDlg } from '../Dialogs.js';
 import { YesNoDlg } from '../Dialogs.js';
 
@@ -39,10 +40,6 @@ import { CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYE
     } = useContext(ImageRefsContext);
 
     const playerName = location.state?.playerName || sessionStorage.getItem('playerName') || '';
-
-
-
-
 
     // state hooks
     const [gameState, setGameState] = useState({});
@@ -100,6 +97,14 @@ import { CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYE
     const [showConfirmBidDlg, setShowConfirmBidDlg] = useState(false);
     const [confirmPosition, setConfirmPosition] = useState({ x: 200, y: 200 });
     const [confirmMessage, setConfirmMessage] = useState('');
+
+    // In / Out
+    const [showInOutDlg, setShowInOutDlg] = useState(false);
+    const [inOutSticks, setInOutSticks] = useState(false);
+    const [inOutPaso, setInOutPaso] = useState(false);
+    const [inOutPaloFijo, SetInOutPaloFijo] = useState(false);
+    const [onInHandler, setOnInHandler] = useState(() => () => {});  // default no-op
+    const [onOutHandler, setOnOutHandler] = useState(() => () => {});  // default no-op
 
     // OK
     const [showOkDlg, setShowOkDlg] = useState(false);
@@ -480,6 +485,58 @@ import { CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYE
   }
 
   //************************************************************
+  // function to prepare the in/out dialog
+  //************************************************************
+  const PrepareInOrOutDlg = () => {
+
+    setInOutSticks(ggc.maxSticks);
+    setInOutPaso(ggc.bPasoAllowed ? "Yes" : "No");
+    SetInOutPaloFijo(ggc.bPaloFijoAllowed ? "Yes" : "No");
+    setShowInOutDlg(true);
+
+    setOnInHandler(() => () => {
+      setShowInOutDlg(false);
+      socket.emit('inOrOut', { lobbyId, index: myIndex, status: CONN_PLAYER_IN })
+      console.log ('GamePage: emiting "inOrOut" with IN response');
+    });
+    setOnOutHandler(() => () => {
+      setShowInOutDlg(false);
+      socket.emit('inOrOut', { lobbyId, index: myIndex, status: CONN_OBSERVER })
+      console.log ('GamePage: emiting "inOrOut" with WATCH response');
+    });
+  }
+
+  /*
+  //************************************************************
+  // function to prepare the in/out dialog
+  //************************************************************
+  const PrepareInOrOutDlg = () => {
+    let msg = `Starting a new game\nAre you in?\n\n`;
+    msg += `Number of sticks: ${ggc.maxSticks}\n`;
+    msg += `Paso allowed: ` + (ggc.bPasoAllowed ? "Yes" : "No") + `\n`;
+    msg += `Palofijo allowed: ` + (ggc.bPaloFijoAllowed ? "Yes" : "No");
+    setYesNoMessage(msg);
+    setYesNoTitle("Starting Game");
+    setYesText("Yes, I'm in");
+    setNoText("No, I'll watch");
+    setYesShowButton(true);
+    setNoShowButton(true);
+    setXShowButton(false);
+    setShowYesNoDlg (true);
+
+    setOnYesHandler(() => () => {
+      setShowYesNoDlg(false);
+      socket.emit('inOrOut', { lobbyId, index: myIndex, status: CONN_PLAYER_IN })
+      console.log ('GamePage: emiting "inOrOut" with IN response');
+    });
+    setOnNoHandler(() => () => {
+      setShowYesNoDlg(false);
+      socket.emit('inOrOut', { lobbyId, index: myIndex, status: CONN_OBSERVER })
+      console.log ('GamePage: emiting "inOrOut" with WATCH response');
+    });
+  }
+*/
+  //************************************************************
   // function to prepare the confirm bid dialog
   // (sets up to use the YesNoDlg)
   //************************************************************
@@ -518,7 +575,7 @@ import { CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYE
   // (host has left, the lobby is about to be deleted)
   //************************************************************
   const handleForceLeaveLobby = () => {
-    setOkMessage("The host has closed the lobby.\nPress OK to continue.");
+    setOkMessage("The host has closed the lobby.");
     setOkTitle("Closing lobby");
     setOnOkHandler(() => () => {
       if (connected) {
@@ -798,7 +855,10 @@ useEffect(() => {
 
   // dialogs
   if (ggc.bAskInOut) {
-    //DrawInOrOut();
+    if (ggc.inOutMustSay[myIndex] && !ggc.inOutDidSay[myIndex]) {
+      PrepareInOrOutDlg();
+      //DrawInOrOut();
+    }
   }
 
   if (ggc.bDoubtInProgress) {
@@ -1186,7 +1246,9 @@ useEffect(() => {
       <div className="row mb-3">
         <div className="col">
           {ggc.bSettingGameParms && lobby.host === myName && RenderGameSettings()}
-          {ggc.bAskInOut && RenderInOut()}
+
+          {/* {ggc.bAskInOut && RenderInOut()} */}
+
           {isMyTurn && RenderBid()}
 
           {!ggc.bDoubtInProgress && !ggc.bShowDoubtResult && !ggc.bAskInOut && !isMyTurn && (
@@ -1246,6 +1308,17 @@ useEffect(() => {
         message={confirmMessage}
         onYes={handleConfirmBidYes}
         onNo={handleConfirmBidNo}
+      />
+    )}
+
+    {showInOutDlg && (
+      <InOutDlg
+        open={showInOutDlg}
+        inOutSticks={inOutSticks}
+        inOutPaso={inOutPaso}
+        inOutPaloFijo={inOutPaloFijo}
+        onIn={onInHandler}
+        onOut={onOutHandler}
       />
     )}
 
@@ -1635,8 +1708,5 @@ useEffect(() => {
   }
 
 }
-
-
-
 
 export default GamePage;
