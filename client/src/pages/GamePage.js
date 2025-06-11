@@ -7,6 +7,7 @@ import { DudoGame } from '../DudoGameC.js'
 import { PlayerGrid } from './PlayerGrid.js'
 import { TableGrid } from './TableGrid.js'
 import tableBackground from '../assets/table-background.png';
+import tableBackgroundFaded from '../assets/table-background-faded.png';
 
 import { ConfirmBidDlg } from '../Dialogs.js';
 import { InOutDlg } from '../Dialogs.js';
@@ -166,8 +167,10 @@ import { CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYE
 
     // background for TableGrid
     const backgroundStyle = ggc.allConnectionStatus[myIndex] === CONN_OBSERVER
-      ? { backgroundColor: 'lightgray' }
-      : {
+      ? { backgroundImage: `url(${tableBackgroundFaded})`,
+          backgroundRepeat: 'repeat',
+          backgroundPosition: '0 0',
+        } : {
           backgroundImage: `url(${tableBackground})`,
           backgroundRepeat: 'repeat',
           backgroundPosition: '0 0',
