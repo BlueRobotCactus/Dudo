@@ -8,6 +8,7 @@ import { PlayerGrid } from './PlayerGrid.js'
 import { TableGrid } from './TableGrid.js'
 import tableBackground from '../assets/table-background.png';
 import tableBackgroundFaded from '../assets/table-background-faded.png';
+import './GamePage.css';
 
 import { ConfirmBidDlg } from '../Dialogs.js';
 import { InOutDlg } from '../Dialogs.js';
@@ -71,6 +72,8 @@ import { CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYE
     const [row2PalofijoAllowed, setRow2PalofijoAllowed] = useState(true);
 
     // bid
+    const [showBidPanel, setShowBidPanel] = useState(false);
+
     const [row2YourTurnString, setRow2YourTurnString] = useState('');
     const [row2SpecialPasoString, setRow2SpecialPasoString] = useState('');
     const [row2CurrentBid, setRow2CurrentBid] = useState('');
@@ -374,7 +377,9 @@ import { CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYE
 
     setThisBid (bid);
     myShowShakeRef.current = bShowShake;
+    setShowBidPanel(false);
 
+    // prepare to confirm the bid using YesNoDlg
     if (bid == "PASO" || bid == "DOUBT") {
       PrepareConfirmBidDlg('Your bid is:\n' + bid + '\n\nSubmit this bid?', bid);
     } else {
@@ -457,6 +462,9 @@ import { CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYE
                             `Doubt the PASO or top the bid ${ggc.allBids[ggc.FindLastNonPasoBid()].text}` :
                             '');
       setSelectedBid (ggc.possibleBids[0]);
+
+      setShowBidPanel(true);
+
     } else {
       //-------------------------------------------
       // not my turn
@@ -1224,135 +1232,141 @@ useEffect(() => {
   //  Render return function
   //************************************************************
   return (
-    <div
-      className="d-flex flex-column"
-      style={{ height: '100vh', overflow: 'hidden', margin: `${UIMargin}px`}}
-    >
-    {/* Fixed Content: NavBar + Row1 + Row2 */}
-    <div ref={fixedRef}>
-      {/* Navigation bar */}
-      <div className="w-100">{RenderNavBar()}</div>
+    <>
+        <div
+          className="d-flex flex-column"
+          style={{ height: '100vh', overflow: 'hidden', margin: `${UIMargin}px`}}
+        >
+        {/* Fixed Content: NavBar + Row1 + Row2 */}
+        <div ref={fixedRef}>
+          {/* Navigation bar */}
+          <div className="w-100">{RenderNavBar()}</div>
 
-      {/* Row 1: Lobby info */}
-      <div className="row mb-2 my-2">
-        <div className="col">
-          <div className="border border-primary rounded p-1 d-flex justify-content-center align-items-center">
-            <div className="fw-bold text-center">
-              <div>Dudo Lobby Host: {lobbyHost}</div>
-              <div>Your Name: {myName}</div>
+          {/* Row 1: Lobby info */}
+          <div className="row mb-2 my-2">
+            <div className="col">
+              <div className="border border-primary rounded p-1 d-flex justify-content-center align-items-center">
+                <div className="fw-bold text-center">
+                  <div>Dudo Lobby Host: {lobbyHost}</div>
+                  <div>Your Name: {myName}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Row 2: Game status info */}
+          <div className="row mb-3">
+            <div className="col">
+              {ggc.bSettingGameParms && lobby.host === myName && RenderGameSettings()}
+
+              {/* {ggc.bAskInOut && RenderInOut()} */}
+
+              {isMyTurn && RenderBid()}
+
+              {!ggc.bDoubtInProgress && !ggc.bShowDoubtResult && !ggc.bAskInOut && !isMyTurn && (
+                <div className="border border-primary rounded p-1">
+                  <div className="fw-bold text-center">
+                    <div>{row2CurrentBid}</div>
+                    <div>{row2BidToWhom}</div>
+                  </div>
+                </div>
+              )}
+
+              {(ggc.bDoubtInProgress || ggc.bShowDoubtResult) && RenderDoubt()}
             </div>
           </div>
         </div>
-      </div>
 
-      {/* Row 2: Game status info */}
-      <div className="row mb-3">
-        <div className="col">
-          {ggc.bSettingGameParms && lobby.host === myName && RenderGameSettings()}
-
-          {/* {ggc.bAskInOut && RenderInOut()} */}
-
-          {isMyTurn && RenderBid()}
-
-          {!ggc.bDoubtInProgress && !ggc.bShowDoubtResult && !ggc.bAskInOut && !isMyTurn && (
-            <div className="border border-primary rounded p-1">
-              <div className="fw-bold text-center">
-                <div>{row2CurrentBid}</div>
-                <div>{row2BidToWhom}</div>
-              </div>
-            </div>
-          )}
-
-          {(ggc.bDoubtInProgress || ggc.bShowDoubtResult) && RenderDoubt()}
+        {/* Row 3: TableGrid takes up remaining height */}
+        <div
+          style={{
+            height: `${availableHeight}px`,
+            overflow: 'hidden',
+            padding: '8px',
+            ...backgroundStyle,
+            boxSizing: 'border-box',
+            border: '2px solid red',
+          }}
+        >
+          <div
+            style={{
+              width: '100%',
+              height: '100%',
+              ...backgroundStyle
+            }}
+          >
+            <TableGrid ggc={ggc} myIndex={myIndex} backgroundColor="transparent" />
+          </div>
         </div>
+
+        {/* Floating countdown overlay */}
+        {showCountdown && (
+          <div
+            className="position-absolute top-50 start-50 translate-middle bg-dark text-white p-1 rounded"
+            style={{ zIndex: 3000 }}
+          >
+            {countdownMessage}
+          </div>
+        )}
+
+        {/*-------------------------------------------------------------------
+          DIALOGS
+        --------------------------------------------------------------------*/}
+        {showConfirmBidDlg && (
+          <ConfirmBidDlg
+            open={showConfirmBidDlg}
+            position={confirmPosition}
+            setPosition={setConfirmPosition}          
+            message={confirmMessage}
+            onYes={handleConfirmBidYes}
+            onNo={handleConfirmBidNo}
+          />
+        )}
+
+        {showInOutDlg && (
+          <InOutDlg
+            open={showInOutDlg}
+            inOutSticks={inOutSticks}
+            inOutPaso={inOutPaso}
+            inOutPaloFijo={inOutPaloFijo}
+            onIn={onInHandler}
+            onOut={onOutHandler}
+          />
+        )}
+
+        {showOkDlg && (
+          <OkDlg
+            open={showOkDlg}
+            position={okPosition}
+            setPosition={setOkPosition}          
+            title={okTitle}
+            message={okMessage}
+            onOk={onOkHandler}
+          />
+        )}
+
+        {showYesNoDlg && (
+          <YesNoDlg
+            open={showYesNoDlg}
+            position={yesNoPosition}
+            setPosition={setYesNoPosition}          
+            title={yesNoTitle}
+            message={yesNoMessage}
+            yesText={yesText}
+            noText={noText}
+            yesShowButton = {yesShowButton}
+            noShowButton = {noShowButton}
+            xShowButton = {xShowButton}
+            onYes={onYesHandler}
+            onNo={onNoHandler}
+          />
+        )}
       </div>
-    </div>
 
-    {/* Row 3: TableGrid takes up remaining height */}
-    <div
-      style={{
-        height: `${availableHeight}px`,
-        overflow: 'hidden',
-        padding: '8px',
-        ...backgroundStyle,
-        boxSizing: 'border-box',
-        border: '2px solid red',
-      }}
-    >
-      <div
-        style={{
-          width: '100%',
-          height: '100%',
-          ...backgroundStyle
-        }}
-      >
-        <TableGrid ggc={ggc} myIndex={myIndex} backgroundColor="transparent" />
-      </div>
-    </div>
+      {/* OUTSIDE of flex column to allow fixed positioning */}
+      {/* <BidPanel show={showBidPanel} onClose={() => setShowBidPanel(false)} /> */}
 
-    {/* Floating countdown overlay */}
-    {showCountdown && (
-      <div
-        className="position-absolute top-50 start-50 translate-middle bg-dark text-white p-1 rounded"
-        style={{ zIndex: 3000 }}
-      >
-        {countdownMessage}
-      </div>
-    )}
-
-    {/*-------------------------------------------------------------------
-      DIALOGS
-    --------------------------------------------------------------------*/}
-    {showConfirmBidDlg && (
-      <ConfirmBidDlg
-        open={showConfirmBidDlg}
-        position={confirmPosition}
-        setPosition={setConfirmPosition}          
-        message={confirmMessage}
-        onYes={handleConfirmBidYes}
-        onNo={handleConfirmBidNo}
-      />
-    )}
-
-    {showInOutDlg && (
-      <InOutDlg
-        open={showInOutDlg}
-        inOutSticks={inOutSticks}
-        inOutPaso={inOutPaso}
-        inOutPaloFijo={inOutPaloFijo}
-        onIn={onInHandler}
-        onOut={onOutHandler}
-      />
-    )}
-
-    {showOkDlg && (
-      <OkDlg
-        open={showOkDlg}
-        position={okPosition}
-        setPosition={setOkPosition}          
-        title={okTitle}
-        message={okMessage}
-        onOk={onOkHandler}
-      />
-    )}
-
-    {showYesNoDlg && (
-      <YesNoDlg
-        open={showYesNoDlg}
-        position={yesNoPosition}
-        setPosition={setYesNoPosition}          
-        title={yesNoTitle}
-        message={yesNoMessage}
-        yesText={yesText}
-        noText={noText}
-        yesShowButton = {yesShowButton}
-        noShowButton = {noShowButton}
-        xShowButton = {xShowButton}
-        onYes={onYesHandler}
-        onNo={onNoHandler}
-      />
-    )}
-  </div>
+    </>
   );
 
   //************************************************************
@@ -1591,83 +1605,153 @@ useEffect(() => {
   /*----------------------------------------------
           BID
   -----------------------------------------------*/
+  function BidPanel({ show, onClose }) {
+    return (
+      <div className={`bid-panel ${show ? 'open' : ''}`}>
+        <div className="p-3 border-bottom d-flex justify-content-between align-items-center">
+          <h5 className="mb-0">Your Turn to Bid</h5>
+          <button className="btn btn-sm btn-outline-secondary" onClick={onClose}>×</button>
+        </div>
+        <div className="p-3">
+          <RenderBid />
+        </div>
+      </div>
+    );
+  }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   function RenderBid () {
     return (
       //----- MY TURN -----//
-      <div className="border border-primary rounded p-1">
-        <div className="row">
-          <div className="col">
-            <p className="fw-bold">{row2YourTurnString}</p>
-            <p className="fw-bold">{row2SpecialPasoString}</p>
-          </div>
-        </div>
 
-        <div className="border border-secondary rounded p-1 d-inline-block">
-          <div className="row align-items-center mb-1">
-            {/* dropbox */}
-            <div className="col-auto">
-              <select
-                value={selectedBid}
-                onChange={(e) => setSelectedBid(e.target.value)}
-                className="form-select w-auto"
-              >
-                {possibleBids.map((bid) => (
-                  <option key={bid} value={bid}>{bid}</option>
-                ))}
-              </select>
-            </div>
 
-            {/* Bid button */}
-            <div className="col-auto">
-              <button
-                className="ff-style-button"
-                disabled={selectedBid=='--Select--'}
-                onClick={() => handleBidOK(selectedBid, bidShowShake)}
-              >
-                Bid
-              </button>
-            </div>
-          </div>
 
-          {/* checkbox */}
-          <div className="row">
-            <div className="col-auto">
-              <div className="form-check">
-                <input
-                  className="form-check-input"
-                  type="checkbox"
-                  id="showShakeCheckbox"
-                  disabled={!canShowShake}
-                  checked={bidShowShake}
-                  onChange={(e) => setBidShowShake(e.target.checked)}
-                />
-                <label className="form-check-label" htmlFor="showShakeCheckbox">
-                  Show/shake
-                </label>
-              </div>
-            </div>
-          </div>
-        </div>
 
-        <div className="row justify-content-between mt-2">
-          <div className="col-auto">
-            {/* DOUBT button */}
-            <button
-              className="btn btn-danger btn-sm text-white me-2"
-              disabled={!ggc.numBids > 0}
-              onClick={() => handleBidOK('DOUBT', bidShowShake)}
-            >
-              Doubt
-            </button>
-            {/* PASO button */}
-            <button
-              className="btn btn-outline-secondary btn-sm"
-              disabled={!ggc.CanPaso()}
-              onClick={() => handleBidOK('PASO', bidShowShake)}
-            >
-              Paso
-            </button>
-          </div>
+<div className="border border-primary rounded p-2">
+  <div
+    className="d-grid"
+    style={{
+      display: 'grid',
+      gridTemplateColumns: 'auto auto auto auto auto',
+      gridTemplateRows: 'auto auto',
+      alignItems: 'center',
+      rowGap: '0.5rem',
+      columnGap: '0.75rem',
+    }}
+  >
+    {/* Row 1: message spans all 5 cols */}
+    <div style={{ gridColumn: '1 / span 5' }}>
+      <p className="fw-bold mb-1">{row2YourTurnString}</p>
+      <p className="fw-bold mb-0">{row2SpecialPasoString}</p>
+    </div>
+
+    {/* Row 2: bordered wrapper around cols 1-3 */}
+    <div
+      style={{
+        gridColumn: '1 / span 3',
+        display: 'contents', // children placed directly in grid
+      }}
+    >
+      <div
+        className="border border-secondary rounded p-2 d-flex align-items-center justify-content-start"
+        style={{
+          gridColumn: '1 / span 3',
+          display: 'grid',
+          gridTemplateColumns: 'auto auto auto',
+          columnGap: '0.75rem',
+        }}
+      >
+        {/* Select box */}
+        <select
+          value={selectedBid}
+          onChange={(e) => setSelectedBid(e.target.value)}
+          className="form-select form-select-sm w-auto"
+          style={{ minWidth: 0, width: 'auto' }}        >
+          {possibleBids.map((bid) => (
+            <option key={bid} value={bid}>{bid}</option>
+          ))}
+        </select>
+
+        {/* Checkbox */}
+
+
+
+
+<div className="form-check me-2">
+  <input
+    className="form-check-input"
+    type="checkbox"
+    id="showShakeCheckbox"
+    disabled={!canShowShake}
+    checked={bidShowShake}
+    onChange={(e) => setBidShowShake(e.target.checked)}
+  />
+  <label
+    className="form-check-label"
+    htmlFor="showShakeCheckbox"
+    style={{
+      color: canShowShake ? 'black' : 'gray',
+    }}
+  >
+    Show
+  </label>
+</div>
+
+
+
+
+
+
+        {/* Bid button */}
+        <button
+          className="btn btn-primary btn-sm"
+          disabled={selectedBid === '--Select--'}
+          onClick={() => handleBidOK(selectedBid, bidShowShake)}
+        >
+          Bid
+        </button>
+      </div>
+    </div>
+
+    {/* Row 2: Paso button (col 4) */}
+    <div style={{ gridColumn: 4 }}>
+      <button
+        className="btn btn-outline-secondary btn-sm"
+        disabled={!ggc.CanPaso()}
+        onClick={() => handleBidOK('PASO', bidShowShake)}
+      >
+        Paso
+      </button>
+    </div>
+
+    {/* Row 2: Doubt button (col 5) */}
+    <div style={{ gridColumn: 5 }}>
+      <button
+        className="btn btn-danger btn-sm text-white"
+        disabled={!ggc.numBids > 0}
+        onClick={() => handleBidOK('DOUBT', bidShowShake)}
+      >
+        Doubt
+      </button>
+    </div>
+
+
+
+
+
         </div>
       </div>
     )

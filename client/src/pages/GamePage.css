@@ -1,0 +1,15 @@
+.bid-panel {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1050; /* above most elements */
+  background-color: white;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  transform: translateY(-100%) !important;
+  transition: transform 5s ease-in-out !important;
+}
+
+.bid-panel.open {
+  transform: translateY(0) !important;
+}
