@@ -155,7 +155,20 @@ export function PlayerGrid({ggc, myIndex, cc }) {
       ? 'gray'
       : 'lightgray';
 
+  //--------------------------------------------------------
+  // reactive font size based on length of name
+  //--------------------------------------------------------
+//  for debugging
+//  const name = ggc.allParticipantNames[0];
+//  if (name.length == 2) {
+//    adjustedFontSize = Number(name) / 10;
+//  }
 
+  const nameLen = ggc.allParticipantNames[cc].length;
+  let adjustedFontSize = 0.9;
+  if (nameLen <= 18) {adjustedFontSize = 1.0}
+  if (nameLen <= 5) {adjustedFontSize = 1.2}
+    
   //*****************************************************************
   //  render
   //*****************************************************************
@@ -203,18 +216,30 @@ export function PlayerGrid({ggc, myIndex, cc }) {
         style={{
           gridRow: '1 / span 1',
           gridColumn: '3 / span 5',
-          fontWeight: 'bold',
           display: 'flex',
-          alignItems: 'center',        // vertical centering
-          justifyContent: 'center',    // optional: horizontal centering
+          alignItems: 'center',
+          justifyContent: 'center',
           padding: '4px',
-          boxSizing: 'border-box',          
+          boxSizing: 'border-box',
           border: `1px solid ${lineColor}`,
           backgroundColor: bgColor,
           zIndex: 0,
+          overflow: 'hidden',
         }}
       >
-        {ggc.allParticipantNames[cc]}
+        <div
+          style={{
+            textAlign: 'center',
+            wordWrap: 'break-word',
+            whiteSpace: 'normal',
+            fontWeight: 'bold',
+            fontSize: `${adjustedFontSize}em`,
+            lineHeight: '1.1',
+            width: '100%', // force wrapping within the parent box
+          }}
+        >
+          {ggc.allParticipantNames[cc]}
+        </div>
       </div>
 
       {/*--------------------------------------------------------

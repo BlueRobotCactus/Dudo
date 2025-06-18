@@ -279,6 +279,7 @@ useEffect(() => {
               onChange={(e) => setName(e.target.value)}
               onKeyDown={onKeyDown} // Listen for Enter key
               placeholder="Enter your name"
+              maxLength={30}
               style={{ marginTop: '10px', padding: '5px', fontSize: '16px' }}
             />
             <br />
