@@ -493,12 +493,14 @@ io.on('connection', (socket) => {
       ggs.allBids[ptr].bPaso = true;
       ggs.allBids[ptr].bDudo = false;
       ggs.allBids[ptr].bShowShake = false;
+      ggs.allBids[ptr].howManyShown = undefined;
       ggs.allPasoUsed[index] = true;
     }
     if (bidText === "DOUBT") {
       ggs.allBids[ptr].bPaso = false;
       ggs.allBids[ptr].bDudo = true;
       ggs.allBids[ptr].bShowShake = false;
+      ggs.allBids[ptr].howManyShown = undefined;
     }
     ggs.numBids++;
 
@@ -544,6 +546,26 @@ io.on('connection', (socket) => {
             }
         }
     }
+
+    //-------------------------------------------------
+    // finalize bid in bid array
+    //-------------------------------------------------
+    // dice
+    for (let i=0; i<5; i++) {
+      ggs.allBids[ptr].dice[i] = ggs.dice[index][i];
+    }
+    // showing (on the table) and looking for
+    let showing = undefined;
+    let lookingFor = undefined;
+    if (bidText !== "PASO" && bidText !== "DUDO") {
+      showing = ggs.GetHowManyShowing (ggs.parsedOfWhat, ggs.bPaloFijoRound);
+      lookingFor = ggs.parsedHowMany - showing;
+      if (lookingFor < 0) {
+        lookingFor = 0;
+      }
+    }
+    ggs.allBids[ptr].showing = showing;
+    ggs.allBids[ptr].lookingFor = lookingFor;
 
     //-------------------------------------------------
     // keep going

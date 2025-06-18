@@ -175,7 +175,7 @@ export function ConfirmBidDlg({
 export function OkDlg({
   open,
   onOk = () => {},
-  title = "Information",
+  title = "",
   message = "",
   xShowButton = false,
 }) {
@@ -347,6 +347,72 @@ export function InOutDlg({
             No, I'll watch
           </Button>
         )}
+      </Modal.Footer>
+    </Modal>
+  );
+}
+
+//************************************************************
+// BidHistoryDlg
+//************************************************************
+export function BidHistoryDlg({ 
+  open, 
+  bids,
+  onOk = () => {},
+  onHide={onOk}
+}) {
+  return (
+    <Modal
+      show={open}
+      onHide={onOk}
+      centered
+      backdrop="static"
+      keyboard={false}
+      dialogClassName="yesno-sm-modal" // custom class for size
+    >
+
+      <Modal.Header
+        closeButton
+        closeVariant="white"
+        className="bg-primary text-white py-2 px-3"
+        style={{ fontSize: '14px' }}
+      >
+        <Modal.Title>Bid History (most recent first)</Modal.Title>
+      </Modal.Header>
+
+      <Modal.Body>
+        <div className="container">
+          <div className="row fw-bold border-bottom pb-1 mb-1">
+            <div className="col">Player</div>
+            <div className="col">Bid</div>
+            <div className="col">Show?</div>
+            <div className="col">Showing</div>
+            <div className="col">Looking For</div>
+          </div>
+
+          <div
+            style={{
+              maxHeight: '50vh',
+              overflowY: 'auto',
+            }}
+          >
+            {bids.map((bids, i) => (
+                <div className="row" key={i}>
+                <div className="col">{bids.playerName}</div>
+                <div className="col">{bids.text}</div>
+                <div className="col">{bids.bShowShake ? bids.howManyShown : '-'}</div>
+                <div className="col">{bids.showing === undefined ? '-' : bids.showing}</div>
+                <div className="col">{bids.lookingFor === undefined ? '-' : bids.lookingFor}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </Modal.Body>
+
+      <Modal.Footer>
+        <Button variant="primary" onClick={onOk}>
+          OK
+        </Button>
       </Modal.Footer>
     </Modal>
   );

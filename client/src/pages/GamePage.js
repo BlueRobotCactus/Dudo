@@ -14,6 +14,7 @@ import { ConfirmBidDlg } from '../Dialogs.js';
 import { InOutDlg } from '../Dialogs.js';
 import { OkDlg } from '../Dialogs.js';
 import { YesNoDlg } from '../Dialogs.js';
+import { BidHistoryDlg } from '../Dialogs.js';
 
 import { CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYER_LEFT,
   CONN_PLAYER_IN_DISCONN, CONN_PLAYER_OUT_DISCONN, CONN_OBSERVER_DISCONN } from '../DudoGameC.js';;
@@ -72,7 +73,7 @@ import { CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYE
     const [row2PalofijoAllowed, setRow2PalofijoAllowed] = useState(true);
 
     // bid
-    const [showBidPanel, setShowBidPanel] = useState(false);
+    const [showBidPanel, setShowBidPanel] = useState(false);  // obsolete
 
     const [row2YourTurnString, setRow2YourTurnString] = useState('');
     const [row2SpecialPasoString, setRow2SpecialPasoString] = useState('');
@@ -127,10 +128,16 @@ import { CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYE
     const [yesShowButton, setYesShowButton] = useState(true);
     const [noShowButton, setNoShowButton] = useState(true);
     const [xShowButton, setXShowButton] = useState(true);
-    const [onYesHandler, setOnYesHandler] = useState(() => () => {});  // default no-op
-    const [onNoHandler, setOnNoHandler] = useState(() => () => {});  // default no-op
+    const [onYesHandler, setOnYesHandler] = useState(() => () => {});
+    const [onNoHandler, setOnNoHandler] = useState(() => () => {});
 
     // Bid History
+    const [showBidHistoryDlg, setShowBidHistoryDlg] = useState(false);
+    const [onBidHistoryOkHandler, setOnBidHistoryOkHandler] = useState(() => () => {});
+
+
+
+    // old stuff
     const [histCurrentBid, setHistCurrentBid] = useState('');
     const [histShowing, setHistShowing] = useState('');
     const [histLookage, setHistLookage] = useState('');
@@ -144,7 +151,8 @@ import { CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYE
     //const stickImageRef = useRef({});
     const myShowShakeRef = useRef(false);
     const bidHistoryRef = useRef([]);
-    
+    const reversedBids = useRef([]);
+
     // Refs debugging
     const prevReconnect = useRef(null);
     const prevDraw = useRef(null);
@@ -397,7 +405,14 @@ import { CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYE
   //************************************************************
   const handleOptBidHistory = () => {
 
+    reversedBids.current = ggc.allBids.slice(0, ggc.numBids).reverse();
+    setShowBidHistoryDlg(true);
+
+    setOnBidHistoryOkHandler(() => () => {
+      setShowBidHistoryDlg(false);
+    });
   }
+
   const handleOptObservers = () => {
 
   }
@@ -1361,6 +1376,15 @@ useEffect(() => {
             onNo={onNoHandler}
           />
         )}
+
+        {showBidHistoryDlg && (
+          <BidHistoryDlg
+            open={showBidHistoryDlg}
+            bids={reversedBids.current}
+            onOk={onBidHistoryOkHandler}
+          />
+        )}
+
       </div>
 
       {/* OUTSIDE of flex column to allow fixed positioning */}
