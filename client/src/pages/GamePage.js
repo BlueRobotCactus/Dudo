@@ -419,6 +419,7 @@ import { CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYE
 
   const handleOptObservers = () => {
 
+    observersRef.current = []; // ← Clear it first
     for (let cc=0; cc<ggc.maxConnections; cc++) {
       if (ggc.allConnectionStatus[cc] === CONN_OBSERVER) {
         observersRef.current.push({ playerName: ggc.allParticipantNames[cc]});

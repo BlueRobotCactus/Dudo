@@ -456,22 +456,26 @@ export function ObserversDlg({
           style={{
             maxHeight: '50vh',
             overflowY: 'auto',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '6px',
+            padding: '4px 8px',
           }}
         >
-          {observers.map((obs, index) => (
-            <div
-              key={index}
-              style={{
-                padding: '4px 8px',
-                borderBottom: '1px solid #ddd',
-              }}
-            >
-              {obs.playerName}
-            </div>
-          ))}
+          {observers.length === 0 ? (
+            <div className="text-muted">There are no observers in this lobby.</div>
+          ) : (
+            <ul style={{ margin: 0, paddingLeft: '16px' }}>
+              {observers.map((obs, index) => (
+                <li
+                  key={index}
+                  style={{
+                    padding: '4px 0',
+                    listStyleType: 'disc',
+                  }}
+                >
+                  {obs.playerName}
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
       </Modal.Body>
 
