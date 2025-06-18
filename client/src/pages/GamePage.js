@@ -15,6 +15,7 @@ import { InOutDlg } from '../Dialogs.js';
 import { OkDlg } from '../Dialogs.js';
 import { YesNoDlg } from '../Dialogs.js';
 import { BidHistoryDlg } from '../Dialogs.js';
+import { ObserversDlg } from '../Dialogs.js';
 
 import { CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYER_LEFT,
   CONN_PLAYER_IN_DISCONN, CONN_PLAYER_OUT_DISCONN, CONN_OBSERVER_DISCONN } from '../DudoGameC.js';;
@@ -135,7 +136,9 @@ import { CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYE
     const [showBidHistoryDlg, setShowBidHistoryDlg] = useState(false);
     const [onBidHistoryOkHandler, setOnBidHistoryOkHandler] = useState(() => () => {});
 
-
+    // Observers
+    const [showObserversDlg, setShowObserversDlg] = useState(false);
+    const [onObserversOkHandler, setOnObserversOkHandler] = useState(() => () => {});
 
     // old stuff
     const [histCurrentBid, setHistCurrentBid] = useState('');
@@ -152,6 +155,7 @@ import { CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYE
     const myShowShakeRef = useRef(false);
     const bidHistoryRef = useRef([]);
     const reversedBids = useRef([]);
+    const observersRef = useRef([]);
 
     // Refs debugging
     const prevReconnect = useRef(null);
@@ -414,6 +418,17 @@ import { CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYE
   }
 
   const handleOptObservers = () => {
+
+    for (let cc=0; cc<ggc.maxConnections; cc++) {
+      if (ggc.allConnectionStatus[cc] === CONN_OBSERVER) {
+        observersRef.current.push({ playerName: ggc.allParticipantNames[cc]});
+      }
+    }
+    setShowObserversDlg(true);
+
+    setOnObserversOkHandler(() => () => {
+      setShowObserversDlg(false);
+    });
 
   }
   const handleOptHowToPlay = () => {
@@ -1382,6 +1397,14 @@ useEffect(() => {
             open={showBidHistoryDlg}
             bids={reversedBids.current}
             onOk={onBidHistoryOkHandler}
+          />
+        )}
+
+        {showObserversDlg && (
+          <ObserversDlg
+            open={showObserversDlg}
+            observers={observersRef.current}
+            onOk={onObserversOkHandler}
           />
         )}
 

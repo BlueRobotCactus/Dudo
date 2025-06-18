@@ -381,31 +381,97 @@ export function BidHistoryDlg({
       </Modal.Header>
 
       <Modal.Body>
-        <div className="container">
-          <div className="row fw-bold border-bottom pb-1 mb-1">
-            <div className="col">Player</div>
-            <div className="col">Bid</div>
-            <div className="col">Show?</div>
-            <div className="col">Showing</div>
-            <div className="col">Looking For</div>
-          </div>
+        <div
+          style={{
+            maxHeight: '50vh',
+            overflowY: 'auto',
+          }}
+        >
+          <table className="table table-sm table-bordered text-center align-middle mb-0">
+            <thead className="table-secondary">
+              <tr>
+                <th>Player</th>
+                <th>Bid</th>
+                <th style={{ borderRight: '1px solid lightgray' }}>Show?</th>
+                <th>Table Showing</th>
+                <th>Looking For</th>
+              </tr>
+            </thead>
+            <tbody>
+              {bids.map((bid, i) => (
+                <tr key={i}>
+                  <td>{bid.playerName}</td>
+                  <td style={{ whiteSpace: 'nowrap' }}>{bid.text}</td>
+                  <td style={{ borderRight: '1px solid lightgray' }}>
+                    {bid.bShowShake ? bid.howManyShown : '-'}
+                  </td>
+                  <td>{bid.showing === undefined ? '-' : bid.showing}</td>
+                  <td>{bid.lookingFor === undefined ? '-' : bid.lookingFor}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </Modal.Body>
 
-          <div
-            style={{
-              maxHeight: '50vh',
-              overflowY: 'auto',
-            }}
-          >
-            {bids.map((bids, i) => (
-                <div className="row" key={i}>
-                <div className="col">{bids.playerName}</div>
-                <div className="col">{bids.text}</div>
-                <div className="col">{bids.bShowShake ? bids.howManyShown : '-'}</div>
-                <div className="col">{bids.showing === undefined ? '-' : bids.showing}</div>
-                <div className="col">{bids.lookingFor === undefined ? '-' : bids.lookingFor}</div>
-              </div>
-            ))}
-          </div>
+      <Modal.Footer>
+        <Button variant="primary" onClick={onOk}>
+          OK
+        </Button>
+      </Modal.Footer>
+    </Modal>
+  );
+}
+
+//************************************************************
+// ObserverDlg
+//************************************************************
+export function ObserversDlg({ 
+  open, 
+  observers,
+  onOk = () => {},
+  onHide={onOk}
+}) {
+  return (
+    <Modal
+      show={open}
+      onHide={onOk}
+      centered
+      backdrop="static"
+      keyboard={false}
+      dialogClassName="yesno-sm-modal" // custom class for size
+    >
+
+      <Modal.Header
+        closeButton
+        closeVariant="white"
+        className="bg-primary text-white py-2 px-3"
+        style={{ fontSize: '14px' }}
+      >
+        <Modal.Title>Observers</Modal.Title>
+      </Modal.Header>
+
+      <Modal.Body>
+        <div
+          style={{
+            maxHeight: '50vh',
+            overflowY: 'auto',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '6px',
+          }}
+        >
+          {observers.map((obs, index) => (
+            <div
+              key={index}
+              style={{
+                padding: '4px 8px',
+                borderBottom: '1px solid #ddd',
+              }}
+            >
+              {obs.playerName}
+            </div>
+          ))}
         </div>
       </Modal.Body>
 
