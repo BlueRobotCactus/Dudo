@@ -157,10 +157,10 @@ export function ConfirmBidDlg({
 
         {/* Buttons */}
         <div className="d-flex justify-content-center gap-3 mt-3">
-          <button className="ff-style-button" onClick={onYes}>
+          <button className="btn btn-primary" onClick={onYes}>
             Yes
           </button>
-          <button className="ff-style-button" onClick={onNo}>
+          <button className="btn btn-primary" onClick={onNo}>
             No
           </button>
         </div>

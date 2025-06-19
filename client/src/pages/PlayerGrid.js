@@ -186,7 +186,7 @@ export function PlayerGrid({ggc, myIndex, cc }) {
           padding: '4px',
           boxSizing: 'border-box',          
           border: ggc.bGameInProgress && cc === ggc.whosTurn ? '3px solid red' : '1px solid black',
-          zIndex: 2,
+          zIndex: 3,
         }}
       />
 
@@ -252,11 +252,23 @@ export function PlayerGrid({ggc, myIndex, cc }) {
           backgroundColor: bgColor,
           padding: '4px',
           boxSizing: 'border-box',          
-          border: `1px solid ${lineColor}`,
           zIndex: 1,
         }}
       />
-
+      {/* Border-only overlay (higher z-index) */}
+      <div
+        style={{
+          gridRow: 2,
+          gridColumn: '3 / span 5',
+          backgroundColor: 'transparent',
+          border: `1px solid ${lineColor}`,
+          padding: '4px',
+          boxSizing: 'border-box',
+          zIndex: 2,
+          position: 'relative',
+          pointerEvents: 'none', // ensures it doesn’t block clicks
+        }}
+      />
       {diceImageTopList[cc].map((imgRef, index) => {
         if (!imgRef) return null; // skip nulls
 
