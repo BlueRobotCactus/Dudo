@@ -16,6 +16,7 @@ import { OkDlg } from '../Dialogs.js';
 import { YesNoDlg } from '../Dialogs.js';
 import { BidHistoryDlg } from '../Dialogs.js';
 import { ObserversDlg } from '../Dialogs.js';
+import { GameSettingsDlg } from '../Dialogs.js';
 
 import { CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYER_LEFT,
   CONN_PLAYER_IN_DISCONN, CONN_PLAYER_OUT_DISCONN, CONN_OBSERVER_DISCONN } from '../DudoGameC.js';;
@@ -140,6 +141,10 @@ import { CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYE
     // Observers
     const [showObserversDlg, setShowObserversDlg] = useState(false);
     const [onObserversOkHandler, setOnObserversOkHandler] = useState(() => () => {});
+
+    // Game Settings
+    const [showGameSettingsDlg, setShowGameSettingsDlg] = useState(false);
+    const [onGameSettingsOkHandler, setOnGameSettingsOkHandler] = useState(() => () => {});
 
     // old stuff
     const [histCurrentBid, setHistCurrentBid] = useState('');
@@ -429,6 +434,15 @@ import { CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYE
     setOnObserversOkHandler(() => () => {
       setShowObserversDlg(false);
     });
+  }
+
+  const handleOptGameSettings = () => {
+    setShowGameSettingsDlg(true);
+
+    setOnGameSettingsOkHandler(() => () => {
+      setShowGameSettingsDlg(false);
+    });
+
   }
 
   const handleOptHowToPlay = () => {
@@ -1414,6 +1428,16 @@ useEffect(() => {
           />
         )}
 
+        {showGameSettingsDlg && (
+          <GameSettingsDlg
+            open={showGameSettingsDlg}
+            sticks={ggc.maxSticks}
+            paso={ggc.bPasoAllowed}
+            palofijo={ggc.bPaloFijoAllowed}
+            onOk={onGameSettingsOkHandler}
+          />
+        )}
+
       </div>
 
       {/* OUTSIDE of flex column to allow fixed positioning */}
@@ -1448,19 +1472,24 @@ useEffect(() => {
                 onClick={handleOptBidHistory}
                 disabled={!ggc.bGameInProgress || ggc.numBids < 1}
               >
-                Bid History</button></li>          
+                Bid History</button></li>
               <li><button className="dropdown-item" 
                 onClick={handleOptObservers}
               >
-                Observers</button></li>          
+                Observers</button></li>
+              <li><button className="dropdown-item" 
+                onClick={handleOptGameSettings}
+                disabled={!ggc.bGameInProgress}
+              >
+                Game Settings</button></li>
               <li><button className="dropdown-item" 
                 onClick={handleOptHowToPlay}
               >
-                How To Play</button></li>          
+                How To Play</button></li>
               <li><button className="dropdown-item" 
                 onClick={handleOptAbout}
               >
-                About</button></li>          
+                About</button></li>
               <li><button className="dropdown-item" 
                 onClick={handleOptHelp}
               >

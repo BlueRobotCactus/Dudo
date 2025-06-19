@@ -487,3 +487,73 @@ export function ObserversDlg({
     </Modal>
   );
 }
+
+//************************************************************
+// GameSettingsDlg
+//************************************************************
+export function GameSettingsDlg({ 
+  open, 
+  sticks,
+  paso,
+  palofijo,
+  onOk = () => {},
+  onHide={onOk}
+}) {
+  return (
+    <Modal
+      show={open}
+      onHide={onOk}
+      centered
+      backdrop="static"
+      keyboard={false}
+      dialogClassName="yesno-sm-modal" // custom class for size
+    >
+
+      <Modal.Header
+        closeButton
+        closeVariant="white"
+        className="bg-primary text-white py-2 px-3"
+        style={{ fontSize: '14px' }}
+      >
+        <Modal.Title>Game Settings</Modal.Title>
+      </Modal.Header>
+
+      <Modal.Body>
+        <div
+          style={{
+            maxHeight: '50vh',
+            overflowY: 'auto',
+            padding: '4px 8px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '8px',
+          }}
+        >
+          {/* Row 1 */}
+          <div style={{ display: 'flex' }}>
+            <div style={{ flex: 1, textAlign: 'right', paddingRight: '12px' }}>Number of sticks:</div>
+            <div style={{ flex: 1, textAlign: 'left' }}>{sticks}</div>
+          </div>
+
+          {/* Row 2 */}
+          <div style={{ display: 'flex' }}>
+            <div style={{ flex: 1, textAlign: 'right', paddingRight: '12px' }}>Paso allowed:</div>
+            <div style={{ flex: 1, textAlign: 'left' }}>{paso ? 'Yes' : 'No'}</div>
+          </div>
+
+          {/* Row 3 */}
+          <div style={{ display: 'flex' }}>
+            <div style={{ flex: 1, textAlign: 'right', paddingRight: '12px' }}>Palofijo allowed:</div>
+            <div style={{ flex: 1, textAlign: 'left' }}>{palofijo ? 'Yes' : 'No'}</div>
+          </div>
+        </div>
+      </Modal.Body>
+
+      <Modal.Footer>
+        <Button variant="primary" onClick={onOk}>
+          OK
+        </Button>
+      </Modal.Footer>
+    </Modal>
+  );
+}

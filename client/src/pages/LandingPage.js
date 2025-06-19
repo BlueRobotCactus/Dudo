@@ -209,6 +209,18 @@ useEffect(() => {
           </button>
           <ul className="dropdown-menu" aria-labelledby="optionsMenu">
             <li><button className="dropdown-item" 
+              disabled={true}
+            >
+              Bid History</button></li> 
+            <li><button className="dropdown-item" 
+              disabled={true}
+            >
+              Observers</button></li>          
+            <li><button className="dropdown-item" 
+              disabled={true}
+            >
+              Game Settings</button></li>          
+            <li><button className="dropdown-item" 
               onClick={onOptHowToPlay}
               disabled={isAskingName}
             >
