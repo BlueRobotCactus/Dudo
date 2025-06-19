@@ -11,8 +11,10 @@ import './App.css';
 
 import { ImageRefsProvider } from './ImageRefsContext';
 
-import LandingPage from './pages/LandingPage';
-import GamePage from './pages/GamePage';
+import LandingPage from './pages/LandingPage.js';
+import GamePage from './pages/GamePage.js';
+import HowToPlayPage from './pages/HowToPlayPage.js';
+import AboutPage from './pages/AboutPage.js';
 
 function App() {
   // Initialize from localStorage, or empty string if nothing
@@ -35,6 +37,8 @@ function App() {
             element={<LandingPage playerName={playerName} setPlayerName={setPlayerName} />}
           />
           <Route path="/game/:lobbyId" element={<GamePage />} />
+          <Route path="/how-to-play" element={<HowToPlayPage />} />
+          <Route path="/about" element={<AboutPage />} />
         </Routes>
       </Router>
     </ImageRefsProvider>

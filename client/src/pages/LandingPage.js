@@ -165,20 +165,15 @@ useEffect(() => {
   //************************************************************
   //  functions to handle Options menu
   //************************************************************
-  const onOptBidHistory = () => {
-
-  }
-  const onOptObservers = () => {
-
-  }
   const onOptHowToPlay = () => {
-
+    navigate('/how-to-play');
   }
+
   const onOptAbout = () => {
-
+    navigate('/about');
   }
-  const onOptHelp = () => {
 
+  const onOptHelp = () => {
   }
 
   //************************************************************

@@ -408,7 +408,6 @@ import { CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYE
   //  functions to handle Options menu
   //************************************************************
   const handleOptBidHistory = () => {
-
     reversedBids.current = ggc.allBids.slice(0, ggc.numBids).reverse();
     setShowBidHistoryDlg(true);
 
@@ -418,7 +417,6 @@ import { CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYE
   }
 
   const handleOptObservers = () => {
-
     observersRef.current = []; // ← Clear it first
     for (let cc=0; cc<ggc.maxConnections; cc++) {
       if (ggc.allConnectionStatus[cc] === CONN_OBSERVER) {
@@ -430,14 +428,16 @@ import { CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYE
     setOnObserversOkHandler(() => () => {
       setShowObserversDlg(false);
     });
-
   }
+
   const handleOptHowToPlay = () => {
-
+    navigate('/how-to-play', { state: { lobbyId } });
   }
+
   const handleOptAbout = () => {
-
+    navigate('/about', { state: { lobbyId } });
   }
+
   const handleOptHelp = () => {
 
   }
