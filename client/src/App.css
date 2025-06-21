@@ -27,3 +27,20 @@ html, body {
   padding: 0;
   overflow: hidden; /* Prevent scrolling if not needed */
 }
+
+.app-wrapper {
+  max-width: 750px;  /* limit the width */
+  min-height: 100vh; /* Fill full vertical height */  
+  margin: 0 auto;
+  width: 100%;
+  background-color: white;
+  box-sizing: border-box;
+}
+
+/* Add border only when viewport is wider than 750px */
+@media (min-width: 751px) {
+  .app-wrapper {
+    border: 1px solid black;
+  }
+}
+

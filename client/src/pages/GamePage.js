@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef, act } from 'react';
+import React, { useEffect, useState, useRef, useLayoutEffect } from 'react';
 import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import { useContext } from 'react';
 import { SocketContext } from '../SocketContext.js';
@@ -1547,10 +1547,10 @@ useEffect(() => {
 
         <div className="row align-items-center mb-1">
           {/* number of sticks (dropbox) */}
-          <div className="col-4 text-end">
+          <div className="col-6 text-end">
             Number of sticks:
           </div>
-          <div className="col-4">
+          <div className="col-3">
             <select
               className="form-select form-select-sm w-auto"
               value={row2NumSticks}
@@ -1562,7 +1562,7 @@ useEffect(() => {
             </select>
           </div>
 
-          <div className="col-4 d-flex justify-content-end">
+          <div className="col-3 d-flex justify-content-end">
             {/* Save button */}
             <button
               onClick={handleSaveSettings}
@@ -1575,10 +1575,10 @@ useEffect(() => {
 
         {/* paso allowed? (checkbox) */}
         <div className="row align-items-center mb-1">
-          <div className="col-4 text-end">
+          <div className="col-6 text-end">
             Paso allowed:
           </div>
-          <div className="col-4">
+          <div className="col-3">
             {/* paso checkbox */}
             <input
               type="checkbox"
@@ -1588,7 +1588,7 @@ useEffect(() => {
               onChange={(e) => setRow2PasoAllowed(e.target.checked)}                  
             />
           </div>
-          <div className="col-4 d-flex justify-content-end">
+          <div className="col-3 d-flex justify-content-end">
             {/* Cancel button */}
             <button
               onClick={handleCancelSettings}
@@ -1601,10 +1601,10 @@ useEffect(() => {
 
         {/* palofijo allowed? (checkbox) */}
         <div className="row align-items-center">
-          <div className="col-4 text-end">
+          <div className="col-6 text-end">
             Palo Fijo allowed:
           </div>
-          <div className="col-4">
+          <div className="col-3">
             {/* palo fijo checkbox */}
             <input
               type="checkbox"

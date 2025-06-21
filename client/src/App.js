@@ -29,19 +29,21 @@ function App() {
   };
 
   return (
-    <ImageRefsProvider>
-      <Router>
-        <Routes>
-          <Route
-            path="/"
-            element={<LandingPage playerName={playerName} setPlayerName={setPlayerName} />}
-          />
-          <Route path="/game/:lobbyId" element={<GamePage />} />
-          <Route path="/how-to-play" element={<HowToPlayPage />} />
-          <Route path="/about" element={<AboutPage />} />
-        </Routes>
-      </Router>
-    </ImageRefsProvider>
+   <div className="app-wrapper">
+      <ImageRefsProvider>
+        <Router>
+          <Routes>
+            <Route
+              path="/"
+              element={<LandingPage playerName={playerName} setPlayerName={setPlayerName} />}
+            />
+            <Route path="/game/:lobbyId" element={<GamePage />} />
+            <Route path="/how-to-play" element={<HowToPlayPage />} />
+            <Route path="/about" element={<AboutPage />} />
+          </Routes>
+        </Router>
+      </ImageRefsProvider>
+  </div>
   );
 }
 
