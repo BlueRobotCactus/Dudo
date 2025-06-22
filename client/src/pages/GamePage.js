@@ -15,6 +15,7 @@ import { InOutDlg } from '../Dialogs.js';
 import { OkDlg } from '../Dialogs.js';
 import { YesNoDlg } from '../Dialogs.js';
 import { LiftCupDlg } from '../Dialogs.js';
+import { ShowDoubtDlg } from '../Dialogs.js';
 import { BidHistoryDlg } from '../Dialogs.js';
 import { ObserversDlg } from '../Dialogs.js';
 import { GameSettingsDlg } from '../Dialogs.js';
@@ -139,12 +140,21 @@ import { CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYE
     const [showBidHistoryDlg, setShowBidHistoryDlg] = useState(false);
     const [onBidHistoryOkHandler, setOnBidHistoryOkHandler] = useState(() => () => {});
 
+    // doubt result strings (used by Lift Cup and Show Doubt)
+    const [doubtWhoDoubtedWhom, setDoubtWhoDoubtedWhom] = useState('');
+    const [doubtDoubtedBid, setDoubtDoubtedBid] = useState('');
+    const [doubtThereAre, setDoubtThereAre] = useState('');
+    const [doubtWhoGotStick, setDoubtWhoGotStick] = useState('');
+    const [doubtWhoWon, setDoubtWhoWon] = useState('');
+
     // Lift Cup
     const [showLiftCupDlg, setShowLiftCupDlg] = useState(false);
     const [onLiftCupOkHandler, setOnLiftCupOkHandler] = useState(() => () => {});
-    const [liftCupWhoDoubtedWhom, setLiftCupWhoDoubtedWhom] = useState('');
-    const [liftCupDoubtedBid, setLiftCupDoubtedBid] = useState('');
-    const [liftCupShowButton, setLiftCupShowButton] = useState(true);
+    const [liftCupShowButton, setLiftCupShowButton] = useState(false);
+
+    // Show Doubt
+    const [showShowDoubtDlg, setShowShowDoubtDlg] = useState(false);
+    const [onShowDoubtOkHandler, setOnShowDoubtOkHandler] = useState(() => () => {});
 
     // Observers
     const [showObserversDlg, setShowObserversDlg] = useState(false);
@@ -571,36 +581,6 @@ import { CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYE
     });
   }
 
-  /*
-  //************************************************************
-  // function to prepare the in/out dialog
-  //************************************************************
-  const PrepareInOrOutDlg = () => {
-    let msg = `Starting a new game\nAre you in?\n\n`;
-    msg += `Number of sticks: ${ggc.maxSticks}\n`;
-    msg += `Paso allowed: ` + (ggc.bPasoAllowed ? "Yes" : "No") + `\n`;
-    msg += `Palofijo allowed: ` + (ggc.bPaloFijoAllowed ? "Yes" : "No");
-    setYesNoMessage(msg);
-    setYesNoTitle("Starting Game");
-    setYesText("Yes, I'm in");
-    setNoText("No, I'll watch");
-    setYesShowButton(true);
-    setNoShowButton(true);
-    setXShowButton(false);
-    setShowYesNoDlg (true);
-
-    setOnYesHandler(() => () => {
-      setShowYesNoDlg(false);
-      socket.emit('inOrOut', { lobbyId, index: myIndex, status: CONN_PLAYER_IN })
-      console.log ('GamePage: emiting "inOrOut" with IN response');
-    });
-    setOnNoHandler(() => () => {
-      setShowYesNoDlg(false);
-      socket.emit('inOrOut', { lobbyId, index: myIndex, status: CONN_OBSERVER })
-      console.log ('GamePage: emiting "inOrOut" with WATCH response');
-    });
-  }
-*/
   //************************************************************
   // function to prepare the confirm bid dialog
   // (sets up to use the YesNoDlg)
@@ -639,40 +619,83 @@ import { CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYE
   // function to prepare the Lift Cup dialog
   //************************************************************
   const PrepareLiftCupDlg = () => {
-    // prepare strings to say what happened
-    let s1 = "";  // who doubted whom
-    let s2 = "";  // what the bid was
-    let s3 = '';  // who has not yet lifted the cup
-    s1 = ggc.allParticipantNames[ggc.result.whoDoubted];
-    s1 += " doubted ";
-    s1 += ggc.allParticipantNames[ggc.result.whoGotDoubted];
-    setLiftCupWhoDoubtedWhom(s1);
-
-    if (ggc.result.doubtWasPaso) {
-      // PASO
-      s2 = ggc.allParticipantNames[ggc.result.whoGotDoubted] + " bid PASO";
-    } else {
-      // non-PASO
-      s2 = ggc.allParticipantNames[ggc.result.whoGotDoubted] + "'s bid was " + ggc.result.doubtedText;
-      s2 += "\n(" + ggc.result.doubtShowing + " showing, looking for " + ggc.result.doubtLookingFor + ")\n";
-    }
-    setLiftCupDoubtedBid(s2);
+    PrepareDoubtResultStrings();
     if (ggc.result.doubtMustLiftCup[myIndex] &&
        !ggc.result.doubtDidLiftCup[myIndex]) {
         setLiftCupShowButton(true);
-      } else {
-        setLiftCupShowButton(false);
-      }
-    
-
+    } else {
+      setLiftCupShowButton(false);
+    }
     setShowLiftCupDlg(true);
 
     setOnLiftCupOkHandler(() => () => {
       setShowLiftCupDlg(false);
-
       socket.emit('liftCup', { lobbyId, index: myIndex })
       console.log ('GamePage: emiting "LiftCup"');
     });
+  }
+
+  //************************************************************
+  // function to prepare the Show Doubt dialog
+  //************************************************************
+  const PrepareShowDoubtDlg = () => {
+    setShowShowDoubtDlg(true);
+
+    setOnShowDoubtOkHandler(() => () => {
+      setShowShowDoubtDlg(false);
+      setIsMyTurn(false);
+      socket.emit('nextRound', { lobbyId, index: myIndex })
+      console.log ('GamePage: emiting "nextRound"');
+    });
+  }
+
+  //************************************************************
+  // function to prepare doubt result strings
+  // these are used by LiftCup and ShowDoubt
+  //************************************************************
+    function PrepareDoubtResultStrings() {
+    // prepare strings to say what happened
+    let s1 = "";  // who doubted whom
+    let s2 = "";  // what the bid was
+    let s3 = "";  // result of doubt
+    let s4 = "";  // who got the stick
+    let s5 = "";  // who got won the game (if anyone)
+    s1 = ggc.allParticipantNames[ggc.result.whoDoubted];
+    s1 += " doubted ";
+    s1 += ggc.allParticipantNames[ggc.result.whoGotDoubted];
+    setDoubtWhoDoubtedWhom(s1);
+
+    if (ggc.result.doubtWasPaso) {
+      // PASO
+      s2 = ggc.allParticipantNames[ggc.result.whoGotDoubted] + " bid PASO";
+      if (ggc.result.doubtPasoWasThere) {
+          s3 = ggc.allParticipantNames[ggc.result.whoGotDoubted] + " has the PASO";
+      } else {
+          s3 = ggc.allParticipantNames[ggc.result.whoGotDoubted] + " does not have the PASO";
+      }
+    } else {
+      // non-PASO
+      s2 = ggc.allParticipantNames[ggc.result.whoGotDoubted] + "'s bid was " + ggc.result.doubtedText;
+
+      s3 = (ggc.result.doubtCount == 1 ? "There is " : "There are ") + ggc.result.doubtCount;
+    }
+    setDoubtDoubtedBid(s2);
+    setDoubtThereAre(s3);
+
+    s4 = ggc.allParticipantNames[ggc.result.doubtLoser] + " got the stick";
+    if (ggc.result.doubtLoserOut) {
+      s4 += ", and is OUT";
+    }
+    setDoubtWhoGotStick(s4);
+
+    let msg = s1 + "\n" + s2 + "\n" + s3 + "\n" + s4; 
+
+    if (ggc.bWinnerGame) {
+      s5 = ggc.allParticipantNames[ggc.whoWonGame] + " WINS THE GAME!!"
+    } else {
+      s5 = '';
+    }
+    setDoubtWhoWon(s5);
   }
 
   //************************************************************
@@ -979,10 +1002,16 @@ useEffect(() => {
         }
       }
   
-  if (ggc.bShowDoubtResult) {
-    setShowLiftCupDlg (false);
-    DrawDoubtResult();
-  }
+  if (ggc.bShowDoubtResult && 
+      ggc.nextRoundMustSay[myIndex] &&
+      !ggc.nextRoundDidSay[myIndex]) {
+        setShowLiftCupDlg (false);
+        PrepareShowDoubtDlg();
+      }
+
+  //if (ggc.bShowDoubtResult) {
+    //DrawDoubtResult();
+  //}
 
   //****************************************************************
   // Set up coordinates of player boxes 
@@ -1286,6 +1315,7 @@ useEffect(() => {
 
   //************************************************************
   //  function Draw Doubt Result
+  //  obsolete?
   //************************************************************
   function DrawDoubtResult() {
     // prepare strings to say what happened
@@ -1374,7 +1404,7 @@ useEffect(() => {
                 </div>
               )}
 
-              {(ggc.bDoubtInProgress || ggc.bShowDoubtResult) && RenderDoubt()}
+              {/* (ggc.bDoubtInProgress || ggc.bShowDoubtResult) && RenderDoubt() */}
             </div>
           </div>
         </div>
@@ -1467,10 +1497,22 @@ useEffect(() => {
         {showLiftCupDlg && (
           <LiftCupDlg
             open={showLiftCupDlg}
-            liftCupWhoDoubtedWhom={liftCupWhoDoubtedWhom}
-            liftCupDoubtedBid={liftCupDoubtedBid}
+            doubtWhoDoubtedWhom={doubtWhoDoubtedWhom}
+            doubtDoubtedBid={doubtDoubtedBid}
             liftCupShowButton={liftCupShowButton}
             onOk={onLiftCupOkHandler}
+          />
+        )}
+
+        {showShowDoubtDlg && (
+          <ShowDoubtDlg
+            open={showShowDoubtDlg}
+            doubtWhoDoubtedWhom={doubtWhoDoubtedWhom}
+            doubtDoubtedBid={doubtDoubtedBid}
+            doubtThereAre={doubtThereAre}
+            doubtWhoGotStick={doubtWhoGotStick}
+            doubtWhoWon={doubtWhoWon}
+            onOk={onShowDoubtOkHandler}
           />
         )}
 

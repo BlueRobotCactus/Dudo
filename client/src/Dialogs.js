@@ -563,8 +563,8 @@ export function GameSettingsDlg({
 //************************************************************
 export function LiftCupDlg({ 
   open,
-  liftCupWhoDoubtedWhom,
-  liftCupDoubtedBid,
+  doubtWhoDoubtedWhom,
+  doubtDoubtedBid,
   liftCupShowButton,
   onOk = () => {},
   onHide={onOk}
@@ -578,7 +578,6 @@ export function LiftCupDlg({
       dialogClassName="dialog-top yesno-sm-modal"
     >
       <Modal.Header
-        closeButton
         closeVariant="white"
         className="bg-primary text-white py-2 px-3"
         style={{ fontSize: '14px' }}
@@ -599,19 +598,91 @@ export function LiftCupDlg({
         >
         </div>
             <div className="col text-center" style={{ whiteSpace: 'pre-line' }}>
-              {liftCupWhoDoubtedWhom}
+              {doubtWhoDoubtedWhom}
             </div>
             <div className="col text-center" style={{ whiteSpace: 'pre-line' }}>
-              {liftCupDoubtedBid}
+              {doubtDoubtedBid}
             </div>
       </Modal.Body>
 
+      {liftCupShowButton ? (
       <Modal.Footer>
-        {liftCupShowButton && (
           <Button variant="primary" onClick={onOk}>
             Lift Cup
           </Button>
-        )}
+      </Modal.Footer>
+      ) : null}
+
+
+    </Modal>
+  );
+}
+
+//************************************************************
+// ShowDoubtDlg
+//************************************************************
+export function ShowDoubtDlg({ 
+  open,
+  doubtWhoDoubtedWhom,
+  doubtDoubtedBid,
+  doubtThereAre,
+  doubtWhoGotStick,
+  doubtWhoWon,
+  onOk = () => {},
+  onHide={onOk}
+}) {
+  return (
+    <Modal
+      show={open}
+      onHide={onOk}
+      backdrop="static"
+      keyboard={false}
+      dialogClassName="dialog-top yesno-sm-modal"
+    >
+      <Modal.Header
+        closeVariant="white"
+        className="bg-primary text-white py-2 px-3"
+        style={{ fontSize: '14px' }}
+      >
+        <Modal.Title>DOUBT!</Modal.Title>
+      </Modal.Header>
+
+      <Modal.Body>
+        <div
+          style={{
+            maxHeight: '50vh',
+            overflowY: 'auto',
+            padding: '4px 8px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '8px',
+          }}
+        >
+        </div>
+            <div className="col text-center" style={{ whiteSpace: 'pre-line' }}>
+              {doubtWhoDoubtedWhom}
+            </div>
+            <div className="col text-center" style={{ whiteSpace: 'pre-line' }}>
+              {doubtDoubtedBid}
+            </div>
+            <div className="col text-center" style={{ whiteSpace: 'pre-line' }}>
+              {doubtThereAre}
+            </div>
+            <div className="col text-center" style={{ whiteSpace: 'pre-line' }}>
+              {doubtWhoGotStick}
+            </div>
+
+            {doubtWhoWon !== '' ? (
+              <div className="col text-center fw-bold" style={{ whiteSpace: 'pre-line' }}>
+                {doubtWhoWon}
+              </div>
+            ) : null }
+      </Modal.Body>
+
+      <Modal.Footer>
+        <Button variant="primary" onClick={onOk}>
+          OK
+        </Button>
       </Modal.Footer>
     </Modal>
   );
