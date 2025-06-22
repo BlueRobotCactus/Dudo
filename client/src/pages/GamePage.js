@@ -14,6 +14,7 @@ import { ConfirmBidDlg } from '../Dialogs.js';
 import { InOutDlg } from '../Dialogs.js';
 import { OkDlg } from '../Dialogs.js';
 import { YesNoDlg } from '../Dialogs.js';
+import { LiftCupDlg } from '../Dialogs.js';
 import { BidHistoryDlg } from '../Dialogs.js';
 import { ObserversDlg } from '../Dialogs.js';
 import { GameSettingsDlg } from '../Dialogs.js';
@@ -137,6 +138,13 @@ import { CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYE
     // Bid History
     const [showBidHistoryDlg, setShowBidHistoryDlg] = useState(false);
     const [onBidHistoryOkHandler, setOnBidHistoryOkHandler] = useState(() => () => {});
+
+    // Lift Cup
+    const [showLiftCupDlg, setShowLiftCupDlg] = useState(false);
+    const [onLiftCupOkHandler, setOnLiftCupOkHandler] = useState(() => () => {});
+    const [liftCupWhoDoubtedWhom, setLiftCupWhoDoubtedWhom] = useState('');
+    const [liftCupDoubtedBid, setLiftCupDoubtedBid] = useState('');
+    const [liftCupShowButton, setLiftCupShowButton] = useState(true);
 
     // Observers
     const [showObserversDlg, setShowObserversDlg] = useState(false);
@@ -628,6 +636,46 @@ import { CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYE
   }
   
   //************************************************************
+  // function to prepare the Lift Cup dialog
+  //************************************************************
+  const PrepareLiftCupDlg = () => {
+    // prepare strings to say what happened
+    let s1 = "";  // who doubted whom
+    let s2 = "";  // what the bid was
+    let s3 = '';  // who has not yet lifted the cup
+    s1 = ggc.allParticipantNames[ggc.result.whoDoubted];
+    s1 += " doubted ";
+    s1 += ggc.allParticipantNames[ggc.result.whoGotDoubted];
+    setLiftCupWhoDoubtedWhom(s1);
+
+    if (ggc.result.doubtWasPaso) {
+      // PASO
+      s2 = ggc.allParticipantNames[ggc.result.whoGotDoubted] + " bid PASO";
+    } else {
+      // non-PASO
+      s2 = ggc.allParticipantNames[ggc.result.whoGotDoubted] + "'s bid was " + ggc.result.doubtedText;
+      s2 += "\n(" + ggc.result.doubtShowing + " showing, looking for " + ggc.result.doubtLookingFor + ")\n";
+    }
+    setLiftCupDoubtedBid(s2);
+    if (ggc.result.doubtMustLiftCup[myIndex] &&
+       !ggc.result.doubtDidLiftCup[myIndex]) {
+        setLiftCupShowButton(true);
+      } else {
+        setLiftCupShowButton(false);
+      }
+    
+
+    setShowLiftCupDlg(true);
+
+    setOnLiftCupOkHandler(() => () => {
+      setShowLiftCupDlg(false);
+
+      socket.emit('liftCup', { lobbyId, index: myIndex })
+      console.log ('GamePage: emiting "LiftCup"');
+    });
+  }
+
+  //************************************************************
   // function to handle 'forceLeaveLobby'
   // (host has left, the lobby is about to be deleted)
   //************************************************************
@@ -922,11 +970,17 @@ useEffect(() => {
     }
   }
 
-  if (ggc.bDoubtInProgress) {
-    DrawDoubtInProgress();
-  }
+//  if (ggc.bDoubtInProgress) {
+    // DrawDoubtInProgress();
+    if (ggc.bDoubtInProgress) {
+      if (!ggc.result.doubtMustLiftCup[myIndex] || 
+          !ggc.result.doubtDidLiftCup[myIndex]) {
+        PrepareLiftCupDlg();
+        }
+      }
   
   if (ggc.bShowDoubtResult) {
+    setShowLiftCupDlg (false);
     DrawDoubtResult();
   }
 
@@ -1295,11 +1349,9 @@ useEffect(() => {
           {/* Row 1: Lobby info */}
           <div className="row mb-2 my-2">
             <div className="col">
-              <div className="border border-primary rounded p-1 d-flex justify-content-center align-items-center">
-                <div className="fw-bold text-center">
-                  <div>Dudo Lobby Host: {lobbyHost}</div>
-                  <div>Your Name: {myName}</div>
-                </div>
+              <div className="border border-primary rounded p-1 d-flex justify-content-between align-items-center fw-bold">
+                <div>Your Name: {myName}</div>
+                <div>Dudo Lobby Host: {lobbyHost}</div>
               </div>
             </div>
           </div>
@@ -1409,6 +1461,16 @@ useEffect(() => {
             xShowButton = {xShowButton}
             onYes={onYesHandler}
             onNo={onNoHandler}
+          />
+        )}
+
+        {showLiftCupDlg && (
+          <LiftCupDlg
+            open={showLiftCupDlg}
+            liftCupWhoDoubtedWhom={liftCupWhoDoubtedWhom}
+            liftCupDoubtedBid={liftCupDoubtedBid}
+            liftCupShowButton={liftCupShowButton}
+            onOk={onLiftCupOkHandler}
           />
         )}
 
