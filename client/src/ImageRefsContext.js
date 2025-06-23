@@ -8,13 +8,16 @@ export function ImageRefsProvider({ children }) {
   const diceImagesRef = useRef({});
   const diceHiddenImageRef = useRef({});
   const stickImageRef = useRef({});
+  const directionLeftImageRef = useRef(null);
+  const directionRightImageRef = useRef(null);
+  
   const [imagesReady, setImagesReady] = useState(false);
 
   useEffect(() => {
     console.log("ImageRefsContext: useEffect: LOAD IMAGES");
 
     let loaded = 0;
-    const totalToLoad = 10;
+    const totalToLoad = 12;
     const diceImgs = {};
 
     const checkIfDone = () => {
@@ -53,6 +56,17 @@ export function ImageRefsProvider({ children }) {
     imgStick.src = '/images/Stick.jpg';
     imgStick.onload = () => { stickImageRef.current = imgStick; checkIfDone(); };
     imgStick.onerror = (e) => console.error("Failed to load Stick.jpg", e);
+
+    const imgDirectionLeft = new Image();
+    imgDirectionLeft.src = '/images/DirectionLeft.png';
+    imgDirectionLeft.onload = () => { directionLeftImageRef.current = imgDirectionLeft; checkIfDone(); };
+    imgDirectionLeft.onerror = (e) => console.error("Failed to load DirectionLeft.jpg", e);
+
+    const imgDirectionRight = new Image();
+    imgDirectionRight.src = '/images/DirectionRight.png';
+    imgDirectionRight.onload = () => { directionRightImageRef.current = imgDirectionRight; checkIfDone(); };
+    imgDirectionRight.onerror = (e) => console.error("Failed to load DirectionRight.jpg", e);
+
   }, []);
 
   return (
@@ -62,7 +76,9 @@ export function ImageRefsProvider({ children }) {
       diceImagesRef,
       diceHiddenImageRef,
       stickImageRef,
-      imagesReady
+      directionLeftImageRef,
+      directionRightImageRef,
+      imagesReady,
     }}>
       {children}
     </ImageRefsContext.Provider>

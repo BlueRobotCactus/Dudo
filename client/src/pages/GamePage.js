@@ -1,6 +1,5 @@
-import React, { useEffect, useState, useRef, useLayoutEffect } from 'react';
+import React, { useEffect, useState, useRef, useContext } from 'react';
 import { useParams, useLocation, useNavigate } from 'react-router-dom';
-import { useContext } from 'react';
 import { SocketContext } from '../SocketContext.js';
 import { ImageRefsContext } from '../ImageRefsContext.js';
 import { DudoGame } from '../DudoGameC.js'
@@ -43,7 +42,9 @@ import { CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYE
       diceImagesRef,
       diceHiddenImageRef,
       stickImageRef,
-      imagesReady
+      directionLeftImageRef,
+      directionRightImageRef,
+      imagesReady,
     } = useContext(ImageRefsContext);
 
     const playerName = location.state?.playerName || sessionStorage.getItem('playerName') || '';
@@ -1295,12 +1296,12 @@ useEffect(() => {
         setXShowButton(false);
         setOnYesHandler(() => () => {
           setShowYesNoDlg(false);
-          ggc.whichDirection = 0;
+          ggc.whichDirection = 1;
           PrepareBidUI();
       });
         setOnNoHandler(() => () => {
           setShowYesNoDlg(false);
-          ggc.whichDirection = 1;
+          ggc.whichDirection = 2;
           PrepareBidUI();
         });
         setShowYesNoDlg(true);

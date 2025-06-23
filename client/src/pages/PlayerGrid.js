@@ -1,5 +1,4 @@
-import React, { useState, useEffect, useRef, } from 'react';
-import { useContext } from 'react';
+import React, { useState, useEffect, useRef, useContext} from 'react';
 
 import './PlayerGrid.css';
 //import './GamePage.js'
@@ -22,7 +21,9 @@ export function PlayerGrid({ggc, myIndex, cc }) {
     diceImagesRef,
     diceHiddenImageRef,
     stickImageRef,
-    imagesReady
+    directionLeftImageRef,
+    directionRightImageRef,
+    imagesReady,
   } = useContext(ImageRefsContext);
 
   //*****************************************************************

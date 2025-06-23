@@ -18,6 +18,9 @@ function PlayerCard({ ggc, myIndex, cc }) {
     cupUpImageRef,
     diceImagesRef,
     diceHiddenImageRef,
+    stickImageRef,
+    directionLeftImageRef,
+    directionRightImageRef,
     imagesReady,
   } = useContext(ImageRefsContext);
   if (!imagesReady) return null;

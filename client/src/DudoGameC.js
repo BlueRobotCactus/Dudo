@@ -39,7 +39,7 @@ export class DudoGame {
 	diceHidden = [][];      
 */
 	firstRound;
-	whichDirection;          // 0 = left (clockwise); 1 = right (counter-clockwise)
+	whichDirection;          // 1 = left (clockwise); 2 = right (counter-clockwise)
 	bSettingGameParms;
 	bGameInProgress;
 	bRoundInProgress;
@@ -259,7 +259,7 @@ export class DudoGame {
 	// figure out who goes next
 	//************************************************************
 	getWhosTurnNext () {
-			if (this.whichDirection == 0) {
+			if (this.whichDirection == 1) {
 					return this.getPlayerToLeft(this.whosTurn);
 			} else {
 					return this.getPlayerToRight(this.whosTurn);
