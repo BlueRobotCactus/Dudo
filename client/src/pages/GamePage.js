@@ -565,6 +565,10 @@ import { CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYE
         setRow2CurrentBid(`Waiting for ${whosTurnName} to start the bidding...`);
         setRow2BidToWhom('');
       }
+      if (ggc.bDirectionInProgress) {
+        setRow2CurrentBid(`Waiting for ${whosTurnName} to choose the bidding direction...`);
+        setRow2BidToWhom('');
+      }
     }
   }
 
@@ -612,7 +616,6 @@ import { CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYE
           bidShowShake: myShowShakeRef.current,
           index: myIndex,
           name: myName,
-          direction: ggc.whichDirection,
         });
       }
     });
@@ -785,6 +788,7 @@ import { CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYE
 
   //************************************************************
   // functions handle Yes, No from ConfirmBidDlg
+  // (obsolete)
   //************************************************************
   const handleConfirmBidYes = () => {
     setShowConfirmBidDlg(false);
@@ -1296,12 +1300,14 @@ useEffect(() => {
         setXShowButton(false);
         setOnYesHandler(() => () => {
           setShowYesNoDlg(false);
-          ggc.whichDirection = 1;
+          //ggc.whichDirection = 1;
+          socket.emit('direction', { lobbyId, index: myIndex, direction: 1 })
           PrepareBidUI();
       });
         setOnNoHandler(() => () => {
           setShowYesNoDlg(false);
-          ggc.whichDirection = 2;
+          //ggc.whichDirection = 2;
+          socket.emit('direction', { lobbyId, index: myIndex, direction: 2 })
           PrepareBidUI();
         });
         setShowYesNoDlg(true);
@@ -1324,7 +1330,7 @@ useEffect(() => {
       setRow2CurrentBid(`Waiting for 2 or more players in the lobby to start a game...`);
     } else {
       setRow2CurrentBid(myName == lobby.host ? 
-                        'Waiting for you to start the game...' :
+                        'Waiting for YOU to start the game...' :
                         `Waiting for ${lobby.host} to start the game...`);
     }
     setRow2BidToWhom('');

@@ -463,16 +463,25 @@ io.on('connection', (socket) => {
 
   //************************************************************
   // socket.on
-  // PROCESS THE BID
+  // PROCESS THE DIRECTION
   //************************************************************
-  socket.on('bid', ({ lobbyId, bidText, bidShowShake, index, name, direction }) => {
+  socket.on('direction', ({ lobbyId, index, direction }) => {
     const lobby = lobbies[lobbyId];
     const ggs = lobby.game;
 
-    //-------------------------------------------------
-    // set direction of bidding (left or right)
-    //-------------------------------------------------
+    ggs.bDirectionInProgress = false;
     ggs.whichDirection = direction;
+    io.to(lobbyId).emit('gameStateUpdate', lobby.game);
+    console.log("server.js: socket.on('direction'): emitting 'gameStateUpdate'");
+  });
+
+  //************************************************************
+  // socket.on
+  // PROCESS THE BID
+  //************************************************************
+  socket.on('bid', ({ lobbyId, bidText, bidShowShake, index, name }) => {
+    const lobby = lobbies[lobbyId];
+    const ggs = lobby.game;
 
     //-------------------------------------------------
     // add this bid to the bid array
@@ -844,9 +853,6 @@ function StartGame (ggs) {
       ggs.allSticks[i] = 0;
   }
 
-  // &&& set direction for now
-  //ggs.whichDirection = 0;
-
   //&&& for debugging
   //ggs.allConnectionStatus[0] = CONN_OBSERVER;
 
@@ -867,8 +873,10 @@ function StartRound (ggs) {
     ggs.bShowDoubtResult = false;
 
     if (ggs.GetNumberPlayersStillIn() > 2) {
+      ggs.bDirectionInProgress = true;
       ggs.whichDirection = undefined;
     } else {
+      ggs.bDirectionInProgress = false;
       ggs.whichDirection = 0;
     }
 

@@ -80,6 +80,7 @@ function useDraggableDialog(open, position, setPosition) {
 
 //************************************************************
 // ConfirmBidDlg
+// (obsolete)
 //************************************************************
 export function ConfirmBidDlg({
   open,
@@ -94,7 +95,7 @@ export function ConfirmBidDlg({
     useDraggableDialog({ open, position, setPosition });
 
   if (!open) return null;
-
+  if (open) return null;      // TURNS THIS OFF
   return (
     <div
       onMouseMove={handleMouseMove}
