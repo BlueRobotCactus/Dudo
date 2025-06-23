@@ -601,13 +601,13 @@ io.on('connection', (socket) => {
     const ggs = lobby.game;
 
     // mark this player cup lifted
-    ggs.result.doubtDidLiftCup[index] = true;
+    ggs.doubtDidLiftCup[index] = true;
 
     // is that everybody we need to hear from?
     let allLifted = true;
     for (let i=0; i<ggs.maxConnections; i++) {
-      if (ggs.result.doubtMustLiftCup[i]) {
-        if (!ggs.result.doubtDidLiftCup[i]) {
+      if (ggs.doubtMustLiftCup[i]) {
+        if (!ggs.doubtDidLiftCup[i]) {
           allLifted = false;
           break;
         }
@@ -872,7 +872,7 @@ function StartRound (ggs) {
       ggs.whichDirection = 0;
     }
 
-    ggs.result.doubtDidLiftCup = Array(ggs.maxConnections).fill(false);  // &&& need this?
+    ggs.doubtDidLiftCup = Array(ggs.maxConnections).fill(false);  // &&& need this?
     ggs.nextRoundMustSay = Array(ggs.maxConnections).fill(false);       // &&& need this?
     ggs.nextRoundDidSay = Array(ggs.maxConnections).fill(false);       // &&& need this?
     ggs.getNextRoundMustSay();

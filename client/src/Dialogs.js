@@ -566,6 +566,7 @@ export function LiftCupDlg({
   doubtWhoDoubtedWhom,
   doubtDoubtedBid,
   liftCupShowButton,
+  liftCupShowButtonX,
   onOk = () => {},
   onHide={onOk}
 }) {
@@ -578,6 +579,7 @@ export function LiftCupDlg({
       dialogClassName="dialog-top yesno-sm-modal"
     >
       <Modal.Header
+        {...(liftCupShowButtonX ? { closeButton: true } : {})} 
         closeVariant="white"
         className="bg-primary text-white py-2 px-3"
         style={{ fontSize: '14px' }}
@@ -627,6 +629,7 @@ export function ShowDoubtDlg({
   doubtWhoGotStick,
   doubtWhoWon,
   showDoubtShowButton,
+  showDoubtShowButtonX,
   onOk = () => {},
   onHide={onOk}
 }) {
@@ -639,6 +642,7 @@ export function ShowDoubtDlg({
       dialogClassName="dialog-top yesno-sm-modal"
     >
       <Modal.Header
+        {...(showDoubtShowButtonX ? { closeButton: true } : {})} 
         closeVariant="white"
         className="bg-primary text-white py-2 px-3"
         style={{ fontSize: '14px' }}

@@ -151,11 +151,13 @@ import { CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYE
     const [showLiftCupDlg, setShowLiftCupDlg] = useState(false);
     const [onLiftCupOkHandler, setOnLiftCupOkHandler] = useState(() => () => {});
     const [liftCupShowButton, setLiftCupShowButton] = useState(false);
+    const [liftCupShowButtonX, setLiftCupShowButtonX] = useState(false);
 
     // Show Doubt
     const [showShowDoubtDlg, setShowShowDoubtDlg] = useState(false);
     const [onShowDoubtOkHandler, setOnShowDoubtOkHandler] = useState(() => () => {});
     const [showDoubtShowButton, setShowDoubtShowButton] = useState(false);
+    const [showDoubtShowButtonX, setShowDoubtShowButtonX] = useState(false);
 
     // Observers
     const [showObserversDlg, setShowObserversDlg] = useState(false);
@@ -626,13 +628,20 @@ import { CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYE
   //************************************************************
   const PrepareLiftCupDlg = () => {
     PrepareLiftCupStrings();
-    if (ggc.result.doubtMustLiftCup[myIndex] &&
-       !ggc.result.doubtDidLiftCup[myIndex]) {
+    if (ggc.doubtMustLiftCup[myIndex] &&
+       !ggc.doubtDidLiftCup[myIndex]) {
         setLiftCupShowButton(true);
     } else {
       setLiftCupShowButton(false);
     }
+    setLiftCupShowButtonX(ggc.allConnectionStatus[myIndex] === CONN_OBSERVER ? true : false);
+
     setShowLiftCupDlg(true);
+    // do not show, if observer hit the X
+    if (ggc.allConnectionStatus[myIndex] === CONN_OBSERVER &&
+        ggc.doubtDidLiftCup[myIndex]) {
+        setShowLiftCupDlg(false);
+    }
 
     setOnLiftCupOkHandler(() => () => {
       setShowLiftCupDlg(false);
@@ -646,8 +655,15 @@ import { CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYE
   //************************************************************
   const PrepareShowDoubtDlg = () => {
     PrepareShowDoubtStrings();
-    setShowDoubtShowButton(ggc.allConnectionStatus[myIndex] === CONN_OBSERVER ? false : true);
+    setShowDoubtShowButton (ggc.allConnectionStatus[myIndex] === CONN_OBSERVER ? false : true);
+    setShowDoubtShowButtonX(ggc.allConnectionStatus[myIndex] === CONN_OBSERVER ? true : false);
+
     setShowShowDoubtDlg(true);
+    // do not show, if observer hit the X
+    if (ggc.allConnectionStatus[myIndex] === CONN_OBSERVER &&
+        ggc.nextRoundDidSay[myIndex]) {
+        setShowShowDoubtDlg(false);
+    }
 
     setOnShowDoubtOkHandler(() => () => {
       setShowShowDoubtDlg(false);
@@ -1031,8 +1047,8 @@ useEffect(() => {
 //  if (ggc.bDoubtInProgress) {
     // DrawDoubtInProgress();
   if (ggc.bDoubtInProgress) {
-//    if (!ggc.result.doubtMustLiftCup[myIndex] || 
-//        !ggc.result.doubtDidLiftCup[myIndex]) {
+//    if (!ggc.doubtMustLiftCup[myIndex] || 
+//        !ggc.doubtDidLiftCup[myIndex]) {
       PrepareLiftCupDlg();
 //    }
   }
@@ -1341,8 +1357,8 @@ useEffect(() => {
     // who has not yet lifted their cup
     s3 = "Waiting to see dice from:";
     for (let cc = 0; cc < ggc.maxConnections; cc++) {
-      if (ggc.result.doubtMustLiftCup[cc]) {
-        if (!ggc.result.doubtDidLiftCup[cc]) {
+      if (ggc.doubtMustLiftCup[cc]) {
+        if (!ggc.doubtDidLiftCup[cc]) {
           s3 += "\n" + ggc.allParticipantNames[cc];
         }
       }
@@ -1540,6 +1556,7 @@ useEffect(() => {
             doubtWhoDoubtedWhom={doubtWhoDoubtedWhom}
             doubtDoubtedBid={doubtDoubtedBid}
             liftCupShowButton={liftCupShowButton}
+            liftCupShowButtonX={liftCupShowButtonX}
             onOk={onLiftCupOkHandler}
           />
         )}
@@ -1553,6 +1570,7 @@ useEffect(() => {
             doubtWhoGotStick={doubtWhoGotStick}
             doubtWhoWon={doubtWhoWon}
             showDoubtShowButton={showDoubtShowButton}
+            showDoubtShowButtonX={showDoubtShowButtonX}
             onOk={onShowDoubtOkHandler}
           />
         )}
@@ -1667,7 +1685,8 @@ useEffect(() => {
             </button>
             </>
           )}
-          {(!ggc.bGameInProgress && lobby.host !== myName) && (
+          {(ggc.allConnectionStatus[myIndex] === CONN_OBSERVER || 
+           (!ggc.bGameInProgress && lobby.host !== myName)) && (
             <button
               onClick={handleLeaveLobby}
               className="btn btn-secondary btn-outline-light btn-sm"
@@ -1980,10 +1999,10 @@ useEffect(() => {
             <div className="fw-bold">{row2DoubtResult}</div>
             <div className="fw-bold">{row2DoubtStick}</div>
             <div className="fw-bold">{row2DoubtWin}</div>
-            {ggc.bDoubtInProgress && (ggc.result.doubtMustLiftCup[myIndex]) ? (
+            {ggc.bDoubtInProgress && (ggc.doubtMustLiftCup[myIndex]) ? (
             <button
               className="btn btn-primary btn-sm"
-              disabled = {ggc.result.doubtDidLiftCup[myIndex]}
+              disabled = {ggc.doubtDidLiftCup[myIndex]}
               onClick={() => socket.emit('liftCup', { lobbyId, index: myIndex })}
             >
               Lift Cup

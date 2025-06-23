@@ -26,7 +26,7 @@ function PlayerCard({ ggc, myIndex, cc }) {
   let cupImage;
   if (ggc.allConnectionStatus[cc] === CONN_PLAYER_OUT || !ggc.bGameInProgress) {
     cupImage = cupUpImageRef.current;
-  } else if ((ggc.bDoubtInProgress || ggc.bShowDoubtResult) && ggc.result.doubtDidLiftCup[cc]) {
+  } else if ((ggc.bDoubtInProgress || ggc.bShowDoubtResult) && ggc.doubtDidLiftCup[cc]) {
     cupImage = cupUpImageRef.current;
   } else {
     cupImage = cupDownImageRef.current;
@@ -46,7 +46,7 @@ function PlayerCard({ ggc, myIndex, cc }) {
       if (isHidden) {
         if (
           cc === myIndex ||
-          ((ggc.bDoubtInProgress || ggc.bShowDoubtResult) && ggc.result.doubtDidLiftCup[cc])
+          ((ggc.bDoubtInProgress || ggc.bShowDoubtResult) && ggc.doubtDidLiftCup[cc])
         ) {
           diceTop[i] = imgRef;
           hiliteTop[i] = !!ggc.bDiceHilite[cc][i];

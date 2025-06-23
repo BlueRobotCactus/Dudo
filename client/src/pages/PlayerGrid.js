@@ -64,7 +64,7 @@ export function PlayerGrid({ggc, myIndex, cc }) {
 
   if (ggc.allConnectionStatus[cc] == CONN_PLAYER_OUT || !ggc.bGameInProgress) {
       cupImageToShow = cupUpImageRef.current;
-  } else if ((ggc.bDoubtInProgress || ggc.bShowDoubtResult) && ggc.result.doubtDidLiftCup[cc]) {
+  } else if ((ggc.bDoubtInProgress || ggc.bShowDoubtResult) && ggc.doubtDidLiftCup[cc]) {
       cupImageToShow = cupUpImageRef.current;
   } else {
       cupImageToShow = cupDownImageRef.current;
@@ -113,7 +113,7 @@ export function PlayerGrid({ggc, myIndex, cc }) {
             }
           } else {
             // other player
-            if ((ggc.bDoubtInProgress || ggc.bShowDoubtResult) && ggc.result.doubtDidLiftCup[cc]) {
+            if ((ggc.bDoubtInProgress || ggc.bShowDoubtResult) && ggc.doubtDidLiftCup[cc]) {
               // cup lifted, show dice
               diceImageTopList[cc][i] = diceImagesRef.current[value];
               if (ggc.bDiceHilite[cc][i]) {
@@ -154,10 +154,10 @@ export function PlayerGrid({ggc, myIndex, cc }) {
 
   // lift cup dlg
   if (ggc.bDoubtInProgress && !ggc.bShowDoubtResult) {
-    if (ggc.result.doubtMustLiftCup[cc] && !ggc.result.doubtDidLiftCup[cc]) {
+    if (ggc.doubtMustLiftCup[cc] && !ggc.doubtDidLiftCup[cc]) {
       bgColor = 'lightblue';
     }
-    if (ggc.result.doubtMustLiftCup[cc] && ggc.result.doubtDidLiftCup[cc])  {
+    if (ggc.doubtMustLiftCup[cc] && ggc.doubtDidLiftCup[cc])  {
       bgColor = 'white';
     }
   }

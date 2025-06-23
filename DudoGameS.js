@@ -49,6 +49,8 @@ export class DudoGame {
 
 	inOutMustSay = [];
 	inOutDidSay = [];
+    doubtMustLiftCup = [];
+    doubtDidLiftCup = [];
 	nextRoundMustSay = [];
 	nextRoundDidSay = [];
 
@@ -200,8 +202,8 @@ export class DudoGame {
 			for (let i=0; i<state.maxConnections; i++) {
 					this.inOutMustSay[i] = state.inOutMustSay[i];
 					this.inOutDidSay[i] = state.inOutDidSay[i];
-					this.result.doubtMustLiftCup[i] = state.result.doubtMustLiftCup[i]
-					this.result.doubtDidLiftCup[i] = state.result.doubtDidLiftCup[i];
+					this.doubtMustLiftCup[i] = state.doubtMustLiftCup[i]
+					this.doubtDidLiftCup[i] = state.doubtDidLiftCup[i];
 					this.nextRoundMustSay[i] = state.nextRoundMustSay[i];
 					this.nextRoundDidSay[i] = state.nextRoundDidSay[i];
 			}
@@ -452,19 +454,19 @@ export class DudoGame {
 	getMustLiftCupList () {
 			// initialize all to false
 			for (let i=0; i<this.maxConnections; i++) {
-					this.result.doubtMustLiftCup[i] = false;
+					this.doubtMustLiftCup[i] = false;
 			}
 
 			// if PASO, only the one who was doubted
 			if (this.result.doubtWasPaso) {
-					this.result.doubtMustLiftCup[this.result.whoGotDoubted] = true;
+					this.doubtMustLiftCup[this.result.whoGotDoubted] = true;
 					return;
 			}
 			
 			// not PASO, all players who are IN
 			for (let i=0; i<this.maxConnections; i++) {
 					if (this.allConnectionStatus[i] == CONN_PLAYER_IN) {
-							this.result.doubtMustLiftCup[i] = true;
+							this.doubtMustLiftCup[i] = true;
 					}
 			}
 			// if UNUSED or OBSERVER, false
@@ -971,7 +973,7 @@ export class DudoGame {
 					if (this.allConnectionStatus[cc] == CONN_PLAYER_IN) {
 							// player is still in
 							for (let i=0; i<5; i++) {
-									if (this.result.doubtDidLiftCup[cc] || !this.bDiceHidden[cc][i]) {
+									if (this.doubtDidLiftCup[cc] || !this.bDiceHidden[cc][i]) {
 											// this die is seen by all, examine it
 											const die = this.dice[cc][i];
 											if (bPaloFijo) {
@@ -1022,8 +1024,6 @@ class DoubtResult {
     doubtLoserOut;
     doubtWasPaso;
     doubtPasoWasThere;
-    doubtMustLiftCup = [];
-    doubtDidLiftCup = [];
 
     init() {
         let doubtedText = undefined;
