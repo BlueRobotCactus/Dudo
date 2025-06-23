@@ -138,22 +138,49 @@ export function PlayerGrid({ggc, myIndex, cc }) {
   //--------------------------------------------------------
   // which background colors to use
   //--------------------------------------------------------
-  const status = ggc?.allConnectionStatus?.[cc];
-  const lifted = (ggc?.bDoubtInProgress || ggc?.bShowDoubtResult) && ggc?.result?.doubtDidLiftCup[cc];
+  // default color
+  let bgColor = (ggc.allConnectionStatus[cc] === CONN_PLAYER_OUT ? 'gray' : 'white');
+  let lineColor = 'lightgray';
 
-  const bgColor =
-    status === CONN_PLAYER_OUT
-      ? 'gray'
-      : status === CONN_PLAYER_IN && lifted
-      ? 'lightblue'
-      : 'white';
+  // ask in or out dlg
+  if (ggc.bAskInOut) {
+    if (ggc.inOutMustSay[cc] && !ggc.inOutDidSay[cc]) {
+      bgColor = 'lightblue';
+    }
+    if (ggc.inOutMustSay[cc] && ggc.inOutDidSay[cc])  {
+      bgColor = 'white';
+    }
+  }
 
-  const lineColor =
-    status === CONN_PLAYER_OUT
-      ? 'lightgray'
-      : status === CONN_PLAYER_IN && lifted
-      ? 'gray'
-      : 'lightgray';
+  // lift cup dlg
+  if (ggc.bDoubtInProgress && !ggc.bShowDoubtResult) {
+    if (ggc.result.doubtMustLiftCup[cc] && !ggc.result.doubtDidLiftCup[cc]) {
+      bgColor = 'lightblue';
+    }
+    if (ggc.result.doubtMustLiftCup[cc] && ggc.result.doubtDidLiftCup[cc])  {
+      bgColor = 'white';
+    }
+  }
+
+  // show doubt dlg
+  if (ggc.bShowDoubtResult) {
+    if (ggc.nextRoundMustSay[cc] && !ggc.nextRoundDidSay[cc]) {
+      bgColor = 'lightblue';
+    }
+    if (ggc.nextRoundMustSay[cc] && ggc.nextRoundDidSay[cc])  {
+      bgColor = 'white';
+    }
+  }
+  // line color in background color
+  if (bgColor === 'white') {
+    lineColor = 'lightgray';
+  }
+  if (bgColor === 'lightblue') {
+    lineColor = 'gray';
+  }
+  if (bgColor === 'gray') {
+    lineColor = 'lightgray';
+  }
 
   //--------------------------------------------------------
   // reactive font size based on length of name

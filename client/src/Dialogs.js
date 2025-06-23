@@ -377,7 +377,7 @@ export function BidHistoryDlg({
         className="bg-primary text-white py-2 px-3"
         style={{ fontSize: '14px' }}
       >
-        <Modal.Title>Bid History (most recent first)</Modal.Title>
+        <Modal.Title style={{ fontSize: '16px' }}>Bid History (most recent first)</Modal.Title>
       </Modal.Header>
 
       <Modal.Body>
@@ -415,7 +415,7 @@ export function BidHistoryDlg({
       </Modal.Body>
 
       <Modal.Footer>
-        <Button variant="primary" onClick={onOk}>
+        <Button variant="primary" size="sm" onClick={onOk}>
           OK
         </Button>
       </Modal.Footer>
@@ -448,7 +448,7 @@ export function ObserversDlg({
         className="bg-primary text-white py-2 px-3"
         style={{ fontSize: '14px' }}
       >
-        <Modal.Title>Observers</Modal.Title>
+        <Modal.Title style={{ fontSize: '16px' }}>Observers</Modal.Title>
       </Modal.Header>
 
       <Modal.Body>
@@ -480,7 +480,7 @@ export function ObserversDlg({
       </Modal.Body>
 
       <Modal.Footer>
-        <Button variant="primary" onClick={onOk}>
+        <Button variant="primary" size="sm" onClick={onOk}>
           OK
         </Button>
       </Modal.Footer>
@@ -515,7 +515,7 @@ export function GameSettingsDlg({
         className="bg-primary text-white py-2 px-3"
         style={{ fontSize: '14px' }}
       >
-        <Modal.Title>Game Settings</Modal.Title>
+        <Modal.Title style={{ fontSize: '16px' }}>Game Settings</Modal.Title>
       </Modal.Header>
 
       <Modal.Body>
@@ -550,7 +550,7 @@ export function GameSettingsDlg({
       </Modal.Body>
 
       <Modal.Footer>
-        <Button variant="primary" onClick={onOk}>
+        <Button variant="primary" size="sm" onClick={onOk}>
           OK
         </Button>
       </Modal.Footer>
@@ -582,7 +582,7 @@ export function LiftCupDlg({
         className="bg-primary text-white py-2 px-3"
         style={{ fontSize: '14px' }}
       >
-        <Modal.Title>DOUBT!</Modal.Title>
+        <Modal.Title style={{ fontSize: '16px' }}>DOUBT!</Modal.Title>
       </Modal.Header>
 
       <Modal.Body>
@@ -606,14 +606,12 @@ export function LiftCupDlg({
       </Modal.Body>
 
       {liftCupShowButton ? (
-      <Modal.Footer>
-          <Button variant="primary" onClick={onOk}>
+        <Modal.Footer>
+          <Button variant="primary" size="sm" onClick={onOk}>
             Lift Cup
           </Button>
-      </Modal.Footer>
+        </Modal.Footer>
       ) : null}
-
-
     </Modal>
   );
 }
@@ -628,6 +626,7 @@ export function ShowDoubtDlg({
   doubtThereAre,
   doubtWhoGotStick,
   doubtWhoWon,
+  showDoubtShowButton,
   onOk = () => {},
   onHide={onOk}
 }) {
@@ -644,7 +643,7 @@ export function ShowDoubtDlg({
         className="bg-primary text-white py-2 px-3"
         style={{ fontSize: '14px' }}
       >
-        <Modal.Title>DOUBT!</Modal.Title>
+        <Modal.Title style={{ fontSize: '16px' }}>DOUBT!</Modal.Title>
       </Modal.Header>
 
       <Modal.Body>
@@ -679,11 +678,13 @@ export function ShowDoubtDlg({
             ) : null }
       </Modal.Body>
 
-      <Modal.Footer>
-        <Button variant="primary" onClick={onOk}>
-          OK
-        </Button>
-      </Modal.Footer>
+      {showDoubtShowButton ? (
+        <Modal.Footer>
+          <Button variant="primary" size="sm" onClick={onOk}>
+            OK
+          </Button>
+        </Modal.Footer>
+      ) : null}
     </Modal>
   );
 }

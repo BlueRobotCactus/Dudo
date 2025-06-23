@@ -155,6 +155,7 @@ import { CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYE
     // Show Doubt
     const [showShowDoubtDlg, setShowShowDoubtDlg] = useState(false);
     const [onShowDoubtOkHandler, setOnShowDoubtOkHandler] = useState(() => () => {});
+    const [showDoubtShowButton, setShowDoubtShowButton] = useState(false);
 
     // Observers
     const [showObserversDlg, setShowObserversDlg] = useState(false);
@@ -303,6 +304,11 @@ import { CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYE
     setShowConfirmBidDlg (false);
     setShowOkDlg (false);
     setShowYesNoDlg (false);
+    setShowLiftCupDlg (false);
+    setShowShowDoubtDlg (false);
+    setShowBidHistoryDlg (false);
+    setShowObserversDlg (false);
+    setShowGameSettingsDlg (false);
 
     setGameState(data);
     ggc.AssignGameState(data);
@@ -619,7 +625,7 @@ import { CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYE
   // function to prepare the Lift Cup dialog
   //************************************************************
   const PrepareLiftCupDlg = () => {
-    PrepareDoubtResultStrings();
+    PrepareLiftCupStrings();
     if (ggc.result.doubtMustLiftCup[myIndex] &&
        !ggc.result.doubtDidLiftCup[myIndex]) {
         setLiftCupShowButton(true);
@@ -639,6 +645,8 @@ import { CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYE
   // function to prepare the Show Doubt dialog
   //************************************************************
   const PrepareShowDoubtDlg = () => {
+    PrepareShowDoubtStrings();
+    setShowDoubtShowButton(ggc.allConnectionStatus[myIndex] === CONN_OBSERVER ? false : true);
     setShowShowDoubtDlg(true);
 
     setOnShowDoubtOkHandler(() => () => {
@@ -650,10 +658,36 @@ import { CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYE
   }
 
   //************************************************************
-  // function to prepare doubt result strings
-  // these are used by LiftCup and ShowDoubt
+  // function to prepare lift cup strings
   //************************************************************
-    function PrepareDoubtResultStrings() {
+    function PrepareLiftCupStrings() {
+    // prepare strings to say what happened
+    let s1 = "";  // who doubted whom
+    let s2 = "";  // what the bid was
+    s1 = ggc.allParticipantNames[ggc.result.whoDoubted];
+    s1 += " doubted ";
+    s1 += ggc.allParticipantNames[ggc.result.whoGotDoubted];
+    setDoubtWhoDoubtedWhom(s1);
+
+    if (ggc.result.doubtWasPaso) {
+      // PASO
+      s2 = ggc.allParticipantNames[ggc.result.whoGotDoubted] + " bid PASO";
+    } else {
+      // non-PASO
+      s2 = ggc.allParticipantNames[ggc.result.whoGotDoubted] + "'s bid was " + ggc.result.doubtedText;
+      s2 += "\n(" + ggc.result.doubtShowing + " showing, looking for " + ggc.result.doubtLookingFor + ")\n";
+    }
+    setDoubtDoubtedBid(s2);
+
+    setDoubtThereAre('');    
+    setDoubtWhoGotStick('');    
+    setDoubtWhoWon('');    
+  }
+
+  //************************************************************
+  // function to prepare doubt result strings
+  //************************************************************
+    function PrepareShowDoubtStrings() {
     // prepare strings to say what happened
     let s1 = "";  // who doubted whom
     let s2 = "";  // what the bid was
@@ -680,6 +714,7 @@ import { CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYE
       s3 = (ggc.result.doubtCount == 1 ? "There is " : "There are ") + ggc.result.doubtCount;
     }
     setDoubtDoubtedBid(s2);
+
     setDoubtThereAre(s3);
 
     s4 = ggc.allParticipantNames[ggc.result.doubtLoser] + " got the stick";
@@ -995,19 +1030,23 @@ useEffect(() => {
 
 //  if (ggc.bDoubtInProgress) {
     // DrawDoubtInProgress();
-    if (ggc.bDoubtInProgress) {
-      if (!ggc.result.doubtMustLiftCup[myIndex] || 
-          !ggc.result.doubtDidLiftCup[myIndex]) {
-        PrepareLiftCupDlg();
-        }
-      }
+  if (ggc.bDoubtInProgress) {
+//    if (!ggc.result.doubtMustLiftCup[myIndex] || 
+//        !ggc.result.doubtDidLiftCup[myIndex]) {
+      PrepareLiftCupDlg();
+//    }
+  }
   
   if (ggc.bShowDoubtResult && 
       ggc.nextRoundMustSay[myIndex] &&
       !ggc.nextRoundDidSay[myIndex]) {
-        setShowLiftCupDlg (false);
-        PrepareShowDoubtDlg();
-      }
+    setShowLiftCupDlg (false);
+    PrepareShowDoubtDlg();
+  }
+  if (ggc.bShowDoubtResult && (ggc.allConnectionStatus[myIndex] === CONN_OBSERVER)) {
+    setShowLiftCupDlg (false);
+    PrepareShowDoubtDlg();
+  }
 
   //if (ggc.bShowDoubtResult) {
     //DrawDoubtResult();
@@ -1229,7 +1268,7 @@ useEffect(() => {
       // show dialog, handle responses
       if (ggc.whichDirection == undefined) {
         // choose direction if starting a round
-        setYesNoMessage("You start.\nWhich way?");
+        setYesNoMessage("You start the bidding.\nWhich way?");
         setYesNoTitle("Choose direction");
         let cc = ggc.getPlayerToLeft(myIndex);
         setYesText("to " + ggc.allParticipantNames[cc]);
@@ -1276,6 +1315,7 @@ useEffect(() => {
 
   //************************************************************
   //  function Draw Doubt in Progress
+  //  (obsolete)
   //************************************************************
   function DrawDoubtInProgress () {
     // prepare strings to say what happened
@@ -1512,6 +1552,7 @@ useEffect(() => {
             doubtThereAre={doubtThereAre}
             doubtWhoGotStick={doubtWhoGotStick}
             doubtWhoWon={doubtWhoWon}
+            showDoubtShowButton={showDoubtShowButton}
             onOk={onShowDoubtOkHandler}
           />
         )}
