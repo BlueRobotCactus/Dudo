@@ -519,8 +519,6 @@ import { CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYE
   //************************************************************
   const PrepareBidUI = () => {
 
-    console.log ("DEBUGG - PrepareBidUI, isMyTurn = ", isMyTurn);
-    
     myShowShakeRef.current = false;
     setBidShowShake(false)    
     if (isMyTurn) {
@@ -528,11 +526,14 @@ import { CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYE
       // my turn
       //-------------------------------------------
       // show previous bid
-      let turnString = (ggc.numBids < 1 ? 'You bid first' : 
+      let turnString = (ggc.numBids < 1 ? 'You bid first.' : 
                                           `The bid to you is: ${ggc.GetBidString(ggc.numBids-1)}`);
+      if (ggc.bPaloFijoRound) {
+        turnString = 'PALO FIJO: ' + turnString;
+      }
       setRow2YourTurnString(turnString);
       setRow2SpecialPasoString (ggc.numBids > 1 && ggc.allBids[ggc.numBids-1].text == "PASO" ?
-                            `Doubt the PASO or top the bid ${ggc.allBids[ggc.FindLastNonPasoBid()].text}` :
+                            `Doubt the PASO or top the bid ${ggc.allBids[ggc.FindLastNonPasoBid()].text}.` :
                             '');
       setSelectedBid (ggc.possibleBids[0]);
 
@@ -546,6 +547,9 @@ import { CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYE
         // there is at least one bid
         const currentBid = ggc.allBids[ggc.numBids-1];
         let s1= currentBid.playerName + " bid: " + ggc.GetBidString(ggc.numBids-1);
+        if (ggc.bPaloFijoRound) {
+          s1 = "PALO FIJO: " + s1;
+        }
         let s2 = `Bid is to: ${whosTurnName}...`;
         switch (currentBid.text) {
           case "DOUBT":
@@ -562,11 +566,15 @@ import { CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYE
         }
       } else {
         // waiting for someone to start bidding
-        setRow2CurrentBid(`Waiting for ${whosTurnName} to start the bidding...`);
+        let s = (ggc.bPaloFijoRound ? 'PALO FIJO: ' : '');
+        s += `Waiting for ${whosTurnName} to start the bidding...`;
+        setRow2CurrentBid(s);
         setRow2BidToWhom('');
       }
       if (ggc.bDirectionInProgress) {
-        setRow2CurrentBid(`Waiting for ${whosTurnName} to choose the bidding direction...`);
+        let s = (ggc.bPaloFijoRound ? 'PALO FIJO: ' : '');
+        s += `Waiting for ${whosTurnName} to choose the direction...`;
+        setRow2CurrentBid(s);
         setRow2BidToWhom('');
       }
     }
@@ -691,7 +699,7 @@ import { CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYE
 
     if (ggc.result.doubtWasPaso) {
       // PASO
-      s2 = ggc.allParticipantNames[ggc.result.whoGotDoubted] + " bid PASO";
+      s2 = ggc.allParticipantNames[ggc.result.whoGotDoubted] + " bid PASO.";
     } else {
       // non-PASO
       s2 = ggc.allParticipantNames[ggc.result.whoGotDoubted] + "'s bid was " + ggc.result.doubtedText;
@@ -721,11 +729,11 @@ import { CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYE
 
     if (ggc.result.doubtWasPaso) {
       // PASO
-      s2 = ggc.allParticipantNames[ggc.result.whoGotDoubted] + " bid PASO";
+      s2 = ggc.allParticipantNames[ggc.result.whoGotDoubted] + " bid PASO.";
       if (ggc.result.doubtPasoWasThere) {
-          s3 = ggc.allParticipantNames[ggc.result.whoGotDoubted] + " has the PASO";
+          s3 = ggc.allParticipantNames[ggc.result.whoGotDoubted] + " has the PASO.";
       } else {
-          s3 = ggc.allParticipantNames[ggc.result.whoGotDoubted] + " does not have the PASO";
+          s3 = ggc.allParticipantNames[ggc.result.whoGotDoubted] + " does not have the PASO.";
       }
     } else {
       // non-PASO
@@ -738,9 +746,15 @@ import { CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYE
     setDoubtThereAre(s3);
 
     s4 = ggc.allParticipantNames[ggc.result.doubtLoser] + " got the stick";
+    if (ggc.result.doubtLoserPaloFijo) {
+      s4 += ", and is PALO FIJO";
+    }
     if (ggc.result.doubtLoserOut) {
       s4 += ", and is OUT";
     }
+//    if (!ggc.result.doubtLoserPaloFijo && !ggc.result.doubtLoserOut) {
+//      s4 += ".";
+//    }
     setDoubtWhoGotStick(s4);
 
     let msg = s1 + "\n" + s2 + "\n" + s3 + "\n" + s4; 

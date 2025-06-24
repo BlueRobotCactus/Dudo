@@ -143,6 +143,11 @@ export function PlayerGrid({ggc, myIndex, cc }) {
   let bgColor = (ggc.allConnectionStatus[cc] === CONN_PLAYER_OUT ? 'gray' : 'white');
   let lineColor = 'lightgray';
 
+  // Palo fijo?
+  if (ggc.IsPaloFijo(cc)) {
+    bgColor = 'pink';
+  }
+
   // ask in or out dlg
   if (ggc.bAskInOut) {
     if (ggc.inOutMustSay[cc] && !ggc.inOutDidSay[cc]) {
@@ -173,6 +178,20 @@ export function PlayerGrid({ggc, myIndex, cc }) {
     }
   }
   // line color in background color
+  switch (bgColor) {
+    case 'white':
+    case 'gray':
+      lineColor = 'lightgray';
+      break;
+    case 'lightblue':
+    case 'pink':
+      lineColor = 'gray';
+      break;
+    default:
+      lineColor = 'lightgray';
+  }
+
+/*
   if (bgColor === 'white') {
     lineColor = 'lightgray';
   }
@@ -182,7 +201,7 @@ export function PlayerGrid({ggc, myIndex, cc }) {
   if (bgColor === 'gray') {
     lineColor = 'lightgray';
   }
-
+*/
   //--------------------------------------------------------
   // reactive font size based on length of name
   //--------------------------------------------------------

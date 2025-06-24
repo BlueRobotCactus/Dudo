@@ -26,4 +26,18 @@ client/build
 Dockerfile
 .dockerignore
 
+# Ignore unused images
+1Stick.jpg
+2Sticks.jpg
+CupDownBig.png
+CupDownOld.png
+CupUpBig.png
+CupUpOld.jpg
+DirectionLeftBlue.png
+DirectionRightBlue.png
+DirectionTransparent.png
+OneStick.jpg
+TwoSticks.jpg
+RedStick.jpg
+
 npm-debug.log
