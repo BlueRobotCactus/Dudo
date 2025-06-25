@@ -18,3 +18,18 @@
   grid-column: 3 / span 5;
   background-color: white;
 }
+
+@keyframes shake {
+  0% { transform: translate(0, 0) rotate(0); }
+  10% { transform: translate(-2px, 2px) rotate(-2deg); }
+  20% { transform: translate(2px, -2px) rotate(2deg); }
+  30% { transform: translate(-2px, 2px) rotate(-1deg); }
+  40% { transform: translate(2px, -2px) rotate(1deg); }
+  50% { transform: translate(-1px, 1px) rotate(0); }
+  100% { transform: translate(0, 0) rotate(0); }
+}
+
+.cup-shake {
+  animation: shake 1s ease-in-out;
+}
+

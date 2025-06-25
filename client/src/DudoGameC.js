@@ -51,7 +51,7 @@ export class DudoGame {
 	inOutMustSay = [];
 	inOutDidSay = [];
   doubtMustLiftCup = [];
-   doubtDidLiftCup = [];
+  doubtDidLiftCup = [];
 	nextRoundMustSay = [];
 	nextRoundDidSay = [];
 

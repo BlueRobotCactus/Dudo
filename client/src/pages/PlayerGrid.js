@@ -14,6 +14,7 @@ export function PlayerGrid({ggc, myIndex, cc }) {
 
   const gridRef = useRef();
   const [colSize, setColSize] = useState('1fr');
+  const [isShaking, setIsShaking] = useState(false);
 
   const {
     cupDownImageRef,
@@ -50,6 +51,19 @@ export function PlayerGrid({ggc, myIndex, cc }) {
     window.addEventListener('resize', updateGrid);
     return () => window.removeEventListener('resize', updateGrid);
   }, []);
+
+  //*****************************************************************
+  // useEffect:  SHAKE CUP 
+  //             [ggc.numBids, ggc.bGameInProgress, ggc.allBids, cc]
+  //*****************************************************************
+  useEffect(() => {
+    if (ggc.bGameInProgress && ggc.numBids > 0) {
+      const lastBid = ggc.allBids[ggc.numBids - 1];
+      if (lastBid.playerIndex === cc && lastBid.bShowShake) {
+        triggerCupShake();
+      }
+    }
+  }, [ggc.numBids, ggc.bGameInProgress, ggc.allBids, cc]);
 
   //--------------------------------------------------------
   // bail out if images are not ready
@@ -191,17 +205,6 @@ export function PlayerGrid({ggc, myIndex, cc }) {
       lineColor = 'lightgray';
   }
 
-/*
-  if (bgColor === 'white') {
-    lineColor = 'lightgray';
-  }
-  if (bgColor === 'lightblue') {
-    lineColor = 'gray';
-  }
-  if (bgColor === 'gray') {
-    lineColor = 'lightgray';
-  }
-*/
   //--------------------------------------------------------
   // reactive font size based on length of name
   //--------------------------------------------------------
@@ -216,6 +219,16 @@ export function PlayerGrid({ggc, myIndex, cc }) {
   if (nameLen <= 18) {adjustedFontSize = 1.0}
   if (nameLen <= 5) {adjustedFontSize = 1.2}
     
+  //--------------------------------------------------------
+  //  function to shake dice
+  //--------------------------------------------------------
+  function triggerCupShake() {
+    setIsShaking(true);
+    setTimeout(() => setIsShaking(false), 1000); // match animation duration
+  }
+
+
+
   //*****************************************************************
   //  render
   //*****************************************************************
@@ -240,20 +253,31 @@ export function PlayerGrid({ggc, myIndex, cc }) {
       {/*--------------------------------------------------------
         Cup (2x2)
       --------------------------------------------------------*/}
-      <div style={{ gridRow: '1 / span 2', gridColumn: '1 / span 2', backgroundColor: bgColor, }}>
-        <img
-          src={cupImageToShow.src}
-          alt="Cup"
+      <div style={{ gridRow: '1 / span 2', gridColumn: '1 / span 2', backgroundColor: bgColor }}>
+        <div
           style={{
-            width: '100%', 
-            height: '100%', 
-            objectFit: 'contain', 
+            width: '100%',
+            height: '100%',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
             border: `1px solid ${lineColor}`,
-            padding: '4px',
-            boxSizing: 'border-box',
-            zIndex: 1,
-           }}
-        />
+          }}
+        >
+          <img
+            src={(isShaking ? cupUpImageRef.current : cupImageToShow).src}
+            alt="Cup"
+            className={isShaking ? 'cup-shake' : ''}
+            style={{
+              width: '100%',  // don't stretch to 100%
+              height: 'auto',
+              objectFit: 'contain',
+              padding: '2px',
+              boxSizing: 'border-box',
+              zIndex: 1,
+            }}
+          />
+        </div>
       </div>
 
       {/*--------------------------------------------------------
@@ -317,7 +341,7 @@ export function PlayerGrid({ggc, myIndex, cc }) {
         }}
       />
       {diceImageTopList[cc].map((imgRef, index) => {
-        if (!imgRef) return null; // skip nulls
+        if (!imgRef || isShaking) return null;
 
         return (
         <div
