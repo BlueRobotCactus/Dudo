@@ -30,6 +30,16 @@
 }
 
 .cup-shake {
-  animation: shake 1s ease-in-out;
+  animation: shake 0.50s ease-in-out;
+  animation-iteration-count: 4;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0; }
+}
+
+.img-blink {
+  animation: blink 0.25s linear infinite;
 }
 

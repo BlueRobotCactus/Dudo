@@ -14,9 +14,11 @@ export function PlayerGrid({ggc, myIndex, cc }) {
 
   const gridRef = useRef();
   const [colSize, setColSize] = useState('1fr');
-  const [isShaking, setIsShaking] = useState(false);
+  const [cupShaking, setCupShaking] = useState(false);
+  const [stickBlinking, setStickBlinking] = useState(false);
+  const [diceBlinking, setDiceBlinking] = useState(false);
 
-  const {
+    const {
     cupDownImageRef,
     cupUpImageRef,
     diceImagesRef,
@@ -53,14 +55,45 @@ export function PlayerGrid({ggc, myIndex, cc }) {
   }, []);
 
   //*****************************************************************
-  // useEffect:  SHAKE CUP 
+  // useEffect:  THIS PLAYER GOT STICK: blink stick 
+  //             [ggc.bGameInProgress, ggc.numBids, ggc.firstRound]
+  //*****************************************************************
+  useEffect(() => {
+    if (ggc.bGameInProgress && 
+        ggc.numBids === 0 &&
+        !ggc.firstRound) {
+      if (ggc.result.doubtLoser === cc) {
+        setStickBlinking(true);
+        setTimeout(() => setStickBlinking(false), 2000); // shake for 2 seconds
+      }
+    }
+  }, [ggc.bGameInProgress, ggc.numBids, ggc.firstRound]);
+
+  //*****************************************************************
+  // useEffect:  ALL SHAKE TO START ROUND 
+  //             [ggc.bGameInProgress, ggc.numBids]
+  //*****************************************************************
+  useEffect(() => {
+    if (ggc.bRoundInProgress && ggc.numBids === 0) {
+      setCupShaking(true);
+      setTimeout(() => setCupShaking(false), 2000); // shake for 2 seconds
+    }
+  }, [ggc.bGameInProgress, ggc.numBids]);
+
+  //*****************************************************************
+  // useEffect:  THIS PLAYER SHOW/SHAKE:  blink shown dice, shake cup 
   //             [ggc.numBids, ggc.bGameInProgress, ggc.allBids, cc]
   //*****************************************************************
   useEffect(() => {
     if (ggc.bGameInProgress && ggc.numBids > 0) {
       const lastBid = ggc.allBids[ggc.numBids - 1];
       if (lastBid.playerIndex === cc && lastBid.bShowShake) {
-        triggerCupShake();
+        // Enable blinking
+        setDiceBlinking(true);
+        setTimeout(() => {
+          setDiceBlinking(false); // Stop blinking after 3s
+          triggerCupShake();      // Start cup shake after that
+        }, 2000);
       }
     }
   }, [ggc.numBids, ggc.bGameInProgress, ggc.allBids, cc]);
@@ -219,15 +252,27 @@ export function PlayerGrid({ggc, myIndex, cc }) {
   if (nameLen <= 18) {adjustedFontSize = 1.0}
   if (nameLen <= 5) {adjustedFontSize = 1.2}
     
+
   //--------------------------------------------------------
-  //  function to shake dice
+  //  set up dice that were just shown
   //--------------------------------------------------------
-  function triggerCupShake() {
-    setIsShaking(true);
-    setTimeout(() => setIsShaking(false), 1000); // match animation duration
+  let diceBlinkList = Array(5).fill(false);
+  if (ggc.bGameInProgress && ggc.numBids > 0) {
+    const lastBid = ggc.allBids[ggc.numBids - 1];
+    if (lastBid.playerIndex === cc && lastBid.bShowShake) {
+      for (let i = 0; i < 5; i++) {
+        diceBlinkList[i] = !lastBid.bWhichShaken[i];
+      }
+    }
   }
-
-
+  
+  //********************************************************
+  //  function to shake dice
+  //********************************************************
+  function triggerCupShake() {
+    setCupShaking(true);
+    setTimeout(() => setCupShaking(false), 3000); // match animation duration
+  }
 
   //*****************************************************************
   //  render
@@ -265,9 +310,9 @@ export function PlayerGrid({ggc, myIndex, cc }) {
           }}
         >
           <img
-            src={(isShaking ? cupUpImageRef.current : cupImageToShow).src}
+            src={(cupShaking ? cupUpImageRef.current : cupImageToShow).src}
             alt="Cup"
-            className={isShaking ? 'cup-shake' : ''}
+            className={cupShaking ? 'cup-shake' : ''}
             style={{
               width: '100%',  // don't stretch to 100%
               height: 'auto',
@@ -341,7 +386,7 @@ export function PlayerGrid({ggc, myIndex, cc }) {
         }}
       />
       {diceImageTopList[cc].map((imgRef, index) => {
-        if (!imgRef || isShaking) return null;
+        if (!imgRef || cupShaking) return null;
 
         return (
         <div
@@ -407,6 +452,7 @@ export function PlayerGrid({ggc, myIndex, cc }) {
           <img
             src={imgRef.src}
             alt={`Die ${index + 1}`}
+            className={diceBlinking && diceBlinkList[index] ? 'img-blink' : ''}
             style={{
               width: '80%',
               height: 'auto', // <<< key fix: height is based on aspect ratio
@@ -441,6 +487,7 @@ export function PlayerGrid({ggc, myIndex, cc }) {
           <img
             src={stickImageRef.current.src}
             alt="Stick 1"
+            className={stickBlinking ? 'img-blink' : ''}
             style={{
               width: '80%',
               height: 'auto',
@@ -455,6 +502,7 @@ export function PlayerGrid({ggc, myIndex, cc }) {
       {ggc.allSticks[cc] > 1 && (
         <div
           key="stick-2"
+          className={stickBlinking ? 'img-blink' : ''}
           style={{
             gridRow: 3,
             gridColumn: 2,
