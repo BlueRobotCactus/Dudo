@@ -518,7 +518,9 @@ io.on('connection', (socket) => {
     //----------------------------------------------------
     ptr = ggs.numBids - 1;
     if (ggs.allBids[ptr].bShowShake) {
+        // initialize shown
         ggs.allBids[ptr].howManyShown = 0;
+        ggs.allBids[ptr].bWhichShown = Array(5).fill(false); 
         for (let i = 0; i < 5; i++) {
             ggs.allBids[ptr].bWhichShaken[i] = true;
             ggs.allBids[ptr].bDiceHidden[i] = ggs.bDiceHidden[index][i];
@@ -528,6 +530,7 @@ io.on('connection', (socket) => {
                     if (die == ggs.allBids[ptr].ofWhat) {
                         // they just showed this one, don't shake it
                         ggs.allBids[ptr].howManyShown++;
+                        ggs.allBids[ptr].bWhichShown[i] = true;
                         ggs.allBids[ptr].bWhichShaken[i] = false;
                         ggs.allBids[ptr].bDiceHidden[i] = false;
                         ggs.bDiceHidden[index][i] = false;
@@ -537,6 +540,7 @@ io.on('connection', (socket) => {
                     if ((die == ggs.allBids[ptr].ofWhat) || (die == 1)) {
                         // they just showed this one, don't shake it
                         ggs.allBids[ptr].howManyShown++;
+                        ggs.allBids[ptr].bWhichShown[i] = true;
                         ggs.allBids[ptr].bWhichShaken[i] = false;
                         ggs.allBids[ptr].bDiceHidden[i] = false;
                         ggs.bDiceHidden[index][i] = false;

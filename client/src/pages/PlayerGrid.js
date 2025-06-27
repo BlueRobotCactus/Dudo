@@ -54,6 +54,57 @@ export function PlayerGrid({ggc, myIndex, cc }) {
     return () => window.removeEventListener('resize', updateGrid);
   }, []);
 
+  /*
+  //*****************************************************************
+  // useEffect:  END OF ROUND
+  //             [ggc.bGameInProgress, ggc.numBids, ggc.firstRound]
+  //*****************************************************************
+  useEffect(() => {
+    //---------------------------------------------------------
+    // if not the start of a new round, exit
+    //---------------------------------------------------------
+    if (!ggc.bGameInProgress || !ggc.numBids === 0) {
+      return;
+    }
+    //---------------------------------------------------------
+    // if start of game, shake cups and exit
+    //---------------------------------------------------------
+    if (ggc.firstRound) {
+      // start of game, all roll  
+      setCupShaking(true);
+      setTimeout(() => setCupShaking(false), 2000); // shake for 2 seconds
+      return;
+    }
+    //---------------------------------------------------------
+    // if nobody got a stick in the previous round, exit
+    //---------------------------------------------------------
+    if (ggc.result.doubtLoserOut) {
+      return;
+    }
+    //---------------------------------------------------------
+    // somebody got a stick; blink stick, then all roll
+    //---------------------------------------------------------
+    // was it this player?
+    if (ggc.result.doubtLoser === cc) { 
+      // Blink stick for 2 seconds
+      setStickBlinking(true);
+      setTimeout(() => {
+        setStickBlinking(false);
+
+        // Then shake cup
+        setCupShaking(true);
+        setTimeout(() => setCupShaking(false), 2000);
+      }, 2000);
+    } else {
+      // all players delayed roll  
+      setTimeout(() => {
+        setCupShaking(true);
+        setTimeout(() => setCupShaking(false), 2000);
+      }, 2000);
+    }
+  }, [ggc.bGameInProgress, ggc.numBids, ggc.firstRound]);
+*/
+  
   //*****************************************************************
   // useEffect:  THIS PLAYER GOT STICK: blink stick 
   //             [ggc.bGameInProgress, ggc.numBids, ggc.firstRound]
@@ -75,8 +126,10 @@ export function PlayerGrid({ggc, myIndex, cc }) {
   //*****************************************************************
   useEffect(() => {
     if (ggc.bRoundInProgress && ggc.numBids === 0) {
-      setCupShaking(true);
-      setTimeout(() => setCupShaking(false), 2000); // shake for 2 seconds
+      if (ggc.allConnectionStatus[cc] === CONN_PLAYER_IN) {
+        setCupShaking(true);
+        setTimeout(() => setCupShaking(false), 2000); // shake for 2 seconds
+      }
     }
   }, [ggc.bGameInProgress, ggc.numBids]);
 
@@ -91,9 +144,11 @@ export function PlayerGrid({ggc, myIndex, cc }) {
         // Enable blinking
         setDiceBlinking(true);
         setTimeout(() => {
-          setDiceBlinking(false); // Stop blinking after 3s
-          triggerCupShake();      // Start cup shake after that
-        }, 2000);
+          setDiceBlinking(false); // Stop blinking after 4s
+          if (!ggc.GetPlayerShowingAllDice(cc)) {
+            triggerCupShake();      // Start cup shake after that
+          }
+        }, 4000);
       }
     }
   }, [ggc.numBids, ggc.bGameInProgress, ggc.allBids, cc]);
@@ -116,6 +171,14 @@ export function PlayerGrid({ggc, myIndex, cc }) {
       cupImageToShow = cupUpImageRef.current;
   } else {
       cupImageToShow = cupDownImageRef.current;
+  }
+  // special case of pulsating the shown dice
+  if (diceBlinking) {
+      cupImageToShow = cupUpImageRef.current;
+  }
+  // special case of all 5 dice shown
+  if (ggc.GetPlayerShowingAllDice(cc)) {
+      cupImageToShow = cupUpImageRef.current;
   }
 
   //--------------------------------------------------------
@@ -261,7 +324,7 @@ export function PlayerGrid({ggc, myIndex, cc }) {
     const lastBid = ggc.allBids[ggc.numBids - 1];
     if (lastBid.playerIndex === cc && lastBid.bShowShake) {
       for (let i = 0; i < 5; i++) {
-        diceBlinkList[i] = !lastBid.bWhichShaken[i];
+        diceBlinkList[i] = lastBid.bWhichShown[i];
       }
     }
   }
@@ -452,7 +515,7 @@ export function PlayerGrid({ggc, myIndex, cc }) {
           <img
             src={imgRef.src}
             alt={`Die ${index + 1}`}
-            className={diceBlinking && diceBlinkList[index] ? 'img-blink' : ''}
+            className={diceBlinking && diceBlinkList[index] ? 'img-pulse' : ''}
             style={{
               width: '80%',
               height: 'auto', // <<< key fix: height is based on aspect ratio
@@ -487,7 +550,7 @@ export function PlayerGrid({ggc, myIndex, cc }) {
           <img
             src={stickImageRef.current.src}
             alt="Stick 1"
-            className={stickBlinking ? 'img-blink' : ''}
+            className={stickBlinking ? 'img-pulse' : ''}
             style={{
               width: '80%',
               height: 'auto',
@@ -502,7 +565,7 @@ export function PlayerGrid({ggc, myIndex, cc }) {
       {ggc.allSticks[cc] > 1 && (
         <div
           key="stick-2"
-          className={stickBlinking ? 'img-blink' : ''}
+          className={stickBlinking ? 'img-pulse' : ''}
           style={{
             gridRow: 3,
             gridColumn: 2,
