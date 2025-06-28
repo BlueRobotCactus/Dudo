@@ -15,7 +15,7 @@ export function PlayerGrid({ggc, myIndex, cc }) {
   const gridRef = useRef();
   const [colSize, setColSize] = useState('1fr');
   const [cupShaking, setCupShaking] = useState(false);
-  const [stickBlinking, setStickBlinking] = useState(false);
+  const [sticksBlinking, setSticksBlinking] = useState(false);
   const [diceBlinking, setDiceBlinking] = useState(false);
 
     const {
@@ -54,57 +54,44 @@ export function PlayerGrid({ggc, myIndex, cc }) {
     return () => window.removeEventListener('resize', updateGrid);
   }, []);
 
-  /*
+  
   //*****************************************************************
   // useEffect:  END OF ROUND
   //             [ggc.bGameInProgress, ggc.numBids, ggc.firstRound]
   //*****************************************************************
   useEffect(() => {
-    //---------------------------------------------------------
-    // if not the start of a new round, exit
-    //---------------------------------------------------------
-    if (!ggc.bGameInProgress || !ggc.numBids === 0) {
-      return;
-    }
-    //---------------------------------------------------------
-    // if start of game, shake cups and exit
-    //---------------------------------------------------------
-    if (ggc.firstRound) {
-      // start of game, all roll  
-      setCupShaking(true);
-      setTimeout(() => setCupShaking(false), 2000); // shake for 2 seconds
-      return;
-    }
-    //---------------------------------------------------------
-    // if nobody got a stick in the previous round, exit
-    //---------------------------------------------------------
-    if (ggc.result.doubtLoserOut) {
-      return;
-    }
-    //---------------------------------------------------------
-    // somebody got a stick; blink stick, then all roll
-    //---------------------------------------------------------
-    // was it this player?
-    if (ggc.result.doubtLoser === cc) { 
-      // Blink stick for 2 seconds
-      setStickBlinking(true);
+    if (ggc.bGameInProgress && 
+       ggc.numBids === 0 &&
+       !ggc.firstRound &&
+       !ggc.result.doubtLoserOut) {
+      //-------------------------------------------------
+      // somebody got a stick
+      //-------------------------------------------------
+      if (ggc.result.doubtLoser === cc) {
+        // it was this player
+        triggerSticksBlinking();
+      }
+      // wait for sticks, then shake cup
       setTimeout(() => {
-        setStickBlinking(false);
-
-        // Then shake cup
-        setCupShaking(true);
-        setTimeout(() => setCupShaking(false), 2000);
-      }, 2000);
+        if (ggc.bRoundInProgress && ggc.numBids === 0) {
+          if (ggc.allConnectionStatus[cc] === CONN_PLAYER_IN) {
+            triggerCupShaking();
+          }
+        }
+      }, 3000);
     } else {
-      // all players delayed roll  
-      setTimeout(() => {
-        setCupShaking(true);
-        setTimeout(() => setCupShaking(false), 2000);
-      }, 2000);
+      //-------------------------------------------------
+      // all shake to start round
+      //-------------------------------------------------
+      if (ggc.bRoundInProgress && ggc.numBids === 0) {
+        if (ggc.allConnectionStatus[cc] === CONN_PLAYER_IN) {
+          triggerCupShaking();
+        }
+      }
     }
   }, [ggc.bGameInProgress, ggc.numBids, ggc.firstRound]);
-*/
   
+/*
   //*****************************************************************
   // useEffect:  THIS PLAYER GOT STICK: blink stick 
   //             [ggc.bGameInProgress, ggc.numBids, ggc.firstRound]
@@ -114,8 +101,7 @@ export function PlayerGrid({ggc, myIndex, cc }) {
         ggc.numBids === 0 &&
         !ggc.firstRound) {
       if (ggc.result.doubtLoser === cc) {
-        setStickBlinking(true);
-        setTimeout(() => setStickBlinking(false), 2000); // shake for 2 seconds
+         triggerSticksBlinking();
       }
     }
   }, [ggc.bGameInProgress, ggc.numBids, ggc.firstRound]);
@@ -125,13 +111,16 @@ export function PlayerGrid({ggc, myIndex, cc }) {
   //             [ggc.bGameInProgress, ggc.numBids]
   //*****************************************************************
   useEffect(() => {
+    if (sticksBlinking) {
+      return;
+    }
     if (ggc.bRoundInProgress && ggc.numBids === 0) {
       if (ggc.allConnectionStatus[cc] === CONN_PLAYER_IN) {
-        setCupShaking(true);
-        setTimeout(() => setCupShaking(false), 2000); // shake for 2 seconds
+         triggerCupShaking();
       }
     }
-  }, [ggc.bGameInProgress, ggc.numBids]);
+  }, [ggc.bGameInProgress, ggc.numBids, sticksBlinking]);
+*/
 
   //*****************************************************************
   // useEffect:  THIS PLAYER SHOW/SHAKE:  blink shown dice, shake cup 
@@ -146,7 +135,7 @@ export function PlayerGrid({ggc, myIndex, cc }) {
         setTimeout(() => {
           setDiceBlinking(false); // Stop blinking after 4s
           if (!ggc.GetPlayerShowingAllDice(cc)) {
-            triggerCupShake();      // Start cup shake after that
+            triggerCupShaking();      // Start cup shake after that
           }
         }, 4000);
       }
@@ -317,7 +306,7 @@ export function PlayerGrid({ggc, myIndex, cc }) {
     
 
   //--------------------------------------------------------
-  //  set up dice that were just shown
+  //  set up dice that were just shown to blink
   //--------------------------------------------------------
   let diceBlinkList = Array(5).fill(false);
   if (ggc.bGameInProgress && ggc.numBids > 0) {
@@ -330,11 +319,19 @@ export function PlayerGrid({ggc, myIndex, cc }) {
   }
   
   //********************************************************
-  //  function to shake dice
+  //  function to shake cup
   //********************************************************
-  function triggerCupShake() {
+  function triggerCupShaking() {
     setCupShaking(true);
-    setTimeout(() => setCupShaking(false), 3000); // match animation duration
+    setTimeout(() => setCupShaking(false), 2000); // match animation duration
+  }
+
+  //********************************************************
+  //  function to shake sticks
+  //********************************************************
+  function triggerSticksBlinking() {
+    setSticksBlinking(true);
+    setTimeout(() => setSticksBlinking(false), 2000); // shake for 2 seconds
   }
 
   //*****************************************************************
@@ -550,7 +547,7 @@ export function PlayerGrid({ggc, myIndex, cc }) {
           <img
             src={stickImageRef.current.src}
             alt="Stick 1"
-            className={stickBlinking ? 'img-pulse' : ''}
+            className={sticksBlinking ? 'img-pulse' : ''}
             style={{
               width: '80%',
               height: 'auto',
@@ -565,7 +562,7 @@ export function PlayerGrid({ggc, myIndex, cc }) {
       {ggc.allSticks[cc] > 1 && (
         <div
           key="stick-2"
-          className={stickBlinking ? 'img-pulse' : ''}
+          className={sticksBlinking ? 'img-pulse' : ''}
           style={{
             gridRow: 3,
             gridColumn: 2,

@@ -220,7 +220,7 @@ export class DudoGame {
 		this.bPasoAllowed = true;
 		this.bPaloFijoAllowed = true;
 		this.bPaloFijoRound =  false;
-		this.firstRound = false;
+		this.firstRound = true;
 
 		this.bSettingGameParms = false;
 		this.bGameInProgress = false;

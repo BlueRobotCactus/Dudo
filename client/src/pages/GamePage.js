@@ -1314,13 +1314,11 @@ useEffect(() => {
         setXShowButton(false);
         setOnYesHandler(() => () => {
           setShowYesNoDlg(false);
-          //ggc.whichDirection = 1;
           socket.emit('direction', { lobbyId, index: myIndex, direction: 1 })
           PrepareBidUI();
       });
         setOnNoHandler(() => () => {
           setShowYesNoDlg(false);
-          //ggc.whichDirection = 2;
           socket.emit('direction', { lobbyId, index: myIndex, direction: 2 })
           PrepareBidUI();
         });

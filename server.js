@@ -936,13 +936,6 @@ function StartRound (ggs) {
     for (let i = 0; i < ggs.maxConnections; i++) {
         ggs.allPasoUsed[i] = false;
     }
-
-    //------------------------------------------------------------
-    // flip bool after first round
-    //------------------------------------------------------------
-    if (ggs.firstRound) {
-        ggs.firstRound = false;
-    }
 }
 
 //****************************************************************
@@ -977,4 +970,12 @@ function PostRound(ggs) {
     }
     
     ggs.bWinnerRound = true;
+
+    //------------------------------------------------------------
+    // flip bool after first round
+    //------------------------------------------------------------
+    if (ggs.firstRound) {
+        ggs.firstRound = false;
+    }
+
 }
