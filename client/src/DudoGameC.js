@@ -11,6 +11,10 @@ const CONN_PLAYER_IN_DISCONN = 5;
 const CONN_PLAYER_OUT_DISCONN = 6;
 const CONN_OBSERVER_DISCONN = 7;
 
+// UI constants (milliseconds)
+const STICKS_BLINK_TIME = 3000;
+const SHOWN_DICE_BLINK_TIME = 4000;
+const SHAKE_CUPS_TIME = 2000;	
 export class DudoGame {
 
 	// associated arrays
@@ -1031,6 +1035,26 @@ export class DudoGame {
 	}
 
 	//****************************************************************
+	// Did somebody just get a stick?
+	//****************************************************************
+	SomebodyGotStick () {
+		if (this.bGameInProgress && 
+       this.numBids === 0 &&
+       !this.firstRound &&
+       !this.result?.doubtLoserOut) {
+				return true;
+		}
+		return false;
+	}
+
+	//****************************************************************
+	// Should all players roll? (starting round)
+	//****************************************************************
+	ShouldAllRollDice () {
+		return (this.bRoundInProgress && this.numBids === 0 ? true : false);
+	}
+
+	//****************************************************************
 	// Get bid string
 	//****************************************************************
 	GetBidString (idx) {
@@ -1136,5 +1160,8 @@ export class DudoBid {
   }
 }
   
-export { CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYER_LEFT,
-    CONN_PLAYER_IN_DISCONN, CONN_PLAYER_OUT_DISCONN, CONN_OBSERVER_DISCONN };
+export { 
+	CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYER_LEFT,
+  CONN_PLAYER_IN_DISCONN, CONN_PLAYER_OUT_DISCONN, CONN_OBSERVER_DISCONN,
+	STICKS_BLINK_TIME, SHOWN_DICE_BLINK_TIME, SHAKE_CUPS_TIME,
+};

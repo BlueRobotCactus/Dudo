@@ -4,6 +4,7 @@ import './PlayerGrid.css';
 //import './GamePage.js'
 import { ImageRefsContext } from '../ImageRefsContext.js';
 import { CONN_PLAYER_IN, CONN_PLAYER_OUT } from '../DudoGameC.js';
+import { STICKS_BLINK_TIME, SHOWN_DICE_BLINK_TIME, SHAKE_CUPS_TIME } from '../DudoGameC.js';
 
 //************************************************************
 // PlayerGrid (placed inside TableGrid)
@@ -60,10 +61,7 @@ export function PlayerGrid({ggc, myIndex, cc }) {
   //             [ggc.bGameInProgress, ggc.numBids, ggc.firstRound]
   //*****************************************************************
   useEffect(() => {
-    if (ggc.bGameInProgress && 
-       ggc.numBids === 0 &&
-       !ggc.firstRound &&
-       !ggc.result.doubtLoserOut) {
+		if (ggc.SomebodyGotStick()) {
       //-------------------------------------------------
       // somebody got a stick
       //-------------------------------------------------
@@ -73,17 +71,17 @@ export function PlayerGrid({ggc, myIndex, cc }) {
       }
       // wait for sticks, then shake cup
       setTimeout(() => {
-        if (ggc.bRoundInProgress && ggc.numBids === 0) {
+				if (ggc.ShouldAllRollDice()) {
           if (ggc.allConnectionStatus[cc] === CONN_PLAYER_IN) {
             triggerCupShaking();
           }
         }
-      }, 3000);
+      }, STICKS_BLINK_TIME);
     } else {
       //-------------------------------------------------
       // all shake to start round
       //-------------------------------------------------
-      if (ggc.bRoundInProgress && ggc.numBids === 0) {
+			if (ggc.ShouldAllRollDice()) {
         if (ggc.allConnectionStatus[cc] === CONN_PLAYER_IN) {
           triggerCupShaking();
         }
@@ -137,7 +135,7 @@ export function PlayerGrid({ggc, myIndex, cc }) {
           if (!ggc.GetPlayerShowingAllDice(cc)) {
             triggerCupShaking();      // Start cup shake after that
           }
-        }, 4000);
+        }, SHOWN_DICE_BLINK_TIME);
       }
     }
   }, [ggc.numBids, ggc.bGameInProgress, ggc.allBids, cc]);
@@ -238,6 +236,8 @@ export function PlayerGrid({ggc, myIndex, cc }) {
   //--------------------------------------------------------
   // which background colors to use
   //--------------------------------------------------------
+	const softGreen = 'rgb(204,255,204)';
+
   // default color
   let bgColor = (ggc.allConnectionStatus[cc] === CONN_PLAYER_OUT ? 'gray' : 'white');
   let lineColor = 'lightgray';
@@ -250,7 +250,7 @@ export function PlayerGrid({ggc, myIndex, cc }) {
   // ask in or out dlg
   if (ggc.bAskInOut) {
     if (ggc.inOutMustSay[cc] && !ggc.inOutDidSay[cc]) {
-      bgColor = 'lightblue';
+      bgColor = softGreen;
     }
     if (ggc.inOutMustSay[cc] && ggc.inOutDidSay[cc])  {
       bgColor = 'white';
@@ -260,7 +260,7 @@ export function PlayerGrid({ggc, myIndex, cc }) {
   // lift cup dlg
   if (ggc.bDoubtInProgress && !ggc.bShowDoubtResult) {
     if (ggc.doubtMustLiftCup[cc] && !ggc.doubtDidLiftCup[cc]) {
-      bgColor = 'lightblue';
+      bgColor = softGreen;
     }
     if (ggc.doubtMustLiftCup[cc] && ggc.doubtDidLiftCup[cc])  {
       bgColor = 'white';
@@ -270,7 +270,7 @@ export function PlayerGrid({ggc, myIndex, cc }) {
   // show doubt dlg
   if (ggc.bShowDoubtResult) {
     if (ggc.nextRoundMustSay[cc] && !ggc.nextRoundDidSay[cc]) {
-      bgColor = 'lightblue';
+      bgColor =softGreen;
     }
     if (ggc.nextRoundMustSay[cc] && ggc.nextRoundDidSay[cc])  {
       bgColor = 'white';
@@ -282,7 +282,7 @@ export function PlayerGrid({ggc, myIndex, cc }) {
     case 'gray':
       lineColor = 'lightgray';
       break;
-    case 'lightblue':
+    case softGreen:
     case 'pink':
       lineColor = 'gray';
       break;
@@ -323,7 +323,7 @@ export function PlayerGrid({ggc, myIndex, cc }) {
   //********************************************************
   function triggerCupShaking() {
     setCupShaking(true);
-    setTimeout(() => setCupShaking(false), 2000); // match animation duration
+    setTimeout(() => setCupShaking(false), SHAKE_CUPS_TIME); // match animation duration
   }
 
   //********************************************************
@@ -331,7 +331,7 @@ export function PlayerGrid({ggc, myIndex, cc }) {
   //********************************************************
   function triggerSticksBlinking() {
     setSticksBlinking(true);
-    setTimeout(() => setSticksBlinking(false), 2000); // shake for 2 seconds
+    setTimeout(() => setSticksBlinking(false), STICKS_BLINK_TIME); 
   }
 
   //*****************************************************************

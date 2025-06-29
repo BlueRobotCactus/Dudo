@@ -19,8 +19,8 @@ import { BidHistoryDlg } from '../Dialogs.js';
 import { ObserversDlg } from '../Dialogs.js';
 import { GameSettingsDlg } from '../Dialogs.js';
 
-import { CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYER_LEFT,
-  CONN_PLAYER_IN_DISCONN, CONN_PLAYER_OUT_DISCONN, CONN_OBSERVER_DISCONN } from '../DudoGameC.js';;
+import { CONN_PLAYER_IN, CONN_OBSERVER } from '../DudoGameC.js';
+import { STICKS_BLINK_TIME, SHOWN_DICE_BLINK_TIME, SHAKE_CUPS_TIME } from '../DudoGameC.js';
 
   //************************************************************
   // GamePage function
@@ -1289,50 +1289,62 @@ useEffect(() => {
   //************************************************************
   function DrawProcessBid() {
 
-    if (isMyTurn) {
-      // my turn
-      // populate the bid list
-      if (ggc.bPaloFijoRound) {
-        ggc.PopulateBidListPaloFijo();
-      } else {
-        ggc.PopulateBidListRegular();
-      }
-      //ggc.PopulateBidListPasoDudo();
-      setPossibleBids(ggc.possibleBids || []);
-
-      // show dialog, handle responses
-      if (ggc.whichDirection == undefined) {
-        // choose direction if starting a round
-        setYesNoMessage("You start the bidding.\nWhich way?");
-        setYesNoTitle("Choose direction");
-        let cc = ggc.getPlayerToLeft(myIndex);
-        setYesText("to " + ggc.allParticipantNames[cc]);
-        cc = ggc.getPlayerToRight(myIndex);
-        setNoText("to " + ggc.allParticipantNames[cc]);
-        setYesShowButton(true);
-        setNoShowButton(true);
-        setXShowButton(false);
-        setOnYesHandler(() => () => {
-          setShowYesNoDlg(false);
-          socket.emit('direction', { lobbyId, index: myIndex, direction: 1 })
-          PrepareBidUI();
-      });
-        setOnNoHandler(() => () => {
-          setShowYesNoDlg(false);
-          socket.emit('direction', { lobbyId, index: myIndex, direction: 2 })
-          PrepareBidUI();
-        });
-        setShowYesNoDlg(true);
-      } else {
-          PrepareBidUI();
-      }
-    } else {
-      // not my turn
-      // show current bid
-      PrepareBidUI();
+    // wait for UI to be ready
+    let delay = 0;
+    if (ggc.SomebodyGotStick()) {
+      delay += STICKS_BLINK_TIME;
     }
+    if (ggc.ShouldAllRollDice()) {
+      delay += SHAKE_CUPS_TIME;  
+    }
+
+    // process the bid
+    setTimeout(() => {
+      if (isMyTurn) {
+        // my turn
+        // populate the bid list
+        if (ggc.bPaloFijoRound) {
+          ggc.PopulateBidListPaloFijo();
+        } else {
+          ggc.PopulateBidListRegular();
+        }
+        //ggc.PopulateBidListPasoDudo();
+        setPossibleBids(ggc.possibleBids || []);
+
+        // show dialog, handle responses
+        if (ggc.whichDirection == undefined) {
+          // choose direction if starting a round
+          setYesNoMessage("You start the bidding.\nWhich way?");
+          setYesNoTitle("Choose direction");
+          let cc = ggc.getPlayerToLeft(myIndex);
+          setYesText("to " + ggc.allParticipantNames[cc]);
+          cc = ggc.getPlayerToRight(myIndex);
+          setNoText("to " + ggc.allParticipantNames[cc]);
+          setYesShowButton(true);
+          setNoShowButton(true);
+          setXShowButton(false);
+          setOnYesHandler(() => () => {
+            setShowYesNoDlg(false);
+            socket.emit('direction', { lobbyId, index: myIndex, direction: 1 })
+            PrepareBidUI();
+          });
+          setOnNoHandler(() => () => {
+            setShowYesNoDlg(false);
+            socket.emit('direction', { lobbyId, index: myIndex, direction: 2 })
+            PrepareBidUI();
+          });
+          setShowYesNoDlg(true);
+        } else {
+            PrepareBidUI();
+        }
+      } else {
+        // not my turn
+        // show current bid
+        PrepareBidUI();
+      }
+    }, delay);
   }
-  }, [gameState, lobbyPlayers, isMyTurn, screenSize, imagesReady, socketId]);
+}, [gameState, lobbyPlayers, isMyTurn, screenSize, imagesReady, socketId]);
 
   //************************************************************
   //  function Draw Waiting for host to start the game
