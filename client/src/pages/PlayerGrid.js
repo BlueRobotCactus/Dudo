@@ -3,6 +3,7 @@ import React, { useState, useEffect, useRef, useContext} from 'react';
 import './PlayerGrid.css';
 //import './GamePage.js'
 import { ImageRefsContext } from '../ImageRefsContext.js';
+import { DudoGame, DudoRound } from '../DudoGameC.js';
 import { CONN_PLAYER_IN, CONN_PLAYER_OUT } from '../DudoGameC.js';
 import { STICKS_BLINK_TIME, SHOWN_DICE_BLINK_TIME, SHAKE_CUPS_TIME } from '../DudoGameC.js';
 
@@ -58,14 +59,15 @@ export function PlayerGrid({ggc, myIndex, cc }) {
   
   //*****************************************************************
   // useEffect:  END OF ROUND
-  //             [ggc.bGameInProgress, ggc.numBids, ggc.firstRound]
+  //             [ggc.bGameInProgress, ggc.curRound.numBids, ggc.firstRound]
   //*****************************************************************
   useEffect(() => {
 		if (ggc.SomebodyGotStick()) {
       //-------------------------------------------------
       // somebody got a stick
       //-------------------------------------------------
-      if (ggc.result.doubtLoser === cc) {
+      const numRounds = ggc.Rounds.length;
+      if (ggc.Rounds[numRounds - 1].doubtLoser === cc) {
         // it was this player
         triggerSticksBlinking();
       }
@@ -87,58 +89,58 @@ export function PlayerGrid({ggc, myIndex, cc }) {
         }
       }
     }
-  }, [ggc.bGameInProgress, ggc.numBids, ggc.firstRound]);
+  }, [ggc.bGameInProgress, ggc.curRound?.numBids, ggc.firstRound]);
   
 /*
   //*****************************************************************
   // useEffect:  THIS PLAYER GOT STICK: blink stick 
-  //             [ggc.bGameInProgress, ggc.numBids, ggc.firstRound]
+  //             [ggc.bGameInProgress, ggc.curRound.numBids, ggc.firstRound]
   //*****************************************************************
   useEffect(() => {
     if (ggc.bGameInProgress && 
-        ggc.numBids === 0 &&
+        ggc.curRound.numBids === 0 &&
         !ggc.firstRound) {
-      if (ggc.result.doubtLoser === cc) {
+      if (ggc.curRound.doubtLoser === cc) {
          triggerSticksBlinking();
       }
     }
-  }, [ggc.bGameInProgress, ggc.numBids, ggc.firstRound]);
+  }, [ggc.bGameInProgress, ggc.curRound.numBids, ggc.firstRound]);
 
   //*****************************************************************
   // useEffect:  ALL SHAKE TO START ROUND 
-  //             [ggc.bGameInProgress, ggc.numBids]
+  //             [ggc.bGameInProgress, ggc.curRound.numBids]
   //*****************************************************************
   useEffect(() => {
     if (sticksBlinking) {
       return;
     }
-    if (ggc.bRoundInProgress && ggc.numBids === 0) {
+    if (ggc.bRoundInProgress && ggc.curRound.numBids === 0) {
       if (ggc.allConnectionStatus[cc] === CONN_PLAYER_IN) {
          triggerCupShaking();
       }
     }
-  }, [ggc.bGameInProgress, ggc.numBids, sticksBlinking]);
+  }, [ggc.bGameInProgress, ggc.curRound.numBids, sticksBlinking]);
 */
 
   //*****************************************************************
   // useEffect:  THIS PLAYER SHOW/SHAKE:  blink shown dice, shake cup 
-  //             [ggc.numBids, ggc.bGameInProgress, ggc.allBids, cc]
+  //             [ggc.curRound.numBids, ggc.bGameInProgress, ggc.curRound.Bids, cc]
   //*****************************************************************
   useEffect(() => {
-    if (ggc.bGameInProgress && ggc.numBids > 0) {
-      const lastBid = ggc.allBids[ggc.numBids - 1];
+    if (ggc.bGameInProgress && ggc.curRound.numBids > 0) {
+      const lastBid = ggc.curRound?.Bids[ggc.curRound?.numBids - 1];
       if (lastBid.playerIndex === cc && lastBid.bShowShake) {
         // Enable blinking
         setDiceBlinking(true);
         setTimeout(() => {
           setDiceBlinking(false); // Stop blinking after 4s
-          if (!ggc.GetPlayerShowingAllDice(cc)) {
+          if (!ggc.PlayerShowingAllDice(cc)) {
             triggerCupShaking();      // Start cup shake after that
           }
         }, SHOWN_DICE_BLINK_TIME);
       }
     }
-  }, [ggc.numBids, ggc.bGameInProgress, ggc.allBids, cc]);
+  }, [ggc.curRound?.numBids, ggc.bGameInProgress, ggc.curRound?.Bids, cc]);
 
   //--------------------------------------------------------
   // bail out if images are not ready
@@ -164,7 +166,7 @@ export function PlayerGrid({ggc, myIndex, cc }) {
       cupImageToShow = cupUpImageRef.current;
   }
   // special case of all 5 dice shown
-  if (ggc.GetPlayerShowingAllDice(cc)) {
+  if (ggc.PlayerShowingAllDice(cc)) {
       cupImageToShow = cupUpImageRef.current;
   }
 
@@ -308,15 +310,17 @@ export function PlayerGrid({ggc, myIndex, cc }) {
   //--------------------------------------------------------
   //  set up dice that were just shown to blink
   //--------------------------------------------------------
-  let diceBlinkList = Array(5).fill(false);
-  if (ggc.bGameInProgress && ggc.numBids > 0) {
-    const lastBid = ggc.allBids[ggc.numBids - 1];
-    if (lastBid.playerIndex === cc && lastBid.bShowShake) {
-      for (let i = 0; i < 5; i++) {
-        diceBlinkList[i] = lastBid.bWhichShown[i];
-      }
-    }
-  }
+	let diceBlinkList = Array(5).fill(false);
+	if (ggc.curRound !== null) {
+		if (ggc.bGameInProgress && ggc.curRound.numBids > 0) {
+			const lastBid = ggc.curRound.Bids[ggc.curRound.numBids - 1];
+			if (lastBid.playerIndex === cc && lastBid.bShowShake) {
+				for (let i = 0; i < 5; i++) {
+					diceBlinkList[i] = lastBid.bWhichShown[i];
+				}
+			}
+		}
+	}
   
   //********************************************************
   //  function to shake cup
@@ -512,7 +516,7 @@ export function PlayerGrid({ggc, myIndex, cc }) {
           <img
             src={imgRef.src}
             alt={`Die ${index + 1}`}
-            className={diceBlinking && diceBlinkList[index] ? 'img-pulse' : ''}
+            className={diceBlinking && diceBlinkList[index] ? 'show-dice' : ''}
             style={{
               width: '80%',
               height: 'auto', // <<< key fix: height is based on aspect ratio

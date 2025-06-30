@@ -1,6 +1,6 @@
 'use strict';
 
-import { DudoGame, DudoBid } from './DudoGameS.js';
+import { DudoGame, DudoRound, DudoBid } from './DudoGameS.js';
 
 import { CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYER_LEFT,
   CONN_PLAYER_IN_DISCONN, CONN_PLAYER_OUT_DISCONN, CONN_OBSERVER_DISCONN } from './DudoGameS.js';
@@ -470,7 +470,7 @@ io.on('connection', (socket) => {
     const ggs = lobby.game;
 
     ggs.bDirectionInProgress = false;
-    ggs.whichDirection = direction;
+    ggs.curRound.whichDirection = direction;
     io.to(lobbyId).emit('gameStateUpdate', lobby.game);
     console.log("server.js: socket.on('direction'): emitting 'gameStateUpdate'");
   });
@@ -486,76 +486,73 @@ io.on('connection', (socket) => {
     //-------------------------------------------------
     // add this bid to the bid array
     //-------------------------------------------------
-    let ptr = ggs.numBids;
-    ggs.allBids[ptr].text = bidText;
-    ggs.allBids[ptr].playerIndex = index;
-    ggs.allBids[ptr].playerName = name;
+    ggs.curRound.curBid.text = bidText;
+    ggs.curRound.curBid.playerIndex = index;
+    ggs.curRound.curBid.playerName = name;
     if ((bidText !=="PASO") && (bidText !=="DOUBT")) {
       ggs.parseBid(bidText);
-      ggs.allBids[ptr].howMany = ggs.parsedHowMany;
-      ggs.allBids[ptr].ofWhat = ggs.parsedOfWhat;
-      ggs.allBids[ptr].bPaso = false;
-      ggs.allBids[ptr].bDudo = false;
-      ggs.allBids[ptr].bShowShake = bidShowShake;
+      ggs.curRound.curBid.howMany = ggs.parsedHowMany;
+      ggs.curRound.curBid.ofWhat = ggs.parsedOfWhat;
+      ggs.curRound.curBid.bPaso = false;
+      ggs.curRound.curBid.bDudo = false;
+      ggs.curRound.curBid.bShowShake = bidShowShake;
     }
     if (bidText === "PASO") {
-      ggs.allBids[ptr].bPaso = true;
-      ggs.allBids[ptr].bDudo = false;
-      ggs.allBids[ptr].bShowShake = false;
-      ggs.allBids[ptr].howManyShown = undefined;
+      ggs.curRound.curBid.bPaso = true;
+      ggs.curRound.curBid.bDudo = false;
+      ggs.curRound.curBid.bShowShake = false;
+      ggs.curRound.curBid.howManyShown = undefined;
       ggs.allPasoUsed[index] = true;
     }
     if (bidText === "DOUBT") {
-      ggs.allBids[ptr].bPaso = false;
-      ggs.allBids[ptr].bDudo = true;
-      ggs.allBids[ptr].bShowShake = false;
-      ggs.allBids[ptr].howManyShown = undefined;
+      ggs.curRound.curBid.bPaso = false;
+      ggs.curRound.curBid.bDudo = true;
+      ggs.curRound.curBid.bShowShake = false;
+      ggs.curRound.curBid.howManyShown = undefined;
     }
-    ggs.numBids++;
 
     //----------------------------------------------------
     // show and shake?
     //----------------------------------------------------
-    ptr = ggs.numBids - 1;
-    if (ggs.allBids[ptr].bShowShake) {
+    if (ggs.curRound.curBid.bShowShake) {
         // initialize shown
-        ggs.allBids[ptr].howManyShown = 0;
-        ggs.allBids[ptr].bWhichShown = Array(5).fill(false); 
+        ggs.curRound.curBid.howManyShown = 0;
+        ggs.curRound.curBid.bWhichShown = Array(5).fill(false); 
         for (let i = 0; i < 5; i++) {
-            ggs.allBids[ptr].bWhichShaken[i] = true;
-            ggs.allBids[ptr].bDiceHidden[i] = ggs.bDiceHidden[index][i];
+            ggs.curRound.curBid.bWhichShaken[i] = true;
+            ggs.curRound.curBid.bDiceHidden[i] = ggs.bDiceHidden[index][i];
             if (ggs.bDiceHidden[index][i]) {
                 let die = ggs.dice[index][i];
                 if (ggs.bPaloFijoRound) {
-                    if (die == ggs.allBids[ptr].ofWhat) {
+                    if (die == ggs.curRound.curBid.ofWhat) {
                         // they just showed this one, don't shake it
-                        ggs.allBids[ptr].howManyShown++;
-                        ggs.allBids[ptr].bWhichShown[i] = true;
-                        ggs.allBids[ptr].bWhichShaken[i] = false;
-                        ggs.allBids[ptr].bDiceHidden[i] = false;
+                        ggs.curRound.curBid.howManyShown++;
+                        ggs.curRound.curBid.bWhichShown[i] = true;
+                        ggs.curRound.curBid.bWhichShaken[i] = false;
+                        ggs.curRound.curBid.bDiceHidden[i] = false;
                         ggs.bDiceHidden[index][i] = false;
                     }
                     
                 } else {
-                    if ((die == ggs.allBids[ptr].ofWhat) || (die == 1)) {
+                    if ((die == ggs.curRound.curBid.ofWhat) || (die == 1)) {
                         // they just showed this one, don't shake it
-                        ggs.allBids[ptr].howManyShown++;
-                        ggs.allBids[ptr].bWhichShown[i] = true;
-                        ggs.allBids[ptr].bWhichShaken[i] = false;
-                        ggs.allBids[ptr].bDiceHidden[i] = false;
+                        ggs.curRound.curBid.howManyShown++;
+                        ggs.curRound.curBid.bWhichShown[i] = true;
+                        ggs.curRound.curBid.bWhichShaken[i] = false;
+                        ggs.curRound.curBid.bDiceHidden[i] = false;
                         ggs.bDiceHidden[index][i] = false;
                     }
                 }
             } else {
                 // die already showing, don't shake it
-                ggs.allBids[ptr].bWhichShaken[i] = false;
+                ggs.curRound.curBid.bWhichShaken[i] = false;
             }
         }
         // shake
         for (let i = 0; i < 5; i++) {
-            if (ggs.allBids[ptr].bWhichShaken[i]) {
+            if (ggs.curRound.curBid.bWhichShaken[i]) {
                 const random = Math.floor(Math.random() * 6) + 1;
-                ggs.dice[ggs.allBids[ptr].playerIndex][i] = random;
+                ggs.dice[ggs.curRound.curBid.playerIndex][i] = random;
             }
         }
     }
@@ -565,7 +562,7 @@ io.on('connection', (socket) => {
     //-------------------------------------------------
     // dice
     for (let i=0; i<5; i++) {
-      ggs.allBids[ptr].dice[i] = ggs.dice[index][i];
+      ggs.curRound.curBid.dice[i] = ggs.dice[index][i];
     }
     // showing (on the table) and looking for
     let showing = undefined;
@@ -577,8 +574,15 @@ io.on('connection', (socket) => {
         lookingFor = 0;
       }
     }
-    ggs.allBids[ptr].showing = showing;
-    ggs.allBids[ptr].lookingFor = lookingFor;
+    ggs.curRound.curBid.showing = showing;
+    ggs.curRound.curBid.lookingFor = lookingFor;
+
+    //-------------------------------------------------
+    // push the bid
+    //-------------------------------------------------
+		ggs.curRound.Bids.push(ggs.curRound.curBid);
+    ggs.curRound.numBids++;
+    ggs.curRound.curBid = new DudoBid();
 
     //-------------------------------------------------
     // keep going
@@ -592,7 +596,6 @@ io.on('connection', (socket) => {
       ggs.getDoubtResult();
       ggs.getMustLiftCupList();
       ggs.whosTurn = -1;
-    //&&&PostRound(ggs);
 
     } else {
       // Move to the next turn
@@ -628,10 +631,10 @@ io.on('connection', (socket) => {
     }
 
     // re-compute showing and lookage
-    ggs.result.doubtShowing = ggs.GetHowManyShowing(ggs.result.doubtOfWhat, ggs.bPaloFijoRound);
-    ggs.result.doubtLookingFor = ggs.result.doubtHowMany - ggs.result.doubtShowing;
-    if (ggs.result.doubtLookingFor < 0) {
-      ggs.result.doubtLookingFor = 0;
+    ggs.curRound.doubtShowing = ggs.GetHowManyShowing(ggs.curRound.doubtOfWhat, ggs.bPaloFijoRound);
+    ggs.curRound.doubtLookingFor = ggs.curRound.doubtHowMany - ggs.curRound.doubtShowing;
+    if (ggs.curRound.doubtLookingFor < 0) {
+      ggs.curRound.doubtLookingFor = 0;
     }
 
     if (allLifted) {
@@ -870,18 +873,19 @@ function StartGame (ggs) {
 //****************************************************************
 function StartRound (ggs) {
 
-    ggs.bWinnerRound = false;
-    ggs.result.init();
+		ggs.curRound = new DudoRound();
+		ggs.curRound.init();
+
     ggs.bRoundInProgress = true;
     ggs.bDoubtInProgress = false;
     ggs.bShowDoubtResult = false;
 
     if (ggs.GetNumberPlayersStillIn() > 2) {
       ggs.bDirectionInProgress = true;
-      ggs.whichDirection = undefined;
+      ggs.curRound.whichDirection = undefined;
     } else {
       ggs.bDirectionInProgress = false;
-      ggs.whichDirection = 0;
+      ggs.curRound.whichDirection = 0;
     }
 
     ggs.doubtDidLiftCup = Array(ggs.maxConnections).fill(false);  // &&& need this?
@@ -928,11 +932,14 @@ function StartRound (ggs) {
     //------------------------------------------------------------
     // initialize bidding
     //------------------------------------------------------------
+		ggs.curRound.Bids.length = 0; // reset bids
+    ggs.curRound.numBids = 0;
+/* &&&		
     ggs.numBids = 0;
     for (let i = 0; i < ggs.maxBids; i++) {
         ggs.allBids[i].InitDudoBid();
     }
-
+*/
     for (let i = 0; i < ggs.maxConnections; i++) {
         ggs.allPasoUsed[i] = false;
     }
@@ -950,28 +957,31 @@ function PostRound(ggs) {
     ggs.bPaloFijoRound = false;
 
     // loser gets a stick
-    ggs.allSticks[ggs.result.doubtLoser]++;
+    ggs.allSticks[ggs.curRound.doubtLoser]++;
     
-    if (ggs.allSticks[ggs.result.doubtLoser] == ggs.maxSticks) {
+    if (ggs.allSticks[ggs.curRound.doubtLoser] == ggs.maxSticks) {
         // out! winner of doubt inherits first bid
-        ggs.allConnectionStatus[ggs.result.doubtLoser] = CONN_PLAYER_OUT;
-        ggs.allSticks[ggs.result.doubtLoser] = 0;  
-        ggs.whosTurn = ggs.result.doubtWinner;
+        ggs.allConnectionStatus[ggs.curRound.doubtLoser] = CONN_PLAYER_OUT;
+        ggs.allSticks[ggs.curRound.doubtLoser] = 0;  
+        ggs.whosTurn = ggs.curRound.doubtWinner;
         ggs.bPaloFijoRound = false;
     } else {
         // not out, loser of doubt goes first next round
-        ggs.whosTurn = ggs.result.doubtLoser;
+        ggs.whosTurn = ggs.curRound.doubtLoser;
         // see if palofijo
         if (ggs.bPaloFijoAllowed && ggs.GetNumberPlayersStillIn() > 2) {
-            if (ggs.allSticks[ggs.result.doubtLoser] == ggs.maxSticks - 1) {
+            if (ggs.allSticks[ggs.curRound.doubtLoser] == ggs.maxSticks - 1) {
                 ggs.bPaloFijoRound = true;
             }
         }
     }
     
-    ggs.bWinnerRound = true;
-
     //------------------------------------------------------------
+    // push the round  
+    //------------------------------------------------------------
+		ggs.Rounds.push(ggs.curRound);
+
+		//------------------------------------------------------------
     // flip bool after first round
     //------------------------------------------------------------
     if (ggs.firstRound) {

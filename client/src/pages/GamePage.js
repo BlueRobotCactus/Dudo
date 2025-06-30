@@ -225,6 +225,9 @@ import { STICKS_BLINK_TIME, SHOWN_DICE_BLINK_TIME, SHAKE_CUPS_TIME } from '../Du
     //           track changes in checkbox
     //************************************************************
     useEffect(() => {
+			if (ggc.allConnectionID.length === 0) { 
+				return;
+			}
       console.log("GamePage: useEffect: CHECKBOX");
       const result = CanShowShake(selectedBid);
       setCanShowShake(result);
@@ -326,11 +329,15 @@ import { STICKS_BLINK_TIME, SHOWN_DICE_BLINK_TIME, SHAKE_CUPS_TIME } from '../Du
     // is it my turn to bid?
     setIsMyTurn(index == ggc.whosTurn);
 
-    // update Bid History
-    if (ggc.numBids < 1) {
+    if (ggc.curRound == null) { 
       return;
     }
-    const lastBidText = ggc.allBids[ggc.numBids-1].text;
+
+    // update Bid History
+    if (ggc.curRound.numBids < 1) {
+      return;
+    }
+    const lastBidText = ggc.curRound.Bids[ggc.curRound.numBids-1].text;
     setHistCurrentBid(lastBidText);
     if (lastBidText == "PASO" || lastBidText == "DOUBT") {
       setHistShowing('');
@@ -441,7 +448,7 @@ import { STICKS_BLINK_TIME, SHOWN_DICE_BLINK_TIME, SHAKE_CUPS_TIME } from '../Du
   //  functions to handle Options menu
   //************************************************************
   const handleOptBidHistory = () => {
-    reversedBids.current = ggc.allBids.slice(0, ggc.numBids).reverse();
+    reversedBids.current = ggc.curRound.Bids.slice(0, ggc.curRound.numBids).reverse();
     setShowBidHistoryDlg(true);
 
     setOnBidHistoryOkHandler(() => () => {
@@ -526,14 +533,14 @@ import { STICKS_BLINK_TIME, SHOWN_DICE_BLINK_TIME, SHAKE_CUPS_TIME } from '../Du
       // my turn
       //-------------------------------------------
       // show previous bid
-      let turnString = (ggc.numBids < 1 ? 'You bid first.' : 
-                                          `The bid to you is: ${ggc.GetBidString(ggc.numBids-1)}`);
+      let turnString = (ggc.curRound.numBids < 1 ? 'You bid first.' : 
+                                          `The bid to you is: ${ggc.GetBidString(ggc.curRound.numBids-1)}`);
       if (ggc.bPaloFijoRound) {
         turnString = 'PALO FIJO: ' + turnString;
       }
       setRow2YourTurnString(turnString);
-      setRow2SpecialPasoString (ggc.numBids > 1 && ggc.allBids[ggc.numBids-1].text == "PASO" ?
-                            `Doubt the PASO or top the bid ${ggc.allBids[ggc.FindLastNonPasoBid()].text}.` :
+      setRow2SpecialPasoString (ggc.curRound.numBids > 1 && ggc.curRound.Bids[ggc.curRound.numBids-1].text == "PASO" ?
+                            `Doubt the PASO or top the bid ${ggc.curRound.Bids[ggc.FindLastNonPasoBid()].text}.` :
                             '');
       setSelectedBid (ggc.possibleBids[0]);
 
@@ -543,10 +550,10 @@ import { STICKS_BLINK_TIME, SHOWN_DICE_BLINK_TIME, SHAKE_CUPS_TIME } from '../Du
       //-------------------------------------------
       // not my turn
       //-------------------------------------------
-      if (ggc.numBids > 0) {
+      if (ggc.curRound.numBids > 0) {
         // there is at least one bid
-        const currentBid = ggc.allBids[ggc.numBids-1];
-        let s1= currentBid.playerName + " bid: " + ggc.GetBidString(ggc.numBids-1);
+        const currentBid = ggc.curRound.Bids[ggc.curRound.numBids-1];
+        let s1= currentBid.playerName + " bid: " + ggc.GetBidString(ggc.curRound.numBids-1);
         if (ggc.bPaloFijoRound) {
           s1 = "PALO FIJO: " + s1;
         }
@@ -692,18 +699,18 @@ import { STICKS_BLINK_TIME, SHOWN_DICE_BLINK_TIME, SHAKE_CUPS_TIME } from '../Du
     // prepare strings to say what happened
     let s1 = "";  // who doubted whom
     let s2 = "";  // what the bid was
-    s1 = ggc.allParticipantNames[ggc.result.whoDoubted];
+    s1 = ggc.allParticipantNames[ggc.curRound.whoDoubted];
     s1 += " doubted ";
-    s1 += ggc.allParticipantNames[ggc.result.whoGotDoubted];
+    s1 += ggc.allParticipantNames[ggc.curRound.whoGotDoubted];
     setDoubtWhoDoubtedWhom(s1);
 
-    if (ggc.result.doubtWasPaso) {
+    if (ggc.curRound.doubtWasPaso) {
       // PASO
-      s2 = ggc.allParticipantNames[ggc.result.whoGotDoubted] + " bid PASO.";
+      s2 = ggc.allParticipantNames[ggc.curRound.whoGotDoubted] + " bid PASO.";
     } else {
       // non-PASO
-      s2 = ggc.allParticipantNames[ggc.result.whoGotDoubted] + "'s bid was " + ggc.result.doubtedText;
-      s2 += "\n(" + ggc.result.doubtShowing + " showing, looking for " + ggc.result.doubtLookingFor + ")\n";
+      s2 = ggc.allParticipantNames[ggc.curRound.whoGotDoubted] + "'s bid was " + ggc.curRound.doubtedText;
+      s2 += "\n(" + ggc.curRound.doubtShowing + " showing, looking for " + ggc.curRound.doubtLookingFor + ")\n";
     }
     setDoubtDoubtedBid(s2);
 
@@ -722,37 +729,37 @@ import { STICKS_BLINK_TIME, SHOWN_DICE_BLINK_TIME, SHAKE_CUPS_TIME } from '../Du
     let s3 = "";  // result of doubt
     let s4 = "";  // who got the stick
     let s5 = "";  // who got won the game (if anyone)
-    s1 = ggc.allParticipantNames[ggc.result.whoDoubted];
+    s1 = ggc.allParticipantNames[ggc.curRound.whoDoubted];
     s1 += " doubted ";
-    s1 += ggc.allParticipantNames[ggc.result.whoGotDoubted];
+    s1 += ggc.allParticipantNames[ggc.curRound.whoGotDoubted];
     setDoubtWhoDoubtedWhom(s1);
 
-    if (ggc.result.doubtWasPaso) {
+    if (ggc.curRound.doubtWasPaso) {
       // PASO
-      s2 = ggc.allParticipantNames[ggc.result.whoGotDoubted] + " bid PASO.";
-      if (ggc.result.doubtPasoWasThere) {
-          s3 = ggc.allParticipantNames[ggc.result.whoGotDoubted] + " has the PASO.";
+      s2 = ggc.allParticipantNames[ggc.curRound.whoGotDoubted] + " bid PASO.";
+      if (ggc.curRound.doubtPasoWasThere) {
+          s3 = ggc.allParticipantNames[ggc.curRound.whoGotDoubted] + " has the PASO.";
       } else {
-          s3 = ggc.allParticipantNames[ggc.result.whoGotDoubted] + " does not have the PASO.";
+          s3 = ggc.allParticipantNames[ggc.curRound.whoGotDoubted] + " does not have the PASO.";
       }
     } else {
       // non-PASO
-      s2 = ggc.allParticipantNames[ggc.result.whoGotDoubted] + "'s bid was " + ggc.result.doubtedText;
+      s2 = ggc.allParticipantNames[ggc.curRound.whoGotDoubted] + "'s bid was " + ggc.curRound.doubtedText;
 
-      s3 = (ggc.result.doubtCount == 1 ? "There is " : "There are ") + ggc.result.doubtCount;
+      s3 = (ggc.curRound.doubtCount == 1 ? "There is " : "There are ") + ggc.curRound.doubtCount;
     }
     setDoubtDoubtedBid(s2);
 
     setDoubtThereAre(s3);
 
-    s4 = ggc.allParticipantNames[ggc.result.doubtLoser] + " got the stick";
-    if (ggc.result.doubtLoserPaloFijo) {
+    s4 = ggc.allParticipantNames[ggc.curRound.doubtLoser] + " got the stick";
+    if (ggc.curRound.doubtLoserPaloFijo) {
       s4 += ", and is PALO FIJO";
     }
-    if (ggc.result.doubtLoserOut) {
+    if (ggc.curRound.doubtLoserOut) {
       s4 += ", and is OUT";
     }
-//    if (!ggc.result.doubtLoserPaloFijo && !ggc.result.doubtLoserOut) {
+//    if (!ggc.curRound.doubtLoserPaloFijo && !ggc.curRound.doubtLoserOut) {
 //      s4 += ".";
 //    }
     setDoubtWhoGotStick(s4);
@@ -1233,8 +1240,8 @@ useEffect(() => {
     bidHistoryRef.current.length = 0;
 
     // add bids from scratch
-    for (let i=0;  i<ggc.numBids; i++) {
-      bidHistoryRef.current.push({ Player: ggc.allBids[i].playerName,
+    for (let i=0;  i<ggc.curRound.numBids; i++) {
+      bidHistoryRef.current.push({ Player: ggc.curRound.Bids[i].playerName,
                                    Bid: ggc.GetBidString(i)});
     }
   }
@@ -1312,7 +1319,7 @@ useEffect(() => {
         setPossibleBids(ggc.possibleBids || []);
 
         // show dialog, handle responses
-        if (ggc.whichDirection == undefined) {
+        if (ggc.curRound.whichDirection == undefined) {
           // choose direction if starting a round
           setYesNoMessage("You start the bidding.\nWhich way?");
           setYesNoTitle("Choose direction");
@@ -1369,19 +1376,19 @@ useEffect(() => {
     let s1 = "";  // who doubted whom
     let s2 = "";  // what the bid was
     let s3 = '';  // who has not yet lifted the cup
-    s1 = ggc.allParticipantNames[ggc.result.whoDoubted];
+    s1 = ggc.allParticipantNames[ggc.curRound.whoDoubted];
     s1 += " doubted ";
-    s1 += ggc.allParticipantNames[ggc.result.whoGotDoubted];
+    s1 += ggc.allParticipantNames[ggc.curRound.whoGotDoubted];
     setRow2DoubtWho(s1);
 
-    if (ggc.result.doubtWasPaso) {
+    if (ggc.curRound.doubtWasPaso) {
       // PASO
-      s2 = ggc.allParticipantNames[ggc.result.whoGotDoubted] + " bid PASO";
+      s2 = ggc.allParticipantNames[ggc.curRound.whoGotDoubted] + " bid PASO";
     } else {
       // non-PASO
-      s2 = ggc.allParticipantNames[ggc.result.whoGotDoubted] + "'s bid was " + ggc.result.doubtedText;
+      s2 = ggc.allParticipantNames[ggc.curRound.whoGotDoubted] + "'s bid was " + ggc.curRound.doubtedText;
 
-      s2 += "\n(" + ggc.result.doubtShowing + " showing, looking for " + ggc.result.doubtLookingFor + ")\n";
+      s2 += "\n(" + ggc.curRound.doubtShowing + " showing, looking for " + ggc.curRound.doubtLookingFor + ")\n";
     }
     setRow2DoubtBid(s2);
 
@@ -1411,30 +1418,30 @@ useEffect(() => {
     let s3 = "";  // result of doubt
     let s4 = "";  // who got the stick
     let s5 = "";  // who got won the game (if anyone)
-    s1 = ggc.allParticipantNames[ggc.result.whoDoubted];
+    s1 = ggc.allParticipantNames[ggc.curRound.whoDoubted];
     s1 += " doubted ";
-    s1 += ggc.allParticipantNames[ggc.result.whoGotDoubted];
+    s1 += ggc.allParticipantNames[ggc.curRound.whoGotDoubted];
     setRow2DoubtWho(s1);
 
-    if (ggc.result.doubtWasPaso) {
+    if (ggc.curRound.doubtWasPaso) {
       // PASO
-      s2 = ggc.allParticipantNames[ggc.result.whoGotDoubted] + " bid PASO";
-      if (ggc.result.doubtPasoWasThere) {
-          s3 = ggc.allParticipantNames[ggc.result.whoGotDoubted] + " has the PASO";
+      s2 = ggc.allParticipantNames[ggc.curRound.whoGotDoubted] + " bid PASO";
+      if (ggc.curRound.doubtPasoWasThere) {
+          s3 = ggc.allParticipantNames[ggc.curRound.whoGotDoubted] + " has the PASO";
       } else {
-          s3 = ggc.allParticipantNames[ggc.result.whoGotDoubted] + " does not have the PASO";
+          s3 = ggc.allParticipantNames[ggc.curRound.whoGotDoubted] + " does not have the PASO";
       }
     } else {
       // non-PASO
-      s2 = ggc.allParticipantNames[ggc.result.whoGotDoubted] + "'s bid was " + ggc.result.doubtedText;
+      s2 = ggc.allParticipantNames[ggc.curRound.whoGotDoubted] + "'s bid was " + ggc.curRound.doubtedText;
 
-      s3 = (ggc.result.doubtCount == 1 ? "There is " : "There are ") + ggc.result.doubtCount;
+      s3 = (ggc.curRound.doubtCount == 1 ? "There is " : "There are ") + ggc.curRound.doubtCount;
     }
     setRow2DoubtBid(s2);
     setRow2DoubtResult(s3);
 
-    s4 = ggc.allParticipantNames[ggc.result.doubtLoser] + " got the stick";
-    if (ggc.result.doubtLoserOut) {
+    s4 = ggc.allParticipantNames[ggc.curRound.doubtLoser] + " got the stick";
+    if (ggc.curRound.doubtLoserOut) {
       s4 += ", and is OUT";
     }
     setRow2DoubtStick(s4);
@@ -1664,7 +1671,7 @@ useEffect(() => {
             <ul className="dropdown-menu" aria-labelledby="optionsMenu">
               <li><button className="dropdown-item" 
                 onClick={handleOptBidHistory}
-                disabled={!ggc.bGameInProgress || ggc.numBids < 1}
+                disabled={!ggc.bGameInProgress || ggc.curRound.numBids < 1}
               >
                 Bid History</button></li>
               <li><button className="dropdown-item" 
@@ -2006,7 +2013,7 @@ useEffect(() => {
           <div style={{ gridColumn: 5 }}>
             <button
               className="btn btn-danger btn-sm text-white"
-              disabled={!ggc.numBids > 0}
+              disabled={!ggc.curRound.numBids > 0}
               onClick={() => handleBidOK('DOUBT', bidShowShake)}
             >
               Doubt

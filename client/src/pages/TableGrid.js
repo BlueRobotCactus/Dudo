@@ -145,14 +145,14 @@ export function TableGrid({ggc, myIndex, backgroundColor}) {
 
       {DirectionArrowList[numPlayers] &&
         DirectionArrowList[numPlayers].length > 0 &&
-        (ggc.whichDirection === 1 || ggc.whichDirection === 2) &&
+        (ggc.curRound?.whichDirection === 1 || ggc.curRound?.whichDirection === 2) &&
         (() => {
           const arrowEntries = DirectionArrowList[numPlayers];
           const arrows = [];
 
           const directionRef =
-            ggc.whichDirection === 1 ? directionLeftImageRef :
-            ggc.whichDirection === 2 ? directionRightImageRef :
+            ggc.curRound?.whichDirection === 1 ? directionLeftImageRef :
+            ggc.curRound?.whichDirection === 2 ? directionRightImageRef :
             null;
 
           if (!directionRef?.current) return null;
