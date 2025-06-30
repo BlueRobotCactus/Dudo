@@ -512,7 +512,7 @@ export function PlayerGrid({ggc, myIndex, cc }) {
           <img
             src={imgRef.src}
             alt={`Die ${index + 1}`}
-            className={`${diceBlinking && diceBlinkList[index] ? 'img-pulse slide-down' : ''}`}
+            className={`${diceBlinking && diceBlinkList[index] ? 'show-dice' : ''}`}
             style={{
               width: '80%',
               height: 'auto', // <<< key fix: height is based on aspect ratio

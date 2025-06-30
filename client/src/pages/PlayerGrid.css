@@ -69,13 +69,20 @@
   animation: blink 0.25s linear infinite;
 }
 
+@keyframes slide-down {
+  from { transform: translateY(-150%); }   /* start just above the bottom row */
+  to   { transform: translateY(0); }
+}
+
 @keyframes pulse {
   0%, 100% { opacity: 1; }
   50%      { opacity: 0.3; }  /* Not fully transparent — just dim */
 }
 
-.img-pulse {
-  animation: pulse 1s ease-in-out infinite; /* slower and smooth */
+.show-dice {
+  animation:
+    slide-down 0.5s ease-out forwards,
+    pulse 1s ease-in-out infinite; /* slower and smooth */
 }
 
 @keyframes wiggle {
@@ -89,16 +96,4 @@
 .img-wiggle {
   animation: wiggle 0.10s ease-in-out;
   animation-iteration-count: 20;
-}
-
-/*---------------------------------------------------------------
-  animation for sliding revealed dice from under cup to table
----------------------------------------------------------------*/
-@keyframes slide-down {
-  from { transform: translateY(-150%); }   /* start just above the bottom row */
-  to   { transform: translateY(0); }
-}
-
-.slide-down {
-  animation: slide-down 0.25s ease-out forwards;
 }
