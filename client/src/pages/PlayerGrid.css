@@ -91,3 +91,14 @@
   animation-iteration-count: 20;
 }
 
+/*---------------------------------------------------------------
+  animation for sliding revealed dice from under cup to table
+---------------------------------------------------------------*/
+@keyframes slide-down {
+  from { transform: translateY(-150%); }   /* start just above the bottom row */
+  to   { transform: translateY(0); }
+}
+
+.slide-down {
+  animation: slide-down 0.25s ease-out forwards;
+}
