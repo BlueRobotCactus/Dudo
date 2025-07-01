@@ -19,7 +19,7 @@ import { BidHistoryDlg } from '../Dialogs.js';
 import { ObserversDlg } from '../Dialogs.js';
 import { GameSettingsDlg } from '../Dialogs.js';
 
-import { CONN_PLAYER_IN, CONN_OBSERVER } from '../DudoGameC.js';
+import { MAX_CONNECTIONS, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER } from '../DudoGameC.js';
 import { STICKS_BLINK_TIME, SHOWN_DICE_BLINK_TIME, SHAKE_CUPS_TIME } from '../DudoGameC.js';
 
   //************************************************************
@@ -458,7 +458,7 @@ import { STICKS_BLINK_TIME, SHOWN_DICE_BLINK_TIME, SHAKE_CUPS_TIME } from '../Du
 
   const handleOptObservers = () => {
     observersRef.current = []; // ← Clear it first
-    for (let cc=0; cc<ggc.maxConnections; cc++) {
+    for (let cc=0; cc<MAX_CONNECTIONS; cc++) {
       if (ggc.allConnectionStatus[cc] === CONN_OBSERVER) {
         observersRef.current.push({ playerName: ggc.allParticipantNames[cc]});
       }
@@ -674,8 +674,11 @@ import { STICKS_BLINK_TIME, SHOWN_DICE_BLINK_TIME, SHAKE_CUPS_TIME } from '../Du
   //************************************************************
   const PrepareShowDoubtDlg = () => {
     PrepareShowDoubtStrings();
-    setShowDoubtShowButton (ggc.allConnectionStatus[myIndex] === CONN_OBSERVER ? false : true);
-    setShowDoubtShowButtonX(ggc.allConnectionStatus[myIndex] === CONN_OBSERVER ? true : false);
+
+    const status = ggc.allConnectionStatus[myIndex];
+    const canBail = (status === CONN_PLAYER_OUT || status === CONN_OBSERVER);
+    setShowDoubtShowButton  (canBail ? false : true);
+    setShowDoubtShowButtonX (canBail ? true : false);
 
     setShowShowDoubtDlg(true);
     // do not show, if observer hit the X
@@ -1259,7 +1262,7 @@ useEffect(() => {
     
     // who has not yet said in or out
     let ss = "\n\nWaiting to hear from:";
-    for (let cc = 0; cc < ggc.maxConnections; cc++) {
+    for (let cc = 0; cc < MAX_CONNECTIONS; cc++) {
       if (ggc.inOutMustSay[cc]) {
         ss += "\n" + ggc.allParticipantNames[cc];
         if (ggc.inOutDidSay[cc]) {
@@ -1394,7 +1397,7 @@ useEffect(() => {
 
     // who has not yet lifted their cup
     s3 = "Waiting to see dice from:";
-    for (let cc = 0; cc < ggc.maxConnections; cc++) {
+    for (let cc = 0; cc < MAX_CONNECTIONS; cc++) {
       if (ggc.doubtMustLiftCup[cc]) {
         if (!ggc.doubtDidLiftCup[cc]) {
           s3 += "\n" + ggc.allParticipantNames[cc];

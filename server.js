@@ -2,7 +2,7 @@
 
 import { DudoGame, DudoRound, DudoBid } from './DudoGameS.js';
 
-import { CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYER_LEFT,
+import { MAX_CONNECTIONS, CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYER_LEFT,
   CONN_PLAYER_IN_DISCONN, CONN_PLAYER_OUT_DISCONN, CONN_OBSERVER_DISCONN } from './DudoGameS.js';
 
 import express from 'express';
@@ -67,8 +67,7 @@ io.on('connection', (socket) => {
 
     const ggs = new DudoGame();
 
-    ggs.maxConnections = 10;  // &&&for now
-    for (let i=0; i<ggs.maxConnections; i++) {
+    for (let i=0; i<10; i++) {
       ggs.allConnectionStatus[i] = CONN_UNUSED;
     }
 
@@ -120,7 +119,7 @@ io.on('connection', (socket) => {
 
         // add him to game (first unused connection)
         let ptr = 0;
-        for (let i=0; i<ggs.maxConnections; i++) {
+        for (let i=0; i<MAX_CONNECTIONS; i++) {
           if (ggs.allConnectionStatus[i] == CONN_UNUSED) {
             ptr = i;
             break;
@@ -264,8 +263,8 @@ io.on('connection', (socket) => {
     //io.in(lobbyId).fetchSockets().then(sockets => console.log(`Lobby ${lobbyId} has ${sockets.length} sockets:`, sockets.map(s => s.id)));
 
     // hear back to see who's in or out
-    //ggs.inOutMustSay = Array(ggs.maxConnections).fill(false); // &&&nuke this???
-    for (let cc=0; cc<ggs.maxConnections; cc++) {
+    //ggs.inOutMustSay = Array(MAX_CONNECTIONS).fill(false); // &&&nuke this???
+    for (let cc=0; cc<MAX_CONNECTIONS; cc++) {
       ggs.inOutMustSay[cc] = false;
       ggs.inOutDidSay[cc] = false;
     }
@@ -323,18 +322,18 @@ io.on('connection', (socket) => {
 
     // Remove this player from game
     const ggs = lobby.game;
-    for (let cc=playerIndex; cc < ggs.maxConnections - 1; cc++) {
+    for (let cc=playerIndex; cc < MAX_CONNECTIONS - 1; cc++) {
       ggs.allParticipantNames[cc] = ggs.allParticipantNames[cc+1];
       ggs.allConnectionID[cc]     = ggs.allConnectionID[cc+1];
       ggs.allConnectionStatus[cc] = ggs.allConnectionStatus[cc+1];
       ggs.allSticks[cc]           = ggs.allSticks[cc+1];
       ggs.allPasoUsed[cc]         = ggs.allPasoUsed[cc+1];
     }
-    ggs.allParticipantNames[ggs.maxConnections - 1] = '';
-    ggs.allConnectionID[ggs.maxConnections - 1]     = '';
-    ggs.allConnectionStatus[ggs.maxConnections - 1] = CONN_UNUSED;
-    ggs.allSticks[ggs.maxConnections - 1]           = 0;
-    ggs.allPasoUsed[ggs.maxConnections - 1]         = false;
+    ggs.allParticipantNames[MAX_CONNECTIONS - 1] = '';
+    ggs.allConnectionID[MAX_CONNECTIONS - 1]     = '';
+    ggs.allConnectionStatus[MAX_CONNECTIONS - 1] = CONN_UNUSED;
+    ggs.allSticks[MAX_CONNECTIONS - 1]           = 0;
+    ggs.allPasoUsed[MAX_CONNECTIONS - 1]         = false;
     
     console.log(`server.js: ${playerName} left lobby: ${lobbyId}`)
     io.to(lobbyId).emit('lobbyData', lobby);
@@ -406,7 +405,7 @@ io.on('connection', (socket) => {
       //socket.join(lobbyId);
 
       let ptr = 0;
-      for (let i=0; i<ggs.maxConnections; i++) {
+      for (let i=0; i<MAX_CONNECTIONS; i++) {
         if (ggs.allConnectionStatus[i] == CONN_UNUSED) {
           ptr = i;
           break;
@@ -621,7 +620,7 @@ io.on('connection', (socket) => {
 
     // is that everybody we need to hear from?
     let allLifted = true;
-    for (let i=0; i<ggs.maxConnections; i++) {
+    for (let i=0; i<MAX_CONNECTIONS; i++) {
       if (ggs.doubtMustLiftCup[i]) {
         if (!ggs.doubtDidLiftCup[i]) {
           allLifted = false;
@@ -658,7 +657,7 @@ io.on('connection', (socket) => {
 
     // is that everybody we need to hear from?
     let okToGo = true;
-    for (let i=0; i<ggs.maxConnections; i++) {
+    for (let i=0; i<MAX_CONNECTIONS; i++) {
       if (ggs.nextRoundMustSay[i]) {
         if (!ggs.nextRoundDidSay[i]) {
           okToGo = false;
@@ -695,7 +694,7 @@ io.on('connection', (socket) => {
 
     // is that everybody we need to hear from?
     let okToGo = true;
-    for (let i=0; i<ggs.maxConnections; i++) {
+    for (let i=0; i<MAX_CONNECTIONS; i++) {
       if (ggs.inOutMustSay[i]) {
         if (!ggs.inOutDidSay[i]) {
           okToGo = false;
@@ -856,7 +855,7 @@ function StartGame (ggs) {
   //------------------------------------------------------------
   // give everybody no sticks
   //------------------------------------------------------------
-  for (let i = 0; i < ggs.maxConnections; i++) {
+  for (let i = 0; i < MAX_CONNECTIONS; i++) {
       ggs.allSticks[i] = 0;
   }
 
@@ -888,9 +887,9 @@ function StartRound (ggs) {
       ggs.curRound.whichDirection = 0;
     }
 
-    ggs.doubtDidLiftCup = Array(ggs.maxConnections).fill(false);  // &&& need this?
-    ggs.nextRoundMustSay = Array(ggs.maxConnections).fill(false);       // &&& need this?
-    ggs.nextRoundDidSay = Array(ggs.maxConnections).fill(false);       // &&& need this?
+    ggs.doubtDidLiftCup = Array(MAX_CONNECTIONS).fill(false);  // &&& need this?
+    ggs.nextRoundMustSay = Array(MAX_CONNECTIONS).fill(false);       // &&& need this?
+    ggs.nextRoundDidSay = Array(MAX_CONNECTIONS).fill(false);       // &&& need this?
     ggs.getNextRoundMustSay();
 
     //------------------------------------------------------------
@@ -902,7 +901,7 @@ function StartRound (ggs) {
         //let rr = randomGenerator.nextInt(ggs.GetNumberPlayersStillIn());
         const random = Math.floor(Math.random() * ggs.GetNumberPlayersStillIn());
         let temp = 0;
-        for (let cc = 0; cc < ggs.maxConnections; cc++) {
+        for (let cc = 0; cc < MAX_CONNECTIONS; cc++) {
             if (ggs.allConnectionStatus[cc] == CONN_PLAYER_IN) {
                 if (random == temp) {
                     ggs.whosTurn = cc;
@@ -917,7 +916,7 @@ function StartRound (ggs) {
     //------------------------------------------------------------
     // roll the dice for all players
     //------------------------------------------------------------
-    for (let cc = 0; cc < ggs.maxConnections; cc++) {
+    for (let cc = 0; cc < MAX_CONNECTIONS; cc++) {
         if (ggs.allConnectionStatus[cc] == CONN_PLAYER_IN) {
             for (let j = 0; j < 5; j++) {
                 const random = Math.floor(Math.random() * 6) + 1;
@@ -940,7 +939,7 @@ function StartRound (ggs) {
         ggs.allBids[i].InitDudoBid();
     }
 */
-    for (let i = 0; i < ggs.maxConnections; i++) {
+    for (let i = 0; i < MAX_CONNECTIONS; i++) {
         ggs.allPasoUsed[i] = false;
     }
 }

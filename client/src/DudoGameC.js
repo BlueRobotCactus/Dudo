@@ -2,6 +2,7 @@
 
 // connectionStatus codes
 // &&& these are more like player status codes
+const MAX_CONNECTIONS = 10;
 const CONN_UNUSED = 0;
 const CONN_PLAYER_IN = 1;
 const CONN_PLAYER_OUT = 2;
@@ -25,7 +26,6 @@ export class DudoGame {
 	Rounds = []; // array of DudoRound objects
 
 	// associated arrays
-	maxConnections;
 	allConnectionID = [];
 	allConnectionStatus = [];
 	allParticipantNames = [];
@@ -82,10 +82,10 @@ export class DudoGame {
 	constructor() {
 		this.maxPlayers = 8;
 		//this.allSticks = [];
-		for (let cc = 0; cc < this.maxConnections; cc++) {
+		for (let cc = 0; cc < MAX_CONNECTIONS; cc++) {
 			this.allParticipantNames[cc] = '';
 			this.allConnectionID[cc] = '';
-			this.allConnectionStatus = CONN_UNUSED;
+			this.allConnectionStatus[cc] = CONN_UNUSED;
 			this.allSticks[cc] = 0;
 			this.allPasoUsed[cc] = false;
 		}
@@ -96,18 +96,17 @@ export class DudoGame {
 		this.bPaloFijoAllowed = true;
 		this.bPaloFijoRound =  false;
 		
-		// NOTE:  10 literal must be the same as maxConnections
-		this.dice = new Array(10);
-		for (let i = 0; i < 10; i++) {
+		this.dice = new Array(MAX_CONNECTIONS);
+		for (let i = 0; i < MAX_CONNECTIONS; i++) {
 			this.dice[i] = new Array(5);
 		}
-		this.bDiceHidden = new Array(10);
-		for (let i = 0; i < 10; i++) {
+		this.bDiceHidden = new Array(MAX_CONNECTIONS);
+		for (let i = 0; i < MAX_CONNECTIONS; i++) {
 			this.bDiceHidden[i] = new Array(5);
 		}
 
-		this.bDiceHilite = new Array(10);
-		for (let i = 0; i < 10; i++) {
+		this.bDiceHilite = new Array(MAX_CONNECTIONS);
+		for (let i = 0; i < MAX_CONNECTIONS; i++) {
 			this.bDiceHilite[i] = new Array(5);
 		}
 
@@ -164,7 +163,7 @@ export class DudoGame {
 
 		this.whosTurn = -1;
 
-		for (let i = 0; i < this.maxConnections; i++) {
+		for (let i = 0; i < MAX_CONNECTIONS; i++) {
 			const status = this.allConnectionStatus[i];
 			if (status == CONN_PLAYER_IN || status == CONN_PLAYER_OUT || status == CONN_OBSERVER) {
 				this.allConnectionStatus[i] = CONN_PLAYER_IN;
@@ -208,7 +207,7 @@ export class DudoGame {
 		while (true) {
 			if (cc == 0) {
 				cc = cc + 1;
-			} else if (cc == this.maxConnections - 1) {
+			} else if (cc == MAX_CONNECTIONS - 1) {
 				cc = 0;
 			} else {
 				cc = cc + 1;
@@ -226,8 +225,8 @@ export class DudoGame {
 	getPlayerToRight (cc) {
 		while (true) {
 			if (cc == 0) {
-				cc = this.maxConnections - 1;
-			} else if (cc == this.maxConnections - 1) {
+				cc = MAX_CONNECTIONS - 1;
+			} else if (cc == MAX_CONNECTIONS - 1) {
 				cc = cc - 1;
 			} else {
 				cc = cc - 1;
@@ -304,7 +303,7 @@ export class DudoGame {
 			//--------------------------------------------------------
 			this.curRound.doubtWasPaso = false;
 			this.curRound.doubtCount = 0;
-			for (let cc = 0; cc < this.maxConnections; cc++) {
+			for (let cc = 0; cc < MAX_CONNECTIONS; cc++) {
 				if (this.allConnectionStatus[cc] == CONN_PLAYER_IN) {
 					for (let j = 0; j < 5; j++) {
 						if (this.dice[cc][j] == this.curRound.doubtOfWhat) {
@@ -326,7 +325,7 @@ export class DudoGame {
 				//----------------------------------------------------
 				this.curRound.doubtWasPaso = false;
 				this.curRound.doubtCount = 0;
-				for (let cc = 0; cc < this.maxConnections; cc++) {
+				for (let cc = 0; cc < MAX_CONNECTIONS; cc++) {
 					if (this.allConnectionStatus[cc] == CONN_PLAYER_IN) {
 						for (let j = 0; j < 5; j++) {
 							if (this.dice[cc][j] == this.curRound.doubtOfWhat) {
@@ -343,7 +342,7 @@ export class DudoGame {
 				//----------------------------------------------------
 				this.curRound.doubtWasPaso = false;
 				this.curRound.doubtCount = 0;
-				for (let cc = 0; cc < this.maxConnections; cc++) {
+				for (let cc = 0; cc < MAX_CONNECTIONS; cc++) {
 					if (this.allConnectionStatus[cc] == CONN_PLAYER_IN) {
 						for (let j = 0; j < 5; j++) {
 							if ((this.dice[cc][j] == this.curRound.doubtOfWhat)|| this.dice[cc][j] == 1){
@@ -405,7 +404,7 @@ export class DudoGame {
 	//************************************************************
 	getMustLiftCupList () {
 		// initialize all to false
-		for (let i=0; i<this.maxConnections; i++) {
+		for (let i=0; i<MAX_CONNECTIONS; i++) {
 			this.doubtMustLiftCup[i] = false;
 		}
 
@@ -416,7 +415,7 @@ export class DudoGame {
 		}
 		
 		// not PASO, all players who are IN
-		for (let i=0; i<this.maxConnections; i++) {
+		for (let i=0; i<MAX_CONNECTIONS; i++) {
 			if (this.allConnectionStatus[i] == CONN_PLAYER_IN) {
 				this.doubtMustLiftCup[i] = true;
 			}
@@ -429,7 +428,7 @@ export class DudoGame {
 	// this is 'true' or 'false' for each participant
 	//************************************************************
 	getInOutMustSay () {
-		for (let i=0; i<this.maxConnections; i++) {
+		for (let i=0; i<MAX_CONNECTIONS; i++) {
 			let st = this.allConnectionStatus[i];
 			if (st == CONN_PLAYER_IN || st == CONN_PLAYER_OUT || st == CONN_OBSERVER) {
 				this.inOutMustSay[i] = true;
@@ -444,9 +443,9 @@ export class DudoGame {
 	// this is 'true' or 'false' for each participant
 	//************************************************************
 	getNextRoundMustSay () {
-		for (let i=0; i<this.maxConnections; i++) {
+		for (let i=0; i<MAX_CONNECTIONS; i++) {
 			let st = this.allConnectionStatus[i];
-			if (st == CONN_PLAYER_IN || st == CONN_PLAYER_OUT) {
+			if (st == CONN_PLAYER_IN) {
 				this.nextRoundMustSay[i] = true;
 			} else {
 				this.nextRoundMustSay[i] = false;
@@ -522,21 +521,13 @@ export class DudoGame {
 		//------------------------------------------------------------
 		// special case of first bid
 		//------------------------------------------------------------
-		let sTemp;
 		if (this.curRound.numBids == 0) {
-			for (let howMany = 0; howMany < this.GetNumberPlayersStillIn() * 5; howMany++) {
-				// list non-aces first
-				for (let ofWhat = 1; ofWhat < 6; ofWhat++) {
-					sTemp = (howMany + 1) + " - " +  (ofWhat + 1);
-					this.possibleBids.push(sTemp);
-				}
-				// then put aces after
-				sTemp = (howMany + 1) + " - aces";
-				this.possibleBids.push(sTemp);
-			}
-			this.numPossibleBids = this.possibleBids.length;
+			this.PopulateBidListFirstBid();
 			return;
 		}
+
+		//------------------------------------------------------------
+		//  this is not the first bid
 		//------------------------------------------------------------
 		// get and parse current bid
 		// (parsed into parsedHowMany and parsedOfWhat)
@@ -699,21 +690,13 @@ export class DudoGame {
 		//------------------------------------------------------------
 		// special case of first bid
 		//------------------------------------------------------------
-		let sTemp = 0;
 		if (this.curRound.numBids == 0) {
-			for (let howMany = 0; howMany < this.GetNumberPlayersStillIn() * 5; howMany++) {
-				// list non-aces first
-				for (let ofWhat = 1; ofWhat < 6; ofWhat++) {
-					sTemp = (howMany + 1) + " - " +  (ofWhat + 1);
-					this.possibleBids[howMany * 6 + ofWhat - 1] = sTemp;
-				}
-				// then put aces after
-				sTemp = (howMany + 1) + " - aces";
-				this.possibleBids[howMany * 6 + 5] = sTemp;
-			}
-			this.numPossibleBids = this.GetNumberPlayersStillIn() * 5 * 6 + 2;
+			this.PopulateBidListFirstBid();
 			return;
 		}
+
+		//------------------------------------------------------------
+		//  this is not the first bid
 		//------------------------------------------------------------
 		// get and parse current bid
 		// (parsed into parsedHowMany and parsedOfWhat)
@@ -722,7 +705,7 @@ export class DudoGame {
 			let lastNonPaso = this.FindLastNonPasoBid();
 			this.parseBid(this.curRound.Bids[lastNonPaso].text);
 		} else {
-				this.parseBid(this.curRound.Bids[this.curRound.numBids - 1].text);
+			this.parseBid(this.curRound.Bids[this.curRound.numBids - 1].text);
 		}
 
 		//------------------------------------------------------------
@@ -734,7 +717,7 @@ export class DudoGame {
 			// I can change the bid
 			//--------------------------------------------------------
 
-			this.numPossibleBids = 0;
+			this.numPossibleBids = 1;
 			if (this.parsedOfWhat != 1) {
 				//--------------------------------------------------------
 				// Non-aces bid
@@ -790,7 +773,7 @@ export class DudoGame {
 			// I'm not palofijo
 			// I can only raise or doubt
 			//--------------------------------------------------------
-			this.numPossibleBids = 0;
+			this.numPossibleBids = 1;
 			for (let i = this.parsedHowMany; i < this.GetNumberPlayersStillIn() * 5; i++) {
 				this.possibleBids[this.numPossibleBids] = (i + 1).toString() + " - ";
 				if (this.parsedOfWhat == 1) {
@@ -801,6 +784,24 @@ export class DudoGame {
 				this.numPossibleBids++;
 			}
 		}
+	}
+
+	//****************************************************************
+	// Populate bid list -- first bid
+	//****************************************************************
+	PopulateBidListFirstBid() {
+		let sTemp;		
+		for (let howMany = 0; howMany < this.GetNumberPlayersStillIn() * 5; howMany++) {
+			// list non-aces first
+			for (let ofWhat = 1; ofWhat < 6; ofWhat++) {
+				sTemp = (howMany + 1) + " - " +  (ofWhat + 1);
+				this.possibleBids.push(sTemp);
+			}
+			// then put aces after
+			sTemp = (howMany + 1) + " - aces";
+			this.possibleBids.push(sTemp);
+		}
+		this.numPossibleBids = this.possibleBids.length;
 	}
 
 	//****************************************************************
@@ -839,7 +840,7 @@ export class DudoGame {
 	//****************************************************************
 	GetNumberPlayersInLobby () {
 		let result = 0;
-		for (let cc = 0; cc < this.maxConnections; cc++) {
+		for (let cc = 0; cc < MAX_CONNECTIONS; cc++) {
 			if (this.allConnectionStatus[cc] == CONN_PLAYER_IN ||
 				this.allConnectionStatus[cc] == CONN_PLAYER_OUT ||
 				this.allConnectionStatus[cc] == CONN_OBSERVER) {
@@ -855,7 +856,7 @@ export class DudoGame {
 	//****************************************************************
 	GetNumberPlayersPlaying () {
 		let result = 0;
-		for (let cc = 0; cc < this.maxConnections; cc++) {
+		for (let cc = 0; cc < MAX_CONNECTIONS; cc++) {
 			if (this.allConnectionStatus[cc] == CONN_PLAYER_IN ||
 				this.allConnectionStatus[cc] == CONN_PLAYER_OUT) {
 				result++;
@@ -870,7 +871,7 @@ export class DudoGame {
 	//****************************************************************
 	GetNumberPlayersStillIn () {
 		let result = 0;
-		for (let cc = 0; cc < this.maxConnections; cc++) {
+		for (let cc = 0; cc < MAX_CONNECTIONS; cc++) {
 			if (this.allConnectionStatus[cc] == CONN_PLAYER_IN) {
 				result++;
 			}
@@ -923,7 +924,7 @@ export class DudoGame {
 	//****************************************************************
 	GetHowManyShowing (ofWhat, bPaloFijo) {
 		let result = 0;
-		for (let cc = 0; cc < this.maxConnections; cc++) {
+		for (let cc = 0; cc < MAX_CONNECTIONS; cc++) {
 			if (this.allConnectionStatus[cc] == CONN_PLAYER_IN) {
 				// player is still in
 				for (let i=0; i<5; i++) {
@@ -1106,6 +1107,7 @@ export class DudoBid {
 }
   
 export { 
+	MAX_CONNECTIONS,
 	CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYER_LEFT,
   CONN_PLAYER_IN_DISCONN, CONN_PLAYER_OUT_DISCONN, CONN_OBSERVER_DISCONN,
 	STICKS_BLINK_TIME, SHOWN_DICE_BLINK_TIME, SHAKE_CUPS_TIME,

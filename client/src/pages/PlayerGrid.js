@@ -4,7 +4,7 @@ import './PlayerGrid.css';
 //import './GamePage.js'
 import { ImageRefsContext } from '../ImageRefsContext.js';
 import { DudoGame, DudoRound } from '../DudoGameC.js';
-import { CONN_PLAYER_IN, CONN_PLAYER_OUT } from '../DudoGameC.js';
+import { MAX_CONNECTIONS, CONN_PLAYER_IN, CONN_PLAYER_OUT } from '../DudoGameC.js';
 import { STICKS_BLINK_TIME, SHOWN_DICE_BLINK_TIME, SHAKE_CUPS_TIME } from '../DudoGameC.js';
 
 //************************************************************
@@ -184,7 +184,7 @@ export function PlayerGrid({ggc, myIndex, cc }) {
   let diceShowBottomHilite = [];
 
   // initialize 
-  for (let cc = 0; cc < ggc.maxConnections; cc++) {
+  for (let cc = 0; cc < MAX_CONNECTIONS; cc++) {
     diceImageTopList[cc] = [];
     diceImageBottomList[cc] = [];
     diceShowTopHilite[cc] = [];
