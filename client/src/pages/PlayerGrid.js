@@ -133,7 +133,7 @@ export function PlayerGrid({ggc, myIndex, cc }) {
         // Enable blinking
         setDiceBlinking(true);
         setTimeout(() => {
-          setDiceBlinking(false); // Stop blinking after 4s
+          setDiceBlinking(false); // Stop blinking after SHOWN_DICE_BLINK_TIME
           if (!ggc.PlayerShowingAllDice(cc)) {
             triggerCupShaking();      // Start cup shake after that
           }
@@ -451,6 +451,8 @@ export function PlayerGrid({ggc, myIndex, cc }) {
       />
       {diceImageTopList[cc].map((imgRef, index) => {
         if (!imgRef || cupShaking) return null;
+
+        if ((diceBlinking || cupShaking) && !diceBlinkList[index]) return null;
 
         return (
         <div

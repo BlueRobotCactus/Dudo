@@ -805,6 +805,17 @@ export class DudoGame {
 	}
 
 	//****************************************************************
+	// Trim the bid list (1 - aces) => (1 - ace)
+	//****************************************************************
+	PopulateBidListTrim () {
+		for (let i = 0; i < this.numPossibleBids; i++) {
+			if (this.possibleBids[i] == "1 - aces") {
+				this.possibleBids[i] = "1 - ace";
+			}
+		}
+	}
+
+	//****************************************************************
 	// Parse the bid string into integers
 	//****************************************************************
 	parseBid(s) {
@@ -812,7 +823,7 @@ export class DudoGame {
 		let len = sSplit.length;
 		if (len === 3) {
 			this.parsedHowMany = parseInt(sSplit[0]);  
-			if (sSplit[2] === "aces") {
+			if ((sSplit[2] === "aces") || (sSplit[2] === "ace")) {
 				this.parsedOfWhat = 1;
 			} else {
 				this.parsedOfWhat = parseInt(sSplit[2]);

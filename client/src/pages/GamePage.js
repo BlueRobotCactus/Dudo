@@ -533,8 +533,14 @@ import { STICKS_BLINK_TIME, SHOWN_DICE_BLINK_TIME, SHAKE_CUPS_TIME } from '../Du
       // my turn
       //-------------------------------------------
       // show previous bid
-      let turnString = (ggc.curRound.numBids < 1 ? 'You bid first.' : 
-                                          `The bid to you is: ${ggc.GetBidString(ggc.curRound.numBids-1)}`);
+      let turnString = '';
+      if (ggc.curRound.numBids > 0) {
+        const sName = ggc.curRound.Bids[ggc.curRound.numBids-1].playerName;
+        turnString = (`${sName} bid to you: ${ggc.GetBidString(ggc.curRound.numBids-1)}`);
+      } else {
+        turnString = 'You start the bidding.';
+      }
+
       if (ggc.bPaloFijoRound) {
         turnString = 'PALO FIJO: ' + turnString;
       }
@@ -678,7 +684,8 @@ import { STICKS_BLINK_TIME, SHOWN_DICE_BLINK_TIME, SHAKE_CUPS_TIME } from '../Du
     const status = ggc.allConnectionStatus[myIndex];
     const canBail = (status === CONN_PLAYER_OUT || status === CONN_OBSERVER);
     setShowDoubtShowButton  (canBail ? false : true);
-    setShowDoubtShowButtonX (canBail ? true : false);
+    //setShowDoubtShowButtonX (canBail ? true : false);
+    setShowDoubtShowButtonX (false);
 
     setShowShowDoubtDlg(true);
     // do not show, if observer hit the X
@@ -1088,7 +1095,9 @@ useEffect(() => {
     setShowLiftCupDlg (false);
     PrepareShowDoubtDlg();
   }
-  if (ggc.bShowDoubtResult && (ggc.allConnectionStatus[myIndex] === CONN_OBSERVER)) {
+  if (ggc.bShowDoubtResult && 
+     ((ggc.allConnectionStatus[myIndex] === CONN_OBSERVER)  ||
+      (ggc.allConnectionStatus[myIndex] === CONN_PLAYER_OUT))) {
     setShowLiftCupDlg (false);
     PrepareShowDoubtDlg();
   }
@@ -1318,7 +1327,7 @@ useEffect(() => {
         } else {
           ggc.PopulateBidListRegular();
         }
-        //ggc.PopulateBidListPasoDudo();
+        ggc.PopulateBidListTrim();
         setPossibleBids(ggc.possibleBids || []);
 
         // show dialog, handle responses
