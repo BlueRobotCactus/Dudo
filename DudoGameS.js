@@ -138,8 +138,6 @@ export class DudoGame {
 		}
 
 		Object.assign(this, state);
-
-		let foo = 0;
 	}
 
 	//************************************************************
@@ -980,6 +978,14 @@ export class DudoGame {
 		if (numRounds === 0) {
 			return false;
 		}
+		if (this.curRound.whichDirection !== undefined) {
+			return false;
+		}
+		if (this.bDirectionInProgress) {
+			return false;
+		}
+
+
 		if (this.bGameInProgress && 
        this.curRound.numBids === 0 &&
        !this.firstRound &&		// probably don't need this (overkill)

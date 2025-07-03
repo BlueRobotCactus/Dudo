@@ -532,26 +532,32 @@ import { STICKS_BLINK_TIME, SHOWN_DICE_BLINK_TIME, SHAKE_CUPS_TIME } from '../Du
       //-------------------------------------------
       // my turn
       //-------------------------------------------
-      // show previous bid
-      let turnString = '';
-      if (ggc.curRound.numBids > 0) {
-        const sName = ggc.curRound.Bids[ggc.curRound.numBids-1].playerName;
-        turnString = (`${sName} bid to you: ${ggc.GetBidString(ggc.curRound.numBids-1)}`);
+
+      if (ggc.bDirectionInProgress) {
+        let s = (ggc.bPaloFijoRound ? 'PALO FIJO: ' : '');
+        s += "You choose the direction";
+        setRow2CurrentBid(s);
+        setRow2BidToWhom('');
       } else {
-        turnString = 'You start the bidding.';
+        // show previous bid
+        let turnString = '';
+        if (ggc.curRound.numBids > 0) {
+          const sName = ggc.curRound.Bids[ggc.curRound.numBids-1].playerName;
+          turnString = (`${sName} bid to you: ${ggc.GetBidString(ggc.curRound.numBids-1)}`);
+        } else {
+          turnString = 'You start the bidding.';
+        }
+
+        if (ggc.bPaloFijoRound) {
+          turnString = 'PALO FIJO: ' + turnString;
+        }
+        setRow2YourTurnString(turnString);
+        setRow2SpecialPasoString (ggc.curRound.numBids > 1 && ggc.curRound.Bids[ggc.curRound.numBids-1].text == "PASO" ?
+                              `Doubt the PASO or top the bid ${ggc.curRound.Bids[ggc.FindLastNonPasoBid()].text}.` :
+                              '');
+        setSelectedBid (ggc.possibleBids[0]);
+        setShowBidPanel(true);
       }
-
-      if (ggc.bPaloFijoRound) {
-        turnString = 'PALO FIJO: ' + turnString;
-      }
-      setRow2YourTurnString(turnString);
-      setRow2SpecialPasoString (ggc.curRound.numBids > 1 && ggc.curRound.Bids[ggc.curRound.numBids-1].text == "PASO" ?
-                            `Doubt the PASO or top the bid ${ggc.curRound.Bids[ggc.FindLastNonPasoBid()].text}.` :
-                            '');
-      setSelectedBid (ggc.possibleBids[0]);
-
-      setShowBidPanel(true);
-
     } else {
       //-------------------------------------------
       // not my turn
@@ -585,6 +591,7 @@ import { STICKS_BLINK_TIME, SHOWN_DICE_BLINK_TIME, SHAKE_CUPS_TIME } from '../Du
         setRow2BidToWhom('');
       }
       if (ggc.bDirectionInProgress) {
+        // waiting for someone to choose the direction
         let s = (ggc.bPaloFijoRound ? 'PALO FIJO: ' : '');
         s += `Waiting for ${whosTurnName} to choose the direction...`;
         setRow2CurrentBid(s);
@@ -1313,12 +1320,22 @@ useEffect(() => {
     if (ggc.SomebodyGotStick()) {
       delay += STICKS_BLINK_TIME;
     }
-    if (ggc.ShouldAllRollDice()) {
-      delay += SHAKE_CUPS_TIME;  
-    }
+//    if (ggc.ShouldAllRollDice()) {
+//      delay += SHAKE_CUPS_TIME;  
+//    }
+    if (delay > 0) {
+  
+      console.log("DELAY - STICKS BLINKING", delay);
 
-    // process the bid
-    setTimeout(() => {
+      setTimeout(() => {
+        DoProcessBid();
+      }, delay);
+    } else {
+      DoProcessBid();
+    }
+  }
+
+  function DoProcessBid() {
       if (isMyTurn) {
         // my turn
         // populate the bid list
@@ -1330,39 +1347,50 @@ useEffect(() => {
         ggc.PopulateBidListTrim();
         setPossibleBids(ggc.possibleBids || []);
 
+
+        console.log("CHECKING FOR DELAY - CUPS SHAKING, direction: ", ggc.curRound.whichDirection);
+
+
         // show dialog, handle responses
         if (ggc.curRound.whichDirection == undefined) {
           // choose direction if starting a round
-          setYesNoMessage("You start the bidding.\nWhich way?");
-          setYesNoTitle("Choose direction");
-          let cc = ggc.getPlayerToLeft(myIndex);
-          setYesText("to " + ggc.allParticipantNames[cc]);
-          cc = ggc.getPlayerToRight(myIndex);
-          setNoText("to " + ggc.allParticipantNames[cc]);
-          setYesShowButton(true);
-          setNoShowButton(true);
-          setXShowButton(false);
-          setOnYesHandler(() => () => {
-            setShowYesNoDlg(false);
-            socket.emit('direction', { lobbyId, index: myIndex, direction: 1 })
-            PrepareBidUI();
-          });
-          setOnNoHandler(() => () => {
-            setShowYesNoDlg(false);
-            socket.emit('direction', { lobbyId, index: myIndex, direction: 2 })
-            PrepareBidUI();
-          });
-          setShowYesNoDlg(true);
+
+          console.log("DELAY - CUPS SHAKING", SHAKE_CUPS_TIME);
+
+
+          setTimeout(() => {
+            // wait until dice are shaken
+            setYesNoMessage("You start the bidding.\nWhich way?");
+            setYesNoTitle("Choose direction");
+            let cc = ggc.getPlayerToLeft(myIndex);
+            setYesText("to " + ggc.allParticipantNames[cc]);
+            cc = ggc.getPlayerToRight(myIndex);
+            setNoText("to " + ggc.allParticipantNames[cc]);
+            setYesShowButton(true);
+            setNoShowButton(true);
+            setXShowButton(false);
+            setOnYesHandler(() => () => {
+              setShowYesNoDlg(false);
+              socket.emit('direction', { lobbyId, index: myIndex, direction: 1 })
+              PrepareBidUI();
+            });
+            setOnNoHandler(() => () => {
+              setShowYesNoDlg(false);
+              socket.emit('direction', { lobbyId, index: myIndex, direction: 2 })
+              PrepareBidUI();
+            });
+            setShowYesNoDlg(true);
+          }, SHAKE_CUPS_TIME);
         } else {
-            PrepareBidUI();
+          PrepareBidUI();
         }
       } else {
         // not my turn
         // show current bid
         PrepareBidUI();
       }
-    }, delay);
   }
+
 }, [gameState, lobbyPlayers, isMyTurn, screenSize, imagesReady, socketId]);
 
   //************************************************************
