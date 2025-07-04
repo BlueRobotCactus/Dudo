@@ -490,6 +490,121 @@ export function ObserversDlg({
 }
 
 //************************************************************
+// SetGameParametersDlg
+//************************************************************
+
+export function SetGameParametersDlg({ 
+  open, 
+  sticks,
+  paso,
+  palofijo,
+  onSave = () => {},
+  onCancel = () => {},
+  onHide={onCancel}
+}) {
+  const [localSticks, setLocalSticks] = useState(sticks);
+  const [localPaso, setLocalPaso] = useState(paso);
+  const [localPalofijo, setLocalPalofijo] = useState(palofijo);
+
+  return (
+    <Modal
+      show={open}
+      onHide={onCancel}
+      centered
+      backdrop="static"
+      keyboard={false}
+      dialogClassName="yesno-sm-modal" // custom class for size
+    >
+      <Modal.Header
+        closeButton
+        closeVariant="white"
+        className="bg-primary text-white py-2 px-3"
+        style={{ fontSize: '14px' }}
+      >
+        <Modal.Title style={{ fontSize: '16px' }}>Set Game Parameters</Modal.Title>
+      </Modal.Header>
+
+      <Modal.Body>
+        <div className="border border-primary rounded p-3 mb-1">
+          <div className="row align-items-center mb-1">
+            {/* number of sticks (dropbox) */}
+            <div className="col-6 text-end">
+              Number of sticks:
+            </div>
+            <div className="col-3">
+              <select
+                className="form-select form-select-sm w-auto"
+                value={localSticks}
+                onChange={(e) => setLocalSticks(parseInt(e.target.value))}                
+              >
+                <option value="1">1</option>
+                <option value="2">2</option>
+                <option value="3">3</option>
+              </select>
+            </div>
+          </div>
+
+          {/* paso allowed? (checkbox) */}
+          <div className="row align-items-center mb-1">
+            <div className="col-6 text-end">
+              Paso allowed:
+            </div>
+            <div className="col-3">
+              {/* paso checkbox */}
+              <input
+                type="checkbox"
+                className="form-check-input"
+                id="pasoAllowedCheckbox"
+                checked={localPaso}
+                onChange={(e) => setLocalPaso(e.target.checked)}                
+              />
+            </div>
+          </div>
+
+          {/* palofijo allowed? (checkbox) */}
+          <div className="row align-items-center">
+            <div className="col-6 text-end">
+              Palo Fijo allowed:
+            </div>
+            <div className="col-3">
+              {/* palo fijo checkbox */}
+              <input
+                type="checkbox"
+                className="form-check-input"
+                id="palofijoAllowedCheckbox"
+                checked={localPalofijo}
+                onChange={(e) => setLocalPalofijo(e.target.checked)}                
+              />
+            </div>
+          </div>
+        </div>
+      </Modal.Body>
+
+      <Modal.Footer>
+        <div className="col-3 d-flex justify-content-end">
+          {/* Save button */}
+          <button
+            onClick={() => onSave(localSticks, localPaso, localPalofijo)}
+            className="btn btn-primary btn-sm me-2"
+          >
+            Save
+          </button>
+        </div>
+        <div className="col-3 d-flex justify-content-end">
+          {/* Cancel button */}
+          <button
+            onClick={onCancel}
+            className="btn btn-secondary btn-sm me-2"
+          >
+            Cancel
+          </button>
+        </div>
+      </Modal.Footer>
+    </Modal>
+  );
+}
+
+//************************************************************
 // GameSettingsDlg
 //************************************************************
 export function GameSettingsDlg({ 

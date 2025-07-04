@@ -18,6 +18,7 @@ import { ShowDoubtDlg } from '../Dialogs.js';
 import { BidHistoryDlg } from '../Dialogs.js';
 import { ObserversDlg } from '../Dialogs.js';
 import { GameSettingsDlg } from '../Dialogs.js';
+import { SetGameParametersDlg } from '../Dialogs.js';
 
 import { MAX_CONNECTIONS, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER } from '../DudoGameC.js';
 import { STICKS_BLINK_TIME, SHOWN_DICE_BLINK_TIME, SHAKE_CUPS_TIME } from '../DudoGameC.js';
@@ -65,7 +66,6 @@ import { STICKS_BLINK_TIME, SHOWN_DICE_BLINK_TIME, SHAKE_CUPS_TIME } from '../Du
     const [myName, setMyName] = useState('');
     const [isMyTurn, setIsMyTurn] = useState(false);
     const [whosTurnName, setWhosTurnName] = useState('');
-    //const [imagesReady, setImagesReady] = useState(false);
 
     const [showCountdown, setShowCountdown] = useState(false);
     // structure: { playerName: 'Alice', secondsRemaining: 23 }
@@ -136,6 +136,14 @@ import { STICKS_BLINK_TIME, SHOWN_DICE_BLINK_TIME, SHAKE_CUPS_TIME } from '../Du
     const [xShowButton, setXShowButton] = useState(true);
     const [onYesHandler, setOnYesHandler] = useState(() => () => {});
     const [onNoHandler, setOnNoHandler] = useState(() => () => {});
+
+    // Set Game Parameterss
+    const [showSetGameParametersDlg, setShowSetGameParametersDlg] = useState(false);
+    const [gameParametersSticks, setGameParametersSticks] = useState(false);
+    const [gameParametersPaso, setGameParametersPaso] = useState(false);
+    const [gameParametersPalofijo, setGameParametersPalofijo] = useState(false);
+    const [onGameParametersSaveHandler, setOnGameParametersSaveHandler] = useState(() => () => {});
+    const [onGameParametersCancelHandler, setOnGameParametersCancelHandler] = useState(() => () => {});
 
     // Bid History
     const [showBidHistoryDlg, setShowBidHistoryDlg] = useState(false);
@@ -373,6 +381,46 @@ import { STICKS_BLINK_TIME, SHOWN_DICE_BLINK_TIME, SHAKE_CUPS_TIME } from '../Du
   // Click: Host set game parameters
   //************************************************************
   const handleGameSettings = () => {
+
+    if (connected) {
+      setGameParametersSticks(ggc.maxSticks);
+      setGameParametersPaso(ggc.bPasoAllowed);
+      setGameParametersPalofijo(ggc.bPaloFijoAllowed);
+
+      setShowSetGameParametersDlg(true);
+
+      // Set the handlers dynamically
+      setOnGameParametersSaveHandler(() => (sticks, paso, palofijo) => {
+        if (connected) {
+          setGameParametersSticks(sticks);
+          setGameParametersPaso(paso);
+          setGameParametersPalofijo(palofijo);
+
+          setShowSetGameParametersDlg(false);
+          socket.emit('saveGameParms', lobbyId, sticks, paso, palofijo);
+          console.log('GamePage: emitting "saveGameParms"');
+        }
+      });
+
+      setOnGameParametersCancelHandler(() => () => {
+        if (connected) {
+          setShowSetGameParametersDlg(false);
+          socket.emit('cancelGameParms', lobbyId);
+          console.log('GamePage: emitting "cancelGameParms"');
+        }
+      });
+
+      socket.emit('setGameParms', lobbyId);
+      console.log('GamePage: emitting "setGameParms"');
+    }
+  };
+
+  //************************************************************
+  // Click: Host set game parameters
+  // (obsolete)
+  //************************************************************
+  /*
+  const handleGameSettings = () => {
     if (connected) {
 
       setRow2NumSticks (ggc.maxSticks);
@@ -395,7 +443,7 @@ import { STICKS_BLINK_TIME, SHOWN_DICE_BLINK_TIME, SHAKE_CUPS_TIME } from '../Du
       console.log ('GamePage: emiting "cancelGameParms"');
     }
   }
-
+*/
   //************************************************************
   // Click: In or out?
   //************************************************************
@@ -1523,7 +1571,7 @@ useEffect(() => {
           {/* Row 2: Game status info */}
           <div className="row mb-3">
             <div className="col">
-              {ggc.bSettingGameParms && lobby.host === myName && RenderGameSettings()}
+              {/* ggc.bSettingGameParms && lobby.host === myName && RenderGameSettings() */}
 
               {/* {ggc.bAskInOut && RenderInOut()} */}
 
@@ -1669,6 +1717,17 @@ useEffect(() => {
           />
         )}
 
+        {showSetGameParametersDlg && (
+          <SetGameParametersDlg
+            open={showSetGameParametersDlg}
+            sticks={gameParametersSticks}
+            paso={gameParametersPaso}
+            palofijo={gameParametersPalofijo}
+            onSave={onGameParametersSaveHandler}
+            onCancel={onGameParametersCancelHandler}
+          />
+        )}
+
         {showGameSettingsDlg && (
           <GameSettingsDlg
             open={showGameSettingsDlg}
@@ -1776,90 +1835,6 @@ useEffect(() => {
       </nav>
     )
   }
-
-  /*----------------------------------------------
-          GAME SETTINGS
-  -----------------------------------------------*/
-  function RenderGameSettings () {
-    return (
-      <div className="border border-primary rounded p-3 mb-1">
-        <div className="fw-bold text-center mb-2">
-          Set Game Parameters
-        </div>
-
-        <div className="row align-items-center mb-1">
-          {/* number of sticks (dropbox) */}
-          <div className="col-6 text-end">
-            Number of sticks:
-          </div>
-          <div className="col-3">
-            <select
-              className="form-select form-select-sm w-auto"
-              value={row2NumSticks}
-              onChange={(e) => setRow2NumSticks(e.target.value)}
-            >
-              <option value="1">1</option>
-              <option value="2">2</option>
-              <option value="3">3</option>
-            </select>
-          </div>
-
-          <div className="col-3 d-flex justify-content-end">
-            {/* Save button */}
-            <button
-              onClick={handleSaveSettings}
-              className="btn btn-primary btn-sm me-2"
-            >
-              Save
-            </button>
-          </div>
-        </div>
-
-        {/* paso allowed? (checkbox) */}
-        <div className="row align-items-center mb-1">
-          <div className="col-6 text-end">
-            Paso allowed:
-          </div>
-          <div className="col-3">
-            {/* paso checkbox */}
-            <input
-              type="checkbox"
-              className="form-check-input"
-              id="pasoAllowedCheckbox"
-              checked={row2PasoAllowed}
-              onChange={(e) => setRow2PasoAllowed(e.target.checked)}                  
-            />
-          </div>
-          <div className="col-3 d-flex justify-content-end">
-            {/* Cancel button */}
-            <button
-              onClick={handleCancelSettings}
-              className="btn btn-secondary btn-sm me-2"
-            >
-              Cancel
-            </button>
-          </div>
-        </div>
-
-        {/* palofijo allowed? (checkbox) */}
-        <div className="row align-items-center">
-          <div className="col-6 text-end">
-            Palo Fijo allowed:
-          </div>
-          <div className="col-3">
-            {/* palo fijo checkbox */}
-            <input
-              type="checkbox"
-              className="form-check-input"
-              id="palofijoAllowedCheckbox"
-              checked={row2PalofijoAllowed}
-              onChange={(e) => setRow2PalofijoAllowed(e.target.checked)}                  
-            />
-          </div>
-        </div>
-      </div>
-    )
-   }
 
   /*----------------------------------------------
           IN OR OUT
