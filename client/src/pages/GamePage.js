@@ -144,6 +144,7 @@ import { STICKS_BLINK_TIME, SHOWN_DICE_BLINK_TIME, SHAKE_CUPS_TIME } from '../Du
     const [gameParametersPalofijo, setGameParametersPalofijo] = useState(false);
     const [onGameParametersSaveHandler, setOnGameParametersSaveHandler] = useState(() => () => {});
     const [onGameParametersCancelHandler, setOnGameParametersCancelHandler] = useState(() => () => {});
+    const [gameParametersMode, setGameParametersMode] = useState('navbar'); // called from navbar, or from Start Game?
 
     // Bid History
     const [showBidHistoryDlg, setShowBidHistoryDlg] = useState(false);
@@ -372,8 +373,32 @@ import { STICKS_BLINK_TIME, SHOWN_DICE_BLINK_TIME, SHAKE_CUPS_TIME } from '../Du
   //************************************************************
   const handleStartGame = () => {
     if (connected) {
-      socket.emit('startGame', lobbyId);
-      console.log ('GamePage: emiting "startGame"');
+      setGameParametersSticks(ggc.maxSticks);
+      setGameParametersPaso(ggc.bPasoAllowed);
+      setGameParametersPalofijo(ggc.bPaloFijoAllowed);
+
+    	setGameParametersMode("start");
+    	setShowSetGameParametersDlg(true);
+
+			setOnGameParametersSaveHandler(() => (sticks, paso, palofijo) => {
+				if (connected) {
+					setGameParametersSticks(sticks);
+					setGameParametersPaso(paso);
+					setGameParametersPalofijo(palofijo);
+					setShowSetGameParametersDlg(false);
+
+					socket.emit('startGameWithParms', lobbyId, sticks, paso, palofijo);
+					console.log('GamePage: emitting "startGameWithParms"');
+				}
+			});
+
+			setOnGameParametersCancelHandler(() => () => {
+				if (connected) {
+					setShowSetGameParametersDlg(false);
+					socket.emit('cancelStartGame', lobbyId);
+					console.log('GamePage: emitting "cancelStartGame"');
+				}
+			});
     }
   };
 
@@ -387,6 +412,7 @@ import { STICKS_BLINK_TIME, SHOWN_DICE_BLINK_TIME, SHAKE_CUPS_TIME } from '../Du
       setGameParametersPaso(ggc.bPasoAllowed);
       setGameParametersPalofijo(ggc.bPaloFijoAllowed);
 
+    	setGameParametersMode("navbar");
       setShowSetGameParametersDlg(true);
 
       // Set the handlers dynamically
@@ -1316,6 +1342,7 @@ useEffect(() => {
   //************************************************************
   //  function Draw InOrOut (obsolete)
   //************************************************************
+  /*
   function DrawInOrOut() {
     let msg = "Starting a new game\n\n";
     msg += `Number of sticks: ${ggc.maxSticks}\n`;
@@ -1357,7 +1384,7 @@ useEffect(() => {
     });
     setShowYesNoDlg(true);
   }
-
+*/
   //************************************************************
   //  function Draw and process the bid
   //************************************************************
@@ -1725,6 +1752,7 @@ useEffect(() => {
             palofijo={gameParametersPalofijo}
             onSave={onGameParametersSaveHandler}
             onCancel={onGameParametersCancelHandler}
+            mode={gameParametersMode}
           />
         )}
 

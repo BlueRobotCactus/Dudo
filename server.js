@@ -252,8 +252,51 @@ io.on('connection', (socket) => {
 
   //************************************************************
   // socket.on
-  // START GAME
+  // START GAME WITH PARAMETERS
   //************************************************************
+  socket.on('startGameWithParms', (lobbyId, sticks, paso, palofijo) => {
+    const lobby = lobbies[lobbyId];
+    const ggs = lobby.game;
+    if (!lobby) return;
+
+    ggs.maxSticks = sticks;
+    ggs.bPasoAllowed = paso;
+    ggs.bPaloFijoAllowed = palofijo;
+
+    // hear back to see who's in or out
+    for (let cc=0; cc<MAX_CONNECTIONS; cc++) {
+      ggs.inOutMustSay[cc] = false;
+      ggs.inOutDidSay[cc] = false;
+    }
+    ggs.getInOutMustSay();
+    
+    ggs.bAskInOut = true;
+    io.to(lobbyId).emit('gameStateUpdate', lobby.game);
+  });
+
+  //************************************************************
+  // socket.on
+  // START GAME - CANCEL
+  //************************************************************
+  socket.on('cancelStartGame', (lobbyId) => {
+    const lobby = lobbies[lobbyId];
+    const ggs = lobby.game;
+    if (!lobby) return;
+
+    for (let cc=0; cc<MAX_CONNECTIONS; cc++) {
+      ggs.inOutMustSay[cc] = false;
+      ggs.inOutDidSay[cc] = false;
+    }
+    
+    ggs.bAskInOut = false;
+    io.to(lobbyId).emit('gameStateUpdate', lobby.game);
+  });
+
+  //************************************************************
+  // socket.on
+  // START GAME (obsolete)
+  //************************************************************
+  /*
   socket.on('startGame', (lobbyId) => {
     const lobby = lobbies[lobbyId];
     const ggs = lobby.game;
@@ -263,7 +306,6 @@ io.on('connection', (socket) => {
     //io.in(lobbyId).fetchSockets().then(sockets => console.log(`Lobby ${lobbyId} has ${sockets.length} sockets:`, sockets.map(s => s.id)));
 
     // hear back to see who's in or out
-    //ggs.inOutMustSay = Array(MAX_CONNECTIONS).fill(false); // &&&nuke this???
     for (let cc=0; cc<MAX_CONNECTIONS; cc++) {
       ggs.inOutMustSay[cc] = false;
       ggs.inOutDidSay[cc] = false;
@@ -273,21 +315,8 @@ io.on('connection', (socket) => {
     ggs.bAskInOut = true;
     io.to(lobbyId).emit('gameStateUpdate', lobby.game);
 
-    //&&&
-
-/*
-    console.log(`Game started in lobby: ${lobbyId}`);
-
-    ggs.bRoundInProgress = true;
-    ggs.whosTurn = 0;
-
-    StartGame(ggs);
-
-    io.to(lobbyId).emit('gameStateUpdate', lobby.game);
-    console.log("server.js: 'startGame' emiting 'gameStateUpdate'");
-    */
   });
-
+*/
   //************************************************************
   // socket.on
   // LEAVE LOBBY
@@ -669,9 +698,11 @@ io.on('connection', (socket) => {
     if (okToGo) {
       lobby.game.bDoubtInProgress = false;
       lobby.game.bShowDoubtResult = false;
+
       PostRound(lobby.game);
+
       if (ggs.bWinnerGame) {
-        //ggs.bGameInProgress = false;
+        ggs.GetOrderOfFinish();
         ggs.PrepareNextGame();
       } else {
         StartRound(lobby.game);

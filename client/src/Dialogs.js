@@ -500,7 +500,8 @@ export function SetGameParametersDlg({
   palofijo,
   onSave = () => {},
   onCancel = () => {},
-  onHide={onCancel}
+  onHide={onCancel},
+  mode = 'navbar',  // default value
 }) {
   const [localSticks, setLocalSticks] = useState(sticks);
   const [localPaso, setLocalPaso] = useState(paso);
@@ -587,7 +588,7 @@ export function SetGameParametersDlg({
             onClick={() => onSave(localSticks, localPaso, localPalofijo)}
             className="btn btn-primary btn-sm me-2"
           >
-            Save
+          {mode === 'navbar' ? 'Save' : 'Start Game'} 
           </button>
         </div>
         <div className="col-3 d-flex justify-content-end">

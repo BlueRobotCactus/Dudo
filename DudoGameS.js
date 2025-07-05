@@ -75,6 +75,7 @@ export class DudoGame {
 
 	bWinnerGame;
 	whoWonGame;
+	orderOfFinish = [];
 
 	//****************************************************************
 	// constructor
@@ -119,7 +120,7 @@ export class DudoGame {
 		this.bAskInOut = false;
 		this.bWinnerRound = false;
 		this.bWinnerGame = false;
-
+		this.whoWonGame = undefined;
 		this.whosTurn = -1;
 	}
 
@@ -158,7 +159,7 @@ export class DudoGame {
 		this.bAskInOut = false;
 		this.bWinnerRound = false;
 		this.bWinnerGame = false;
-
+		this.whoWonGame = undefined;
 		this.whosTurn = -1;
 
 		for (let i = 0; i < MAX_CONNECTIONS; i++) {
@@ -971,9 +972,10 @@ export class DudoGame {
 	}
 
 	//****************************************************************
-	// Did somebody just get a stick?
+	// Did somebody just get a stick?  that we need to blink?
 	//****************************************************************
 	SomebodyGotStick () {
+		// don't blink if these are true
 		const numRounds = this.Rounds.length;
 		if (numRounds === 0) {
 			return false;
@@ -985,7 +987,7 @@ export class DudoGame {
 			return false;
 		}
 
-
+		// did somebody just get a stick?
 		if (this.bGameInProgress && 
        this.curRound.numBids === 0 &&
        !this.firstRound &&		// probably don't need this (overkill)
@@ -1015,6 +1017,31 @@ export class DudoGame {
 			bidString += ` (showed ${showed})`;
 		}
 		return bidString;
+	}
+
+	//****************************************************************
+	// Get order of finish for the players
+	// who came in 1st, 2nd, etc.
+	//****************************************************************
+	GetOrderOfFinish () {
+		this.orderOfFinish.length = 0;
+
+		// find players knocked out
+		for (let i = 0; i < this.Rounds.length; i++) {
+			if (this.Rounds[i].doubtLoserOut) {
+				const cc = this.Rounds[i].doubtLoser;
+				const name = this.allParticipantNames[cc];
+				this.orderOfFinish.push({ cc, name });
+			}
+		}
+
+		// add the winner
+		const cc = this.whoWonGame;
+		const name = this.allParticipantNames[cc];
+		this.orderOfFinish.push({ cc, name });
+
+		// reverse the order so winner is first
+		this.orderOfFinish.reverse();
 	}
 }
 
