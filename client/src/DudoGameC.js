@@ -18,6 +18,19 @@ const SHOWN_DICE_BLINK_TIME = 4000;
 const SHAKE_CUPS_TIME = 2000;	
 
 //****************************************************************
+// DudoSession class
+//****************************************************************
+export class DudoSession {
+	lobbyHost
+	Games = []
+
+	constructor(host) {
+		this.lobbyHost = host;
+		this.Games.length = 0;
+	}
+}
+
+//****************************************************************
 // DudoGame class
 //****************************************************************
 export class DudoGame {

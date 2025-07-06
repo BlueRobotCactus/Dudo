@@ -1,6 +1,6 @@
 'use strict';
 
-import { DudoGame, DudoRound, DudoBid } from './DudoGameS.js';
+import { DudoSession, DudoGame, DudoRound, DudoBid } from './DudoGameS.js';
 
 import { MAX_CONNECTIONS, CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYER_LEFT,
   CONN_PLAYER_IN_DISCONN, CONN_PLAYER_OUT_DISCONN, CONN_OBSERVER_DISCONN } from './DudoGameS.js';
@@ -11,6 +11,7 @@ import http from 'http';
 import { Server } from 'socket.io';
 import cors from 'cors';
 import { v4 as uuidv4 } from 'uuid';
+import fs from 'fs';
 
 // Needed to replicate __dirname in ES modules
 import { fileURLToPath } from 'url';
@@ -33,6 +34,8 @@ app.use(express.json());
 
 // Serve all the static files in the React app's build folder
 app.use(express.static(path.join(__dirname, 'client', 'build')));
+
+let session;
 
 // In-memory lobbies storage
 const lobbies = {
@@ -65,9 +68,11 @@ io.on('connection', (socket) => {
   //************************************************************
   socket.on('createLobby', (hostName, callback) => {
 
+    session = new DudoSession (hostName);
+
     const ggs = new DudoGame();
 
-    for (let i=0; i<10; i++) {
+    for (let i=0; i<MAX_CONNECTIONS; i++) {
       ggs.allConnectionStatus[i] = CONN_UNUSED;
     }
 
@@ -78,6 +83,7 @@ io.on('connection', (socket) => {
       hostSocketId: socket.id,
       players: [{ id: socket.id, name: hostName }],
       game: ggs,
+      session: session,
     };
 
     console.log("JUST CREATED LOBBY OBJECT");
@@ -345,6 +351,16 @@ io.on('connection', (socket) => {
       io.to(lobbyId).emit('lobbyData', lobby);
       io.emit('lobbiesList', getLobbiesList());
       io.to(lobbyId).emit('forceLeaveLobby', lobby);
+
+      // write the lobby object to file &&&
+      try {
+        const file = './temp.json';
+        const str = JSON.stringify(lobby, null, 2);
+        fs.writeFileSync(file, str, 'utf-8');
+        console.log(`Debug dump written to ${file}`);
+      } catch (err) {
+        console.error('Failed to write debug file:', err);
+      }
 
       return;
     }
@@ -703,6 +719,10 @@ io.on('connection', (socket) => {
 
       if (ggs.bWinnerGame) {
         ggs.GetOrderOfFinish();
+
+        const snapshot = JSON.parse(JSON.stringify(lobby.game));
+        session.Games.push(snapshot);
+        
         ggs.PrepareNextGame();
       } else {
         StartRound(lobby.game);
