@@ -88,6 +88,11 @@ io.on('connection', (socket) => {
 
     console.log("JUST CREATED LOBBY OBJECT");
 
+    // log the start date/time
+    const now = new Date();
+    lobbies[lobbyId].session.startDate = GetDate(now);
+    lobbies[lobbyId].session.startTime = GetTime(now);
+
     // add host to lobby
     ggs.allParticipantNames[0] = hostName;
     ggs.allConnectionID[0] = socket.id;
@@ -343,6 +348,11 @@ io.on('connection', (socket) => {
     // If the removed player was the host
     if (removedPlayer.id === lobby.hostSocketId) {
       console.log(`server.js: Host left lobby. Removing lobby: ${lobbyId}`);
+
+      // log the end date/time
+      const now = new Date();
+      lobbies[lobbyId].session.endDate = GetDate(now);
+      lobbies[lobbyId].session.endTime = GetTime(now);
 
       // delete the lobby from the lobbies array
       delete lobbies[lobbyId];
@@ -712,14 +722,26 @@ io.on('connection', (socket) => {
     }
 
     if (okToGo) {
+      //-----------------------------------
+      // the round is over
+      //-----------------------------------
       lobby.game.bDoubtInProgress = false;
       lobby.game.bShowDoubtResult = false;
 
       PostRound(lobby.game);
 
       if (ggs.bWinnerGame) {
+      //-----------------------------------
+      // the game is over
+      //-----------------------------------
         ggs.GetOrderOfFinish();
 
+        // log the end date/time
+        const now = new Date();
+        ggs.endDate = GetDate(now);
+        ggs.endTime = GetTime(now);
+
+        // save this game
         const snapshot = JSON.parse(JSON.stringify(lobby.game));
         session.Games.push(snapshot);
         
@@ -915,6 +937,13 @@ function StartGame (ggs) {
 
   ggs.bGameInProgress = true;
 
+  //------------------------------------------------------------
+  // log the start date/time
+  //------------------------------------------------------------
+  const now = new Date();
+  ggs.startDate = GetDate(now);
+  ggs.startTime = GetTime(now);
+
   StartRound(ggs);
 }
 
@@ -1038,4 +1067,25 @@ function PostRound(ggs) {
         ggs.firstRound = false;
     }
 
+}
+
+//****************************************************************
+// Date/time functions
+// input: Date object
+// output:  "mm/dd/yy" or "hh:mm:ss"
+//****************************************************************
+function GetDate (date) {
+  const mm = String(date.getMonth() + 1).padStart(2, '0'); // getMonth is 0-based
+  const dd = String(date.getDate()).padStart(2, '0');
+  const yy = String(date.getFullYear()).slice(-2);
+  const dateStr = `${mm}/${dd}/${yy}`;
+  return dateStr;
+}
+
+function GetTime(date) {
+  const hh = String(date.getHours()).padStart(2, '0');
+  const min = String(date.getMinutes()).padStart(2, '0');
+  const sec = String(date.getSeconds()).padStart(2, '0');
+  const timeStr = `${hh}:${min}:${sec}`;
+  return timeStr;
 }

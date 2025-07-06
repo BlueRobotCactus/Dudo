@@ -21,12 +21,16 @@ const SHAKE_CUPS_TIME = 2000;
 // DudoSession class
 //****************************************************************
 export class DudoSession {
-	lobbyHost
+	lobbyHost;
 	Games = []
 
+	startDate = '';
+	startTime = '';
+	endDate = '';
+	endTime = '';
+	
 	constructor(host) {
 		this.lobbyHost = host;
-		this.Games.length = 0;
 	}
 }
 
@@ -37,6 +41,11 @@ export class DudoGame {
 
 	curRound;	// one DudoRound object
 	Rounds = []; // array of DudoRound objects
+
+	startDate = '';
+	startTime = '';
+	endDate = '';
+	endTime = '';
 
 	// associated arrays
 	allConnectionID = [];
