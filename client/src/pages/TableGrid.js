@@ -115,7 +115,7 @@ export function TableGrid({ggc, myIndex, backgroundColor}) {
       className="table-grid"
       style={{
         display: 'grid',
-        gridTemplateRows: `repeat(${numRows}, 1fr)`,
+        gridTemplateRows: `2fr ${'1fr '.repeat(numRows - 1).trim()}`,
         gridTemplateColumns: `repeat(${numCols}, 1fr)`,
         width: '100%',
         height: '100%',

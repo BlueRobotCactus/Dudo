@@ -11,6 +11,7 @@ import './GamePage.css';
 
 import { ConfirmBidDlg } from '../Dialogs.js';
 import { InOutDlg } from '../Dialogs.js';
+import { DirectionDlg } from '../Dialogs.js';
 import { OkDlg } from '../Dialogs.js';
 import { YesNoDlg } from '../Dialogs.js';
 import { LiftCupDlg } from '../Dialogs.js';
@@ -104,7 +105,7 @@ import { STICKS_BLINK_TIME, SHOWN_DICE_BLINK_TIME, SHAKE_CUPS_TIME } from '../Du
     const [availableWidth, setAvailableWidth] = useState(window.innerWidth);
 
     // dialogs
-    // confirmBid
+    // confirm Bid (obsolete)
     const [showConfirmBidDlg, setShowConfirmBidDlg] = useState(false);
     const [confirmPosition, setConfirmPosition] = useState({ x: 200, y: 200 });
     const [confirmMessage, setConfirmMessage] = useState('');
@@ -116,6 +117,13 @@ import { STICKS_BLINK_TIME, SHOWN_DICE_BLINK_TIME, SHAKE_CUPS_TIME } from '../Du
     const [inOutPaloFijo, SetInOutPaloFijo] = useState(false);
     const [onInHandler, setOnInHandler] = useState(() => () => {});  // default no-op
     const [onOutHandler, setOnOutHandler] = useState(() => () => {});  // default no-op
+
+    // choose direction
+    const [showDirectionDlg, setShowDirectionDlg] = useState(false);
+    const [leftTextDirection, setLeftTextDirection] = useState(false);
+    const [rightTextDirection, setRightTextDirection] = useState(false);
+    const [onLeftHandler, setOnLeftHandler] = useState(() => () => {});
+    const [onRightHandler, setOnRightHandler] = useState(() => () => {});
 
     // OK
     const [showOkDlg, setShowOkDlg] = useState(false);
@@ -137,7 +145,7 @@ import { STICKS_BLINK_TIME, SHOWN_DICE_BLINK_TIME, SHAKE_CUPS_TIME } from '../Du
     const [onYesHandler, setOnYesHandler] = useState(() => () => {});
     const [onNoHandler, setOnNoHandler] = useState(() => () => {});
 
-    // Set Game Parameterss
+    // Set Game Parameters
     const [showSetGameParametersDlg, setShowSetGameParametersDlg] = useState(false);
     const [gameParametersSticks, setGameParametersSticks] = useState(false);
     const [gameParametersPaso, setGameParametersPaso] = useState(false);
@@ -797,10 +805,10 @@ import { STICKS_BLINK_TIME, SHOWN_DICE_BLINK_TIME, SHAKE_CUPS_TIME } from '../Du
 
     if (ggc.curRound.doubtWasPaso) {
       // PASO
-      s2 = ggc.allParticipantNames[ggc.curRound.whoGotDoubted] + " bid PASO.";
+      s2 = ggc.allParticipantNames[ggc.curRound.whoGotDoubted] + " bid PASO . . .";
     } else {
       // non-PASO
-      s2 = ggc.allParticipantNames[ggc.curRound.whoGotDoubted] + "'s bid was " + ggc.curRound.doubtedText;
+      s2 = ggc.allParticipantNames[ggc.curRound.whoGotDoubted] + "'s bid was " + ggc.curRound.doubtedText + ' . . .';
       s2 += "\n(" + ggc.curRound.doubtShowing + " showing, looking for " + ggc.curRound.doubtLookingFor + ")\n";
     }
     setDoubtDoubtedBid(s2);
@@ -827,7 +835,7 @@ import { STICKS_BLINK_TIME, SHOWN_DICE_BLINK_TIME, SHAKE_CUPS_TIME } from '../Du
 
     if (ggc.curRound.doubtWasPaso) {
       // PASO
-      s2 = ggc.allParticipantNames[ggc.curRound.whoGotDoubted] + " bid PASO.";
+      s2 = ggc.allParticipantNames[ggc.curRound.whoGotDoubted] + " bid PASO . . . ";
       if (ggc.curRound.doubtPasoWasThere) {
           s3 = ggc.allParticipantNames[ggc.curRound.whoGotDoubted] + " has the PASO.";
       } else {
@@ -837,7 +845,7 @@ import { STICKS_BLINK_TIME, SHOWN_DICE_BLINK_TIME, SHAKE_CUPS_TIME } from '../Du
       // non-PASO
       s2 = ggc.allParticipantNames[ggc.curRound.whoGotDoubted] + "'s bid was " + ggc.curRound.doubtedText;
 
-      s3 = (ggc.curRound.doubtCount == 1 ? "There is " : "There are ") + ggc.curRound.doubtCount;
+      s3 = (ggc.curRound.doubtCount == 1 ? " . . . There is " : " . . . There are ") + ggc.curRound.doubtCount + '.';
     }
     setDoubtDoubtedBid(s2);
 
@@ -845,17 +853,17 @@ import { STICKS_BLINK_TIME, SHOWN_DICE_BLINK_TIME, SHAKE_CUPS_TIME } from '../Du
 
     s4 = ggc.allParticipantNames[ggc.curRound.doubtLoser] + " got the stick";
     if (ggc.curRound.doubtLoserPaloFijo) {
-      s4 += ", and is PALO FIJO";
+      s4 += ", and is PALO FIJO.";
     }
     if (ggc.curRound.doubtLoserOut) {
-      s4 += ", and is OUT";
+      s4 += ", and is OUT.";
     }
 //    if (!ggc.curRound.doubtLoserPaloFijo && !ggc.curRound.doubtLoserOut) {
 //      s4 += ".";
 //    }
     setDoubtWhoGotStick(s4);
 
-    let msg = s1 + "\n" + s2 + "\n" + s3 + "\n" + s4; 
+    let msg = s1 + "\n" + s2 + s3 + "\n" + s4; 
 
     if (ggc.bWinnerGame) {
       s5 = ggc.allParticipantNames[ggc.whoWonGame] + " WINS THE GAME!!"
@@ -1422,19 +1430,32 @@ useEffect(() => {
         ggc.PopulateBidListTrim();
         setPossibleBids(ggc.possibleBids || []);
 
-
-        console.log("CHECKING FOR DELAY - CUPS SHAKING, direction: ", ggc.curRound.whichDirection);
-
-
         // show dialog, handle responses
         if (ggc.curRound.whichDirection == undefined) {
+          //---------------------------------------------
           // choose direction if starting a round
-
-          console.log("DELAY - CUPS SHAKING", SHAKE_CUPS_TIME);
-
-
+          //---------------------------------------------
           setTimeout(() => {
             // wait until dice are shaken
+            let cc = ggc.getPlayerToLeft(myIndex);
+            setLeftTextDirection("to " + ggc.allParticipantNames[cc]);
+            cc = ggc.getPlayerToRight(myIndex);
+            setRightTextDirection("to " + ggc.allParticipantNames[cc]);
+            setOnLeftHandler(() => () => {
+              setShowDirectionDlg(false);
+              socket.emit('direction', { lobbyId, index: myIndex, direction: 1 })
+              PrepareBidUI();
+            });
+            setOnRightHandler(() => () => {
+              setShowDirectionDlg(false);
+              socket.emit('direction', { lobbyId, index: myIndex, direction: 2 })
+              PrepareBidUI();
+            });
+            setShowDirectionDlg(true);
+
+
+
+/*            
             setYesNoMessage("You start the bidding.\nWhich way?");
             setYesNoTitle("Choose direction");
             let cc = ggc.getPlayerToLeft(myIndex);
@@ -1455,6 +1476,7 @@ useEffect(() => {
               PrepareBidUI();
             });
             setShowYesNoDlg(true);
+*/
           }, SHAKE_CUPS_TIME);
         } else {
           PrepareBidUI();
@@ -1672,6 +1694,16 @@ useEffect(() => {
             inOutPaloFijo={inOutPaloFijo}
             onIn={onInHandler}
             onOut={onOutHandler}
+          />
+        )}
+
+        {showDirectionDlg && (
+          <DirectionDlg
+            open={showDirectionDlg}
+            leftText={leftTextDirection}
+            rightText={rightTextDirection}
+            onLeft={onLeftHandler}
+            onRight={onRightHandler}
           />
         )}
 

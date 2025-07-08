@@ -171,6 +171,55 @@ export function ConfirmBidDlg({
 }
 
 //************************************************************
+// DirectionDlg
+//************************************************************
+export function DirectionDlg({
+  open,
+  title = "Choose Direction",
+  message = "You start the bidding.\nWhich way?",
+  leftText = leftText,
+  rightText = rightText,
+  onLeft = () => {},
+  onRight = () => {},
+}) {
+  return (
+    <Modal
+      show={open}
+      backdrop="static"
+      keyboard={false}
+      dialogClassName="yesno-sm-modal"
+    >
+      <Modal.Header
+        closeVariant="white"
+        className="bg-primary text-white py-2 px-3"
+        style={{ fontSize: '14px' }}
+      >
+        <Modal.Title style={{ fontSize: '16px' }}>{title}</Modal.Title>
+      </Modal.Header>
+
+      <Modal.Body>
+        <div className="container">
+          <div className="row">
+            <div className="col text-center" style={{ whiteSpace: 'pre-line' }}>
+              {message}
+            </div>
+          </div>
+        </div>
+      </Modal.Body>
+
+      <Modal.Footer className="d-flex justify-content-center gap-2 py-2">
+          <Button variant="primary" size="sm" onClick={onLeft}>
+            {leftText}
+          </Button>
+          <Button variant="primary" size="sm" onClick={onRight}>
+            {rightText}
+          </Button>
+      </Modal.Footer>
+    </Modal>
+  );
+}
+
+//************************************************************
 // OkDlg (reuseable)
 //************************************************************
 export function OkDlg({
@@ -278,7 +327,6 @@ export function YesNoDlg({
   );
 }
 
-
 //************************************************************
 // InOutDlg
 //************************************************************
@@ -298,7 +346,6 @@ export function InOutDlg({
     <Modal
       show={open}
       onHide={onClose}
-      centered
       backdrop="static"
       keyboard={false}
       dialogClassName="yesno-sm-modal" // custom class for size
@@ -314,23 +361,23 @@ export function InOutDlg({
 
       <Modal.Body>
         <div className="container">
-          <div className="row mb-3">
+          <div className="row mb-2">
             <div className="col text-center fw-bold" style={{ whiteSpace: 'pre-line' }}>
-              Starting a game{'\n'}Are you in?
+              Starting a game. Are you in?
             </div>
           </div>
 
-          <div className="row mb-2">
+          <div className="row mb-0">
             <div className="col-6 text-end">Number of sticks:</div>
             <div className="col-6 text-start">{inOutSticks}</div>
           </div>
 
-          <div className="row mb-2">
+          <div className="row mb-0">
             <div className="col-6 text-end">Paso Allowed</div>
             <div className="col-6 text-start">{inOutPaso}</div>
           </div>
 
-          <div className="row">
+          <div className="row mb-0">
             <div className="col-6 text-end">Palo Fijo allowed</div>
             <div className="col-6 text-start">{inOutPaloFijo}</div>
           </div>
@@ -783,10 +830,7 @@ export function ShowDoubtDlg({
               {doubtWhoDoubtedWhom}
             </div>
             <div className="col text-center" style={{ whiteSpace: 'pre-line' }}>
-              {doubtDoubtedBid}
-            </div>
-            <div className="col text-center" style={{ whiteSpace: 'pre-line' }}>
-              {doubtThereAre}
+              {doubtDoubtedBid + doubtThereAre}
             </div>
             <div className="col text-center" style={{ whiteSpace: 'pre-line' }}>
               {doubtWhoGotStick}
