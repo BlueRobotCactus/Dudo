@@ -1,4 +1,4 @@
-import React, { useContext } from 'react';
+import React, { useEffect, useState, useContext } from 'react';
 
 import './TableGrid.css';
 import { ImageRefsContext } from '../ImageRefsContext.js';
@@ -14,6 +14,16 @@ import { MAX_CONNECTIONS, CONN_PLAYER_IN, CONN_PLAYER_OUT } from '../DudoGameC.j
 export function TableGrid({ggc, myIndex, backgroundColor}) {
   console.log("TableGrid: entering TableGrid ()");
 
+  const [isNarrow, setIsNarrow] = useState(window.innerWidth < 500);
+  //*****************************************************************
+  // useEffect:  DETECT NARROW SCREENS []
+  //*****************************************************************
+  useEffect(() => {
+    const handleResize = () => setIsNarrow(window.innerWidth < 600);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+  
   // -----------------------------------------------
   // Images 
   // -----------------------------------------------
@@ -75,7 +85,7 @@ export function TableGrid({ggc, myIndex, backgroundColor}) {
 
   const PlayerGridList = [
     [], // index 0 unused
-  // cols,rows     span      coords
+  // rows,cols     span      coords
     [[12, 12],    [3, 4],   [3, 4]],   // 1
     [[12, 12],    [3, 4],   [6, 4], [1, 4]],   //2
     [[12, 12],    [3, 4],   [5, 4], [1, 1], [1, 7]],   //3
@@ -107,16 +117,24 @@ export function TableGrid({ggc, myIndex, backgroundColor}) {
   const [numRows, numCols] = gridSize;
   const [rowSpan, colSpan] = playerSize;
 
-  // -----------------------------------------------
+  //--------------------------------------------------------
+  // reactive column size for 1,2 players
+  //--------------------------------------------------------
+  const customColumns =
+    (numPlayers === 1 || numPlayers === 2) && isNarrow
+      ? '1fr 1fr 1fr 1fr 2fr 2fr 2fr 2fr 1fr 1fr 1fr 1fr'
+      : `repeat(${numCols}, 1fr)`;
+
+  //*****************************************************************
   // rendering
-  // -----------------------------------------------
+  //*****************************************************************
   return (
     <div
       className="table-grid"
       style={{
         display: 'grid',
         gridTemplateRows: `2fr ${'1fr '.repeat(numRows - 1).trim()}`,
-        gridTemplateColumns: `repeat(${numCols}, 1fr)`,
+        gridTemplateColumns: customColumns,
         width: '100%',
         height: '100%',
         backgroundColor: backgroundColor || 'lightblue'

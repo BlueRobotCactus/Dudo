@@ -635,7 +635,7 @@ import { STICKS_BLINK_TIME, SHOWN_DICE_BLINK_TIME, SHAKE_CUPS_TIME } from '../Du
         }
         setRow2YourTurnString(turnString);
         setRow2SpecialPasoString (ggc.curRound.numBids > 1 && ggc.curRound.Bids[ggc.curRound.numBids-1].text == "PASO" ?
-                              `Doubt the PASO or top the bid ${ggc.curRound.Bids[ggc.FindLastNonPasoBid()].text}.` :
+                              `Doubt the PASO or top the bid: ${ggc.curRound.Bids[ggc.FindLastNonPasoBid()].text}.` :
                               '');
         setSelectedBid (ggc.possibleBids[0]);
         setShowBidPanel(true);

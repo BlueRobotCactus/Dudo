@@ -15,7 +15,6 @@ import { STICKS_BLINK_TIME, SHOWN_DICE_BLINK_TIME, SHAKE_CUPS_TIME } from '../Du
 export function PlayerGrid({ggc, myIndex, cc }) {
 
   const gridRef = useRef();
-  const [colSize, setColSize] = useState('1fr');
   const [cupShaking, setCupShaking] = useState(false);
   const [sticksBlinking, setSticksBlinking] = useState(false);
   const [diceBlinking, setDiceBlinking] = useState(false);
@@ -31,32 +30,6 @@ export function PlayerGrid({ggc, myIndex, cc }) {
     imagesReady,
   } = useContext(ImageRefsContext);
 
-  //*****************************************************************
-  // useEffect:  SET COLSIZE []
-  //             Make cols same width as row heights (square cells)
-  //*****************************************************************
-  useEffect(() => {
-    console.log("PlayerGrid: useEffect: SET COLSIZE: entering");
-    const updateGrid = () => {
-      if (gridRef.current) {
-        const gridHeight = gridRef.current.clientHeight;
-        const rowHeights = [3, 2, 2];
-        const total = rowHeights.reduce((a, b) => a + b, 0);
-        const row2Height = (2 / total) * gridHeight;
-        const cellSize = `${row2Height / 7}px`;
-
-        setColSize(cellSize);
-        console.log('Measured gridHeight:', gridHeight);
-        console.log('Calculated colSize:', cellSize);
-      }
-    };
-
-    updateGrid();
-    window.addEventListener('resize', updateGrid);
-    return () => window.removeEventListener('resize', updateGrid);
-  }, []);
-
-  
   //*****************************************************************
   // useEffect:  END OF ROUND
   //             [ggc.bGameInProgress, ggc.curRound.numBids, ggc.firstRound]
@@ -91,37 +64,6 @@ export function PlayerGrid({ggc, myIndex, cc }) {
     }
   }, [ggc.bGameInProgress, ggc.curRound?.numBids, ggc.firstRound]);
   
-/*
-  //*****************************************************************
-  // useEffect:  THIS PLAYER GOT STICK: blink stick 
-  //             [ggc.bGameInProgress, ggc.curRound.numBids, ggc.firstRound]
-  //*****************************************************************
-  useEffect(() => {
-    if (ggc.bGameInProgress && 
-        ggc.curRound.numBids === 0 &&
-        !ggc.firstRound) {
-      if (ggc.curRound.doubtLoser === cc) {
-         triggerSticksBlinking();
-      }
-    }
-  }, [ggc.bGameInProgress, ggc.curRound.numBids, ggc.firstRound]);
-
-  //*****************************************************************
-  // useEffect:  ALL SHAKE TO START ROUND 
-  //             [ggc.bGameInProgress, ggc.curRound.numBids]
-  //*****************************************************************
-  useEffect(() => {
-    if (sticksBlinking) {
-      return;
-    }
-    if (ggc.bRoundInProgress && ggc.curRound.numBids === 0) {
-      if (ggc.allConnectionStatus[cc] === CONN_PLAYER_IN) {
-         triggerCupShaking();
-      }
-    }
-  }, [ggc.bGameInProgress, ggc.curRound.numBids, sticksBlinking]);
-*/
-
   //*****************************************************************
   // useEffect:  THIS PLAYER SHOW/SHAKE:  blink shown dice, shake cup 
   //             [ggc.curRound.numBids, ggc.bGameInProgress, ggc.curRound.Bids, cc]
