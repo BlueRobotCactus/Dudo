@@ -12,14 +12,18 @@ import { STICKS_BLINK_TIME, SHOWN_DICE_BLINK_TIME, SHAKE_CUPS_TIME } from '../Du
 // ggc = DudoGame object
 // cc = connection number of this player
 //************************************************************
-export function PlayerGrid({ggc, myIndex, cc }) {
+export function PlayerGrid({ggc, myIndex, cc, isNarrow }) {
 
   const gridRef = useRef();
   const [cupShaking, setCupShaking] = useState(false);
   const [sticksBlinking, setSticksBlinking] = useState(false);
   const [diceBlinking, setDiceBlinking] = useState(false);
+  const [showBubble, setShowBubble] = useState(false);
+  const [bubbleText, setBubbleText] = useState('');
 
-    const {
+  const BUBBLE_SHOW_TIME = 3000;
+
+  const {
     cupDownImageRef,
     cupUpImageRef,
     diceImagesRef,
@@ -280,13 +284,95 @@ export function PlayerGrid({ggc, myIndex, cc }) {
     setTimeout(() => setSticksBlinking(false), STICKS_BLINK_TIME); 
   }
 
+  //********************************************************
+  //  function to handle click - show bubble
+  //********************************************************
+  function handleClick() {
+    // bail out if nothing to show
+    if (!ggc.bGameInProgress || ggc.curRound === null) { 
+      setBubbleText('');
+      setShowBubble(false);
+      return;
+    }
+
+    let showText = ''
+    if (ggc.allConnectionStatus[cc] === CONN_PLAYER_OUT) {
+      showText = "I'm out.";
+    }
+    if (ggc.allConnectionStatus[cc] == CONN_PLAYER_IN) {
+      // look for this player's last bid
+      let bidText = '';
+      for (let i = ggc.curRound.numBids-1; i>=0; i--) {
+        let thisBid = ggc.curRound.Bids[i];
+        if (thisBid.playerIndex === cc) {
+          bidText = thisBid.text;
+          if (thisBid.bShowShake) {
+            bidText += (" (showed " + thisBid.howManyShown + ")");
+          }
+          break;
+        }
+      }
+      if (bidText === '') {
+        showText = "I have not bid yet this round.";
+      } else {
+        showText = "My last bid was: " + bidText;
+      }
+    }
+    setBubbleText(showText);
+
+    setShowBubble(!showBubble); // toggle on and off
+    setTimeout(() => setShowBubble(false), BUBBLE_SHOW_TIME);   // disappear if left alone
+  };
+
   //*****************************************************************
   //  render
   //*****************************************************************
   return (
-    <div className="player-grid"
-      ref={gridRef}
+    <div
+      onClick={handleClick}
+      style={{ position: 'relative', width: '100%', height: '100%' }}
     >
+    {showBubble && (
+      <div
+        style={{
+          position: 'absolute',
+          top: '-40px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          padding: '6px 12px',
+          backgroundColor: 'white',
+          border: '1px solid gray',
+          borderRadius: '12px',
+          fontSize: isNarrow ? '12px' : '16px',
+          whiteSpace: 'nowrap',
+          display: 'inline-block',     // size to content
+          width: 'auto',
+          maxWidth: 'none',            // remove any cap
+          minWidth: '0',
+
+          textAlign: 'center',
+          boxShadow: '0 2px 6px rgba(0,0,0,0.2)',
+          zIndex: 10,
+        }}
+      >
+        {bubbleText}
+        <div
+          style={{
+            position: 'absolute',
+            bottom: '-8px',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            width: 0,
+            height: 0,
+            borderLeft: '6px solid transparent',
+            borderRight: '6px solid transparent',
+            borderTop: '8px solid white',
+          }}
+        />
+      </div>
+    )}
+
+    <div className="player-grid" ref={gridRef}>
       {/*--------------------------------------------------------
         Border box around rows 1 and 2 (cols 1–7)
       --------------------------------------------------------*/}
@@ -535,6 +621,8 @@ export function PlayerGrid({ggc, myIndex, cc }) {
         </div>
       )}
     </div>
+  </div>
+
   );  
 }
 
