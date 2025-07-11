@@ -28,6 +28,22 @@ html, body {
   overflow: hidden; /* Prevent scrolling if not needed */
 }
 
+html {
+  font-size: 16px;
+}
+
+@media (max-width: 600px) {
+  html {
+    font-size: 14px;
+  }
+}
+
+@media (max-width: 400px) {
+  html {
+    font-size: 12px;
+  }
+}
+
 .app-wrapper {
   max-width: 750px;  /* limit the width */
   min-height: 100vh; /* Fill full vertical height */  

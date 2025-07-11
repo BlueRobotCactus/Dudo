@@ -235,7 +235,7 @@ import { STICKS_BLINK_TIME, SHOWN_DICE_BLINK_TIME, SHAKE_CUPS_TIME } from '../Du
           backgroundRepeat: 'repeat',
           backgroundPosition: '0 0',
         }
-    const UIMargin = 8;
+    const UIMargin = '.5rem';
 
     //************************************************************
     // UseEffect CHECKBOX [selectedBid, CanShowShake]
@@ -837,10 +837,20 @@ import { STICKS_BLINK_TIME, SHOWN_DICE_BLINK_TIME, SHAKE_CUPS_TIME } from '../Du
       // PASO
       s2 = ggc.allParticipantNames[ggc.curRound.whoGotDoubted] + " bid PASO . . . ";
       if (ggc.curRound.doubtPasoWasThere) {
+          s3 = "It is there.";
+      } else {
+          s3 = "It is NOT there.";
+      }
+
+/*
+      if (ggc.curRound.doubtPasoWasThere) {
           s3 = ggc.allParticipantNames[ggc.curRound.whoGotDoubted] + " has the PASO.";
       } else {
           s3 = ggc.allParticipantNames[ggc.curRound.whoGotDoubted] + " does not have the PASO.";
       }
+*/
+
+
     } else {
       // non-PASO
       s2 = ggc.allParticipantNames[ggc.curRound.whoGotDoubted] + "'s bid was " + ggc.curRound.doubtedText;
@@ -1600,7 +1610,7 @@ useEffect(() => {
     <>
         <div
           className="d-flex flex-column"
-          style={{ height: '100vh', overflow: 'hidden', margin: `${UIMargin}px`}}
+          style={{ height: '100vh', overflow: 'hidden', margin: `${UIMargin}`}}
         >
         {/* Fixed Content: NavBar + Row1 + Row2 */}
         <div ref={fixedRef}>
@@ -1645,7 +1655,7 @@ useEffect(() => {
           style={{
             height: `${availableHeight}px`,
             overflow: 'hidden',
-            padding: '8px',
+            padding: '.5rem',
             ...backgroundStyle,
             boxSizing: 'border-box',
             border: '2px solid red',

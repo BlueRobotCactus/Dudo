@@ -191,10 +191,10 @@ export function DirectionDlg({
     >
       <Modal.Header
         closeVariant="white"
-        className="bg-primary text-white py-2 px-3"
-        style={{ fontSize: '14px' }}
+        className="bg-primary text-white py-1 px-3"
+        style={{ fontSize: '.875rem' }}
       >
-        <Modal.Title style={{ fontSize: '16px' }}>{title}</Modal.Title>
+        <Modal.Title style={{ fontSize: '1rem' }}>{title}</Modal.Title>
       </Modal.Header>
 
       <Modal.Body>
@@ -207,7 +207,7 @@ export function DirectionDlg({
         </div>
       </Modal.Body>
 
-      <Modal.Footer className="d-flex justify-content-center gap-2 py-2">
+      <Modal.Footer className="d-flex justify-content-center gap-2 py-1">
           <Button variant="primary" size="sm" onClick={onLeft}>
             {leftText}
           </Button>
@@ -241,10 +241,10 @@ export function OkDlg({
       <Modal.Header
         closeButton={xShowButton}
         closeVariant="white"
-        className="bg-primary text-white py-2 px-3"
-        style={{ fontSize: '14px' }}
+        className="bg-primary text-white py-1 px-3"
+        style={{ fontSize: '.875rem' }}
       >
-        <Modal.Title style={{ fontSize: '16px' }}>{title}</Modal.Title>
+        <Modal.Title style={{ fontSize: '1rem' }}>{title}</Modal.Title>
       </Modal.Header>
 
       <Modal.Body>
@@ -257,7 +257,7 @@ export function OkDlg({
         </div>
       </Modal.Body>
 
-      <Modal.Footer className="d-flex justify-content-center gap-2 py-2">
+      <Modal.Footer className="d-flex justify-content-center gap-2 py-1">
         <Button variant="primary" size="sm" onClick={onOk}>
           OK
         </Button>
@@ -295,10 +295,10 @@ export function YesNoDlg({
       <Modal.Header
         closeButton={xShowButton}
         closeVariant="white"
-        className="bg-primary text-white py-2 px-3"
-        style={{ fontSize: '14px' }}
+        className="bg-primary text-white py-1 px-3"
+        style={{ fontSize: '.875rem' }}
       >
-        <Modal.Title style={{ fontSize: '16px' }}>{title}</Modal.Title>
+        <Modal.Title style={{ fontSize: '1rem' }}>{title}</Modal.Title>
       </Modal.Header>
 
       <Modal.Body>
@@ -311,7 +311,7 @@ export function YesNoDlg({
         </div>
       </Modal.Body>
 
-      <Modal.Footer className="d-flex justify-content-center gap-2 py-2">
+      <Modal.Footer className="d-flex justify-content-center gap-2 py-1">
         {yesShowButton && (
           <Button variant="primary" size="sm" onClick={onYes}>
             {yesText}
@@ -353,10 +353,10 @@ export function InOutDlg({
       <Modal.Header
         closeButton={xShowButton}
         closeVariant="white"
-        className="bg-primary text-white py-2 px-3"
-        style={{ fontSize: '14px' }}
+        className="bg-primary text-white py-1 px-3"
+        style={{ fontSize: '.875rem' }}
       >
-        <Modal.Title style={{ fontSize: '16px' }}>Starting a game</Modal.Title>
+        <Modal.Title style={{ fontSize: '1rem' }}>Starting a game</Modal.Title>
       </Modal.Header>
 
       <Modal.Body>
@@ -373,18 +373,18 @@ export function InOutDlg({
           </div>
 
           <div className="row mb-0">
-            <div className="col-6 text-end">Paso Allowed</div>
+            <div className="col-6 text-end">Paso Allowed:</div>
             <div className="col-6 text-start">{inOutPaso}</div>
           </div>
 
           <div className="row mb-0">
-            <div className="col-6 text-end">Palo Fijo allowed</div>
+            <div className="col-6 text-end">Palo Fijo allowed:</div>
             <div className="col-6 text-start">{inOutPaloFijo}</div>
           </div>
         </div>
       </Modal.Body>
 
-      <Modal.Footer className="d-flex justify-content-center gap-2 py-2">
+      <Modal.Footer className="d-flex justify-content-center gap-2 py-1">
         {yesShowButton && (
           <Button variant="primary" size="sm" onClick={onIn}>
             Yes, I'm in
@@ -422,10 +422,10 @@ export function BidHistoryDlg({
       <Modal.Header
         closeButton
         closeVariant="white"
-        className="bg-primary text-white py-2 px-3"
-        style={{ fontSize: '14px' }}
+        className="bg-primary text-white py-1 px-3"
+        style={{ fontSize: '.875rem' }}
       >
-        <Modal.Title style={{ fontSize: '16px' }}>Bid History (most recent first)</Modal.Title>
+        <Modal.Title style={{ fontSize: '1rem' }}>Bid History (most recent first)</Modal.Title>
       </Modal.Header>
 
       <Modal.Body>
@@ -462,7 +462,7 @@ export function BidHistoryDlg({
         </div>
       </Modal.Body>
 
-      <Modal.Footer>
+      <Modal.Footer className="py-1">
         <Button variant="primary" size="sm" onClick={onOk}>
           OK
         </Button>
@@ -493,10 +493,10 @@ export function ObserversDlg({
       <Modal.Header
         closeButton
         closeVariant="white"
-        className="bg-primary text-white py-2 px-3"
-        style={{ fontSize: '14px' }}
+        className="bg-primary text-white py-1 px-3"
+        style={{ fontSize: '.875rem' }}
       >
-        <Modal.Title style={{ fontSize: '16px' }}>Observers</Modal.Title>
+        <Modal.Title style={{ fontSize: '1rem' }}>Observers</Modal.Title>
       </Modal.Header>
 
       <Modal.Body>
@@ -504,18 +504,18 @@ export function ObserversDlg({
           style={{
             maxHeight: '50vh',
             overflowY: 'auto',
-            padding: '4px 8px',
+            padding: '0.25rem 0.5rem',
           }}
         >
           {observers.length === 0 ? (
             <div className="text-muted">There are no observers in this lobby.</div>
           ) : (
-            <ul style={{ margin: 0, paddingLeft: '16px' }}>
+            <ul style={{ margin: 0, paddingLeft: '1rem' }}>
               {observers.map((obs, index) => (
                 <li
                   key={index}
                   style={{
-                    padding: '4px 0',
+                    padding: '0.25rem 0',
                     listStyleType: 'disc',
                   }}
                 >
@@ -527,7 +527,7 @@ export function ObserversDlg({
         </div>
       </Modal.Body>
 
-      <Modal.Footer>
+      <Modal.Footer className="py-1">
         <Button variant="primary" size="sm" onClick={onOk}>
           OK
         </Button>
@@ -566,10 +566,10 @@ export function SetGameParametersDlg({
       <Modal.Header
         closeButton
         closeVariant="white"
-        className="bg-primary text-white py-2 px-3"
-        style={{ fontSize: '14px' }}
+        className="bg-primary text-white py-1 px-3"
+        style={{ fontSize: '.875rem' }}
       >
-        <Modal.Title style={{ fontSize: '16px' }}>Set Game Parameters</Modal.Title>
+        <Modal.Title style={{ fontSize: '1rem' }}>Set Game Parameters</Modal.Title>
       </Modal.Header>
 
       <Modal.Body>
@@ -628,7 +628,7 @@ export function SetGameParametersDlg({
         </div>
       </Modal.Body>
 
-      <Modal.Footer>
+      <Modal.Footer className="py-1">
         <div className="col-3 d-flex justify-content-end">
           {/* Save button */}
           <button
@@ -676,10 +676,10 @@ export function GameSettingsDlg({
       <Modal.Header
         closeButton
         closeVariant="white"
-        className="bg-primary text-white py-2 px-3"
-        style={{ fontSize: '14px' }}
+        className="bg-primary text-white py-1 px-3"
+        style={{ fontSize: '.875rem' }}
       >
-        <Modal.Title style={{ fontSize: '16px' }}>Game Settings</Modal.Title>
+        <Modal.Title style={{ fontSize: '1rem' }}>Game Settings</Modal.Title>
       </Modal.Header>
 
       <Modal.Body>
@@ -687,33 +687,33 @@ export function GameSettingsDlg({
           style={{
             maxHeight: '50vh',
             overflowY: 'auto',
-            padding: '4px 8px',
+            padding: '0.25rem 0.50rem',
             display: 'flex',
             flexDirection: 'column',
-            gap: '8px',
+            gap: '0.50rem',
           }}
         >
           {/* Row 1 */}
           <div style={{ display: 'flex' }}>
-            <div style={{ flex: 1, textAlign: 'right', paddingRight: '12px' }}>Number of sticks:</div>
+            <div style={{ flex: 1, textAlign: 'right', paddingRight: '0.75rem' }}>Number of sticks:</div>
             <div style={{ flex: 1, textAlign: 'left' }}>{sticks}</div>
           </div>
 
           {/* Row 2 */}
           <div style={{ display: 'flex' }}>
-            <div style={{ flex: 1, textAlign: 'right', paddingRight: '12px' }}>Paso allowed:</div>
+            <div style={{ flex: 1, textAlign: 'right', paddingRight: '0.75rem' }}>Paso allowed:</div>
             <div style={{ flex: 1, textAlign: 'left' }}>{paso ? 'Yes' : 'No'}</div>
           </div>
 
           {/* Row 3 */}
           <div style={{ display: 'flex' }}>
-            <div style={{ flex: 1, textAlign: 'right', paddingRight: '12px' }}>Palofijo allowed:</div>
+            <div style={{ flex: 1, textAlign: 'right', paddingRight: '0.75rem' }}>Palofijo allowed:</div>
             <div style={{ flex: 1, textAlign: 'left' }}>{palofijo ? 'Yes' : 'No'}</div>
           </div>
         </div>
       </Modal.Body>
 
-      <Modal.Footer>
+      <Modal.Footer className="py-1">
         <Button variant="primary" size="sm" onClick={onOk}>
           OK
         </Button>
@@ -745,10 +745,10 @@ export function LiftCupDlg({
       <Modal.Header
         {...(liftCupShowButtonX ? { closeButton: true } : {})} 
         closeVariant="white"
-        className="bg-primary text-white py-2 px-3"
-        style={{ fontSize: '14px' }}
+        className="bg-primary text-white py-1 px-3"
+        style={{ fontSize: '.875rem' }}
       >
-        <Modal.Title style={{ fontSize: '16px' }}>DOUBT!</Modal.Title>
+        <Modal.Title style={{ fontSize: '1rem' }}>DOUBT!</Modal.Title>
       </Modal.Header>
 
       <Modal.Body>
@@ -756,10 +756,10 @@ export function LiftCupDlg({
           style={{
             maxHeight: '50vh',
             overflowY: 'auto',
-            padding: '4px 8px',
+            padding: '0.25rem 0.50rem',
             display: 'flex',
             flexDirection: 'column',
-            gap: '8px',
+            gap: '0.50rem',
           }}
         >
         </div>
@@ -772,7 +772,7 @@ export function LiftCupDlg({
       </Modal.Body>
 
       {liftCupShowButton ? (
-        <Modal.Footer>
+        <Modal.Footer className="py-1">
           <Button variant="primary" size="sm" onClick={onOk}>
             Lift Cup
           </Button>
@@ -808,10 +808,10 @@ export function ShowDoubtDlg({
       <Modal.Header
         {...(showDoubtShowButtonX ? { closeButton: true } : {})} 
         closeVariant="white"
-        className="bg-primary text-white py-2 px-3"
-        style={{ fontSize: '14px' }}
+        className="bg-primary text-white py-1 px-3"
+        style={{ fontSize: '.875rem' }}
       >
-        <Modal.Title style={{ fontSize: '16px' }}>DOUBT!</Modal.Title>
+        <Modal.Title style={{ fontSize: '1rem' }}>DOUBT!</Modal.Title>
       </Modal.Header>
 
       <Modal.Body>
@@ -819,10 +819,10 @@ export function ShowDoubtDlg({
           style={{
             maxHeight: '50vh',
             overflowY: 'auto',
-            padding: '4px 8px',
+            padding: '0.25rem 0.50rem',
             display: 'flex',
             flexDirection: 'column',
-            gap: '8px',
+            gap: '0.50rem',
           }}
         >
         </div>
@@ -844,7 +844,7 @@ export function ShowDoubtDlg({
       </Modal.Body>
 
       {showDoubtShowButton ? (
-        <Modal.Footer>
+        <Modal.Footer className="py-1">
           <Button variant="primary" size="sm" onClick={onOk}>
             OK
           </Button>
