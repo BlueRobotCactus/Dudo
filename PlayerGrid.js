@@ -307,10 +307,7 @@ export function PlayerGrid({ggc, myIndex, cc }) {
         if (thisBid.playerIndex === cc) {
           bidText = thisBid.text;
           if (thisBid.bShowShake) {
-            bidText += (", showed " + thisBid.howManyShown);
-          }
-          if (thisBid.lookingFor !== undefined) {
-            bidText += (" (looking for " + thisBid.lookingFor + ")");
+            bidText += (" (showed " + thisBid.howManyShown + ")");
           }
           break;
         }
@@ -339,7 +336,7 @@ export function PlayerGrid({ggc, myIndex, cc }) {
       <div
         style={{
           position: 'absolute',
-          top: '-2.9rem',
+          top: '-2.5rem',
           left: '50%',
           transform: 'translateX(-50%)',
           padding: '0.375rem 0.75rem',
