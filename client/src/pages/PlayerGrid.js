@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useContext} from 'react';
+import React, { useState, useEffect, useRef, useContext } from 'react';
 
 import './PlayerGrid.css';
 //import './GamePage.js'
@@ -12,7 +12,7 @@ import { STICKS_BLINK_TIME, SHOWN_DICE_BLINK_TIME, SHAKE_CUPS_TIME } from '../Du
 // ggc = DudoGame object
 // cc = connection number of this player
 //************************************************************
-export function PlayerGrid({ggc, myIndex, cc }) {
+export function PlayerGrid({ ggc, myIndex, cc }) {
 
   const gridRef = useRef();
   const [cupShaking, setCupShaking] = useState(false);
@@ -23,6 +23,7 @@ export function PlayerGrid({ggc, myIndex, cc }) {
 
   const BUBBLE_SHOW_TIME = 3000;
 
+  // images
   const {
     cupDownImageRef,
     cupUpImageRef,
@@ -34,12 +35,35 @@ export function PlayerGrid({ggc, myIndex, cc }) {
     imagesReady,
   } = useContext(ImageRefsContext);
 
+  // sounds
+  const Shake10Ref = useRef(null);
+  const Shake01Ref = useRef(null);
+  const Shake02Ref = useRef(null);
+  const Shake03Ref = useRef(null);
+  const Shake04Ref = useRef(null);
+  const Roll10Ref = useRef(null);
+  const Roll01Ref = useRef(null);
+  const Roll02Ref = useRef(null);
+  const Roll03Ref = useRef(null);
+  const Roll04Ref = useRef(null);
+  
+  const ShakeArray = [Shake10Ref.current,
+                      Shake01Ref.current,
+                      Shake02Ref.current,
+                      Shake03Ref.current,
+                      Shake04Ref.current]
+  const RollArray = [Roll10Ref.current, 
+                     Roll01Ref.current,
+                     Roll02Ref.current,
+                     Roll03Ref.current,
+                     Roll04Ref.current]
+                      
   //*****************************************************************
   // useEffect:  END OF ROUND
   //             [ggc.bGameInProgress, ggc.curRound.numBids, ggc.firstRound]
   //*****************************************************************
   useEffect(() => {
-		if (ggc.SomebodyGotStick()) {
+    if (ggc.SomebodyGotStick()) {
       //-------------------------------------------------
       // somebody got a stick
       //-------------------------------------------------
@@ -50,9 +74,9 @@ export function PlayerGrid({ggc, myIndex, cc }) {
       }
       // wait for sticks, then shake cup
       setTimeout(() => {
-				if (ggc.ShouldAllRollDice()) {
+        if (ggc.ShouldAllRollDice()) {
           if (ggc.allConnectionStatus[cc] === CONN_PLAYER_IN) {
-            triggerCupShaking();
+            triggerCupShaking(0);
           }
         }
       }, STICKS_BLINK_TIME);
@@ -60,14 +84,14 @@ export function PlayerGrid({ggc, myIndex, cc }) {
       //-------------------------------------------------
       // all shake to start round
       //-------------------------------------------------
-			if (ggc.ShouldAllRollDice()) {
+      if (ggc.ShouldAllRollDice()) {
         if (ggc.allConnectionStatus[cc] === CONN_PLAYER_IN) {
-          triggerCupShaking();
+          triggerCupShaking(0);
         }
       }
     }
   }, [ggc.bGameInProgress, ggc.curRound?.numBids, ggc.firstRound]);
-  
+
   //*****************************************************************
   // useEffect:  THIS PLAYER SHOW/SHAKE:  blink shown dice, shake cup 
   //             [ggc.curRound.numBids, ggc.bGameInProgress, ggc.curRound.Bids, cc]
@@ -81,7 +105,8 @@ export function PlayerGrid({ggc, myIndex, cc }) {
         setTimeout(() => {
           setDiceBlinking(false); // Stop blinking after SHOWN_DICE_BLINK_TIME
           if (!ggc.PlayerShowingAllDice(cc)) {
-            triggerCupShaking();      // Start cup shake after that
+            // get how many shaken and re-rolled
+            triggerCupShaking(lastBid.howManyShaken);      // Start cup shake after that
           }
         }, SHOWN_DICE_BLINK_TIME);
       }
@@ -101,19 +126,19 @@ export function PlayerGrid({ggc, myIndex, cc }) {
   let cupImageToShow;
 
   if (ggc.allConnectionStatus[cc] == CONN_PLAYER_OUT || !ggc.bGameInProgress) {
-      cupImageToShow = cupUpImageRef.current;
+    cupImageToShow = cupUpImageRef.current;
   } else if ((ggc.bDoubtInProgress || ggc.bShowDoubtResult) && ggc.doubtDidLiftCup[cc]) {
-      cupImageToShow = cupUpImageRef.current;
+    cupImageToShow = cupUpImageRef.current;
   } else {
-      cupImageToShow = cupDownImageRef.current;
+    cupImageToShow = cupDownImageRef.current;
   }
   // special case of pulsating the shown dice
   if (diceBlinking) {
-      cupImageToShow = cupUpImageRef.current;
+    cupImageToShow = cupUpImageRef.current;
   }
   // special case of all 5 dice shown
   if (ggc.PlayerShowingAllDice(cc)) {
-      cupImageToShow = cupUpImageRef.current;
+    cupImageToShow = cupUpImageRef.current;
   }
 
   //--------------------------------------------------------
@@ -142,7 +167,7 @@ export function PlayerGrid({ggc, myIndex, cc }) {
       diceShowBottomHilite[cc][i] = false;
     }
   }
-  
+
   // fill in the values
   if (ggc.bGameInProgress) {
     if (ggc.allConnectionStatus[cc] == CONN_PLAYER_IN) {
@@ -153,7 +178,7 @@ export function PlayerGrid({ggc, myIndex, cc }) {
           // hidden dice in upper box
           if (cc == myIndex) {
             // if me, show the die
-              diceImageTopList[cc][i] = diceImagesRef.current[value];
+            diceImageTopList[cc][i] = diceImagesRef.current[value];
             if (ggc.bDiceHilite[cc][i]) {
               diceShowTopHilite[cc][i] = true;
             }
@@ -174,7 +199,7 @@ export function PlayerGrid({ggc, myIndex, cc }) {
           // shown dice in bottom box
           diceImageBottomList[cc][i] = diceImagesRef.current[value];
           if (ggc.bDiceHilite[cc][i]) {
-              diceShowBottomHilite[cc][i] = true;
+            diceShowBottomHilite[cc][i] = true;
           }
         }
       }
@@ -184,7 +209,7 @@ export function PlayerGrid({ggc, myIndex, cc }) {
   //--------------------------------------------------------
   // which background colors to use
   //--------------------------------------------------------
-	const softGreen = 'rgb(204,255,204)';
+  const softGreen = 'rgb(204,255,204)';
 
   // default color
   let bgColor = (ggc.allConnectionStatus[cc] === CONN_PLAYER_OUT ? 'gray' : 'white');
@@ -200,7 +225,7 @@ export function PlayerGrid({ggc, myIndex, cc }) {
     if (ggc.inOutMustSay[cc] && !ggc.inOutDidSay[cc]) {
       bgColor = softGreen;
     }
-    if (ggc.inOutMustSay[cc] && ggc.inOutDidSay[cc])  {
+    if (ggc.inOutMustSay[cc] && ggc.inOutDidSay[cc]) {
       bgColor = 'white';
     }
   }
@@ -210,7 +235,7 @@ export function PlayerGrid({ggc, myIndex, cc }) {
     if (ggc.doubtMustLiftCup[cc] && !ggc.doubtDidLiftCup[cc]) {
       bgColor = softGreen;
     }
-    if (ggc.doubtMustLiftCup[cc] && ggc.doubtDidLiftCup[cc])  {
+    if (ggc.doubtMustLiftCup[cc] && ggc.doubtDidLiftCup[cc]) {
       bgColor = 'white';
     }
   }
@@ -218,9 +243,9 @@ export function PlayerGrid({ggc, myIndex, cc }) {
   // show doubt dlg
   if (ggc.bShowDoubtResult) {
     if (ggc.nextRoundMustSay[cc] && !ggc.nextRoundDidSay[cc]) {
-      bgColor =softGreen;
+      bgColor = softGreen;
     }
-    if (ggc.nextRoundMustSay[cc] && ggc.nextRoundDidSay[cc])  {
+    if (ggc.nextRoundMustSay[cc] && ggc.nextRoundDidSay[cc]) {
       bgColor = 'white';
     }
   }
@@ -241,39 +266,56 @@ export function PlayerGrid({ggc, myIndex, cc }) {
   //--------------------------------------------------------
   // reactive font size based on length of name
   //--------------------------------------------------------
-//  for debugging
-//  const name = ggc.allParticipantNames[0];
-//  if (name.length == 2) {
-//    adjustedFontSize = Number(name) / 10;
-//  }
+  //  for debugging
+  //  const name = ggc.allParticipantNames[0];
+  //  if (name.length == 2) {
+  //    adjustedFontSize = Number(name) / 10;
+  //  }
 
   const nameLen = ggc.allParticipantNames[cc].length;
   let adjustedFontSize = 0.9;
-  if (nameLen <= 18) {adjustedFontSize = 1.0}
-  if (nameLen <= 5) {adjustedFontSize = 1.2}
-    
+  if (nameLen <= 18) { adjustedFontSize = 1.0 }
+  if (nameLen <= 5) { adjustedFontSize = 1.2 }
+
 
   //--------------------------------------------------------
   //  set up dice that were just shown to blink
   //--------------------------------------------------------
-	let diceBlinkList = Array(5).fill(false);
-	if (ggc.curRound !== null) {
-		if (ggc.bGameInProgress && ggc.curRound.numBids > 0) {
-			const lastBid = ggc.curRound.Bids[ggc.curRound.numBids - 1];
-			if (lastBid.playerIndex === cc && lastBid.bShowShake) {
-				for (let i = 0; i < 5; i++) {
-					diceBlinkList[i] = lastBid.bWhichShown[i];
-				}
-			}
-		}
-	}
-  
+  let diceBlinkList = Array(5).fill(false);
+  if (ggc.curRound !== null) {
+    if (ggc.bGameInProgress && ggc.curRound.numBids > 0) {
+      const lastBid = ggc.curRound.Bids[ggc.curRound.numBids - 1];
+      if (lastBid.playerIndex === cc && lastBid.bShowShake) {
+        for (let i = 0; i < 5; i++) {
+          diceBlinkList[i] = lastBid.bWhichShown[i];
+        }
+      }
+    }
+  }
+
   //********************************************************
-  //  function to shake cup
+  //  function to shake cup (animation and sounds)
   //********************************************************
-  function triggerCupShaking() {
+  function triggerCupShaking(reroll) {
+    // start animation
     setCupShaking(true);
-    setTimeout(() => setCupShaking(false), SHAKE_CUPS_TIME); // match animation duration
+
+    // play the shake sound
+    ShakeArray[reroll].currentTime = 0;
+    ShakeArray[reroll].play();
+
+    setTimeout(() => {
+      // stop the animation
+      setCupShaking(false)
+
+      // stop shake sound
+      ShakeArray[reroll].pause();
+      ShakeArray[reroll].currentTime = 0;
+
+      // play the roll sound
+      RollArray[reroll].currentTime = 0;
+      RollArray[reroll].play();
+    }, SHAKE_CUPS_TIME);
   }
 
   //********************************************************
@@ -281,7 +323,7 @@ export function PlayerGrid({ggc, myIndex, cc }) {
   //********************************************************
   function triggerSticksBlinking() {
     setSticksBlinking(true);
-    setTimeout(() => setSticksBlinking(false), STICKS_BLINK_TIME); 
+    setTimeout(() => setSticksBlinking(false), STICKS_BLINK_TIME);
   }
 
   //********************************************************
@@ -289,7 +331,7 @@ export function PlayerGrid({ggc, myIndex, cc }) {
   //********************************************************
   function handleClick() {
     // bail out if nothing to show
-    if (!ggc.bGameInProgress || ggc.curRound === null) { 
+    if (!ggc.bGameInProgress || ggc.curRound === null) {
       setBubbleText('');
       setShowBubble(false);
       return;
@@ -302,7 +344,7 @@ export function PlayerGrid({ggc, myIndex, cc }) {
     if (ggc.allConnectionStatus[cc] == CONN_PLAYER_IN) {
       // look for this player's last bid
       let bidText = '';
-      for (let i = ggc.curRound.numBids-1; i>=0; i--) {
+      for (let i = ggc.curRound.numBids - 1; i >= 0; i--) {
         let thisBid = ggc.curRound.Bids[i];
         if (thisBid.playerIndex === cc) {
           bidText = thisBid.text;
@@ -327,306 +369,320 @@ export function PlayerGrid({ggc, myIndex, cc }) {
     setTimeout(() => setShowBubble(false), BUBBLE_SHOW_TIME);   // disappear if left alone
   };
 
+
+  //*****************************************************************
   //*****************************************************************
   //  render
+  //*****************************************************************
   //*****************************************************************
   return (
     <div
       onClick={handleClick}
       style={{ position: 'relative', width: '100%', height: '100%' }}
     >
-    {showBubble && (
-      <div
-        style={{
-          position: 'absolute',
-          top: '-2.9rem',
-          left: '50%',
-          transform: 'translateX(-50%)',
-          padding: '0.375rem 0.75rem',
-          backgroundColor: 'white',
-          border: '1px solid gray',
-          borderRadius: '0.75rem',
-          fontSize: '1rem',
-          whiteSpace: 'nowrap',
-          display: 'inline-block',     // size to content
-          width: 'auto',
-          maxWidth: 'none',            // remove any cap
-          minWidth: '0',
-
-          textAlign: 'center',
-          boxShadow: '0 2px 6px rgba(0,0,0,0.2)',
-          zIndex: 10,
-        }}
-      >
-        {bubbleText}
+      {showBubble && (
         <div
           style={{
             position: 'absolute',
-            bottom: '-0.50rem',
+            top: '-2.9rem',
             left: '50%',
             transform: 'translateX(-50%)',
-            width: 0,
-            height: 0,
-            borderLeft: '0.375rem solid transparent',
-            borderRight: '0.375rem solid transparent',
-            borderTop: '0.50rem solid white',
-          }}
-        />
-      </div>
-    )}
+            padding: '0.375rem 0.75rem',
+            backgroundColor: 'white',
+            border: '1px solid gray',
+            borderRadius: '0.75rem',
+            fontSize: '1rem',
+            whiteSpace: 'nowrap',
+            display: 'inline-block',     // size to content
+            width: 'auto',
+            maxWidth: 'none',            // remove any cap
+            minWidth: '0',
 
-    <div className="player-grid" ref={gridRef}>
-      {/*--------------------------------------------------------
+            textAlign: 'center',
+            boxShadow: '0 2px 6px rgba(0,0,0,0.2)',
+            zIndex: 10,
+          }}
+        >
+          {bubbleText}
+          <div
+            style={{
+              position: 'absolute',
+              bottom: '-0.50rem',
+              left: '50%',
+              transform: 'translateX(-50%)',
+              width: 0,
+              height: 0,
+              borderLeft: '0.375rem solid transparent',
+              borderRight: '0.375rem solid transparent',
+              borderTop: '0.50rem solid white',
+            }}
+          />
+        </div>
+      )}
+
+      <div className="player-grid" ref={gridRef}>
+        {/*--------------------------------------------------------
         Border box around rows 1 and 2 (cols 1–7)
       --------------------------------------------------------*/}
-      <div
-        style={{
-          gridRow: '1 / span 2',
-          gridColumn: '1 / span 7',
-          padding: '0.25rem',
-          boxSizing: 'border-box',          
-          border: ggc.bGameInProgress && cc === ggc.whosTurn ? '3px solid red' : '1px solid black',
-          zIndex: 3,
-        }}
-      />
+        <div
+          style={{
+            gridRow: '1 / span 2',
+            gridColumn: '1 / span 7',
+            padding: '0.25rem',
+            boxSizing: 'border-box',
+            border: ggc.bGameInProgress && cc === ggc.whosTurn ? '3px solid red' : '1px solid black',
+            zIndex: 3,
+          }}
+        />
 
-      {/*--------------------------------------------------------
+        {/*--------------------------------------------------------
         Cup (2x2)
       --------------------------------------------------------*/}
-      <div style={{ gridRow: '1 / span 2', gridColumn: '1 / span 2', backgroundColor: bgColor }}>
-        <div
-          style={{
-            width: '100%',
-            height: '100%',
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-            border: `1px solid ${lineColor}`,
-          }}
-        >
-          <img
-            src={(cupShaking ? cupUpImageRef.current : cupImageToShow).src}
-            alt="Cup"
-            className={cupShaking ? 'cup-shake' : ''}
+        <div style={{ gridRow: '1 / span 2', gridColumn: '1 / span 2', backgroundColor: bgColor }}>
+          <div
             style={{
-              width: '100%',  // don't stretch to 100%
-              height: 'auto',
-              objectFit: 'contain',
-              padding: '2px',
-              boxSizing: 'border-box',
-              zIndex: 1,
+              width: '100%',
+              height: '100%',
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+              border: `1px solid ${lineColor}`,
             }}
-          />
+          >
+            <img
+              src={(cupShaking ? cupUpImageRef.current : cupImageToShow).src}
+              alt="Cup"
+              className={cupShaking ? 'cup-shake' : ''}
+              style={{
+                width: '100%',  // don't stretch to 100%
+                height: 'auto',
+                objectFit: 'contain',
+                padding: '2px',
+                boxSizing: 'border-box',
+                zIndex: 1,
+              }}
+            />
+          </div>
         </div>
-      </div>
 
-      {/*--------------------------------------------------------
+        {/*--------------------------------------------------------
         Player name (row 1, cols 3-7)
       --------------------------------------------------------*/}
-      <div
-        style={{
-          gridRow: '1 / span 1',
-          gridColumn: '3 / span 5',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          padding: '0.25rem',
-          boxSizing: 'border-box',
-          border: `1px solid ${lineColor}`,
-          backgroundColor: bgColor,
-          zIndex: 0,
-          overflow: 'hidden',
-        }}
-      >
         <div
           style={{
-            textAlign: 'center',
-            wordWrap: 'break-word',
-            whiteSpace: 'normal',
-            fontWeight: 'bold',
-            fontSize: `${adjustedFontSize}em`,
-            lineHeight: '1.1',
-            width: '100%', // force wrapping within the parent box
+            gridRow: '1 / span 1',
+            gridColumn: '3 / span 5',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '0.25rem',
+            boxSizing: 'border-box',
+            border: `1px solid ${lineColor}`,
+            backgroundColor: bgColor,
+            zIndex: 0,
+            overflow: 'hidden',
           }}
         >
-          {ggc.allParticipantNames[cc]}
+          <div
+            style={{
+              textAlign: 'center',
+              wordWrap: 'break-word',
+              whiteSpace: 'normal',
+              fontWeight: 'bold',
+              fontSize: `${adjustedFontSize}em`,
+              lineHeight: '1.1',
+              width: '100%', // force wrapping within the parent box
+            }}
+          >
+            {ggc.allParticipantNames[cc]}
+          </div>
         </div>
-      </div>
 
-      {/*--------------------------------------------------------
+        {/*--------------------------------------------------------
         Hidden dice in cells (2,3) to (2,7)
       --------------------------------------------------------*/}
-      <div
-        style={{
-          gridRow: 2,
-          gridColumn: '3 / span 5',
-          backgroundColor: bgColor,
-          padding: '0.25rem',
-          boxSizing: 'border-box',          
-          zIndex: 1,
-        }}
-      />
-      {/* Border-only overlay (higher z-index) */}
-      <div
-        style={{
-          gridRow: 2,
-          gridColumn: '3 / span 5',
-          backgroundColor: 'transparent',
-          border: `1px solid ${lineColor}`,
-          padding: '0.25rem',
-          boxSizing: 'border-box',
-          zIndex: 2,
-          position: 'relative',
-          pointerEvents: 'none', // ensures it doesn’t block clicks
-        }}
-      />
-      {diceImageTopList[cc].map((imgRef, index) => {
-        if (!imgRef || cupShaking) return null;
-
-        if ((diceBlinking || cupShaking) && !diceBlinkList[index]) return null;
-
-        return (
         <div
-          key={`dice-top-${index}`}
           style={{
             gridRow: 2,
-            gridColumn: index + 3,
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
+            gridColumn: '3 / span 5',
             backgroundColor: bgColor,
+            padding: '0.25rem',
+            boxSizing: 'border-box',
             zIndex: 1,
           }}
-        >
-          <img
-            src={imgRef.src}
-            alt={`Die ${index + 1}`}
-            style={{
-              width: '80%',
-              height: 'auto', // <<< key fix: height is based on aspect ratio
-              aspectRatio: '1 / 1',
-              objectFit: 'contain',
-              display: 'block',
-              border: diceShowTopHilite[cc][index] ? '2px solid red' : 'none',
-              borderRadius: '0.25rem',
-            }}
-          />
-        </div>
-        );
-      })}
+        />
+        {/* Border-only overlay (higher z-index) */}
+        <div
+          style={{
+            gridRow: 2,
+            gridColumn: '3 / span 5',
+            backgroundColor: 'transparent',
+            border: `1px solid ${lineColor}`,
+            padding: '0.25rem',
+            boxSizing: 'border-box',
+            zIndex: 2,
+            position: 'relative',
+            pointerEvents: 'none', // ensures it doesn’t block clicks
+          }}
+        />
+        {diceImageTopList[cc].map((imgRef, index) => {
+          if (!imgRef || cupShaking) return null;
 
-      {/*--------------------------------------------------------
+          if ((diceBlinking || cupShaking) && !diceBlinkList[index]) return null;
+
+          return (
+            <div
+              key={`dice-top-${index}`}
+              style={{
+                gridRow: 2,
+                gridColumn: index + 3,
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                backgroundColor: bgColor,
+                zIndex: 1,
+              }}
+            >
+              <img
+                src={imgRef.src}
+                alt={`Die ${index + 1}`}
+                style={{
+                  width: '80%',
+                  height: 'auto', // <<< key fix: height is based on aspect ratio
+                  aspectRatio: '1 / 1',
+                  objectFit: 'contain',
+                  display: 'block',
+                  border: diceShowTopHilite[cc][index] ? '2px solid red' : 'none',
+                  borderRadius: '0.25rem',
+                }}
+              />
+            </div>
+          );
+        })}
+
+        {/*--------------------------------------------------------
         Row 3, where shown dice go
       --------------------------------------------------------*/}
-      <div
-        style={{
-          gridRow: 3,
-          gridColumn: '1 / span 7',
-          backgroundColor: 'transparent',
-          zIndex: 0,
-        }}
-      />
+        <div
+          style={{
+            gridRow: 3,
+            gridColumn: '1 / span 7',
+            backgroundColor: 'transparent',
+            zIndex: 0,
+          }}
+        />
 
-      {/*--------------------------------------------------------
+        {/*--------------------------------------------------------
         Shown dice in cells (3,3) to (3,7)
       --------------------------------------------------------*/}
-      {diceImageBottomList[cc].map((imgRef, index) => {
-        if (!imgRef) return null; // skip nulls
+        {diceImageBottomList[cc].map((imgRef, index) => {
+          if (!imgRef) return null; // skip nulls
 
-        return (
-        <div
-          key={`dice-top-${index}`}
-          style={{
-            gridRow: 3,
-            gridColumn: index + 3,
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-            backgroundColor: 'transparent',
-            zIndex: 0
-          }}
-        >
-          <img
-            src={imgRef.src}
-            alt={`Die ${index + 1}`}
-            className={`${diceBlinking && diceBlinkList[index] ? 'show-dice' : ''}`}
-            style={{
-              width: '80%',
-              height: 'auto', // <<< key fix: height is based on aspect ratio
-              aspectRatio: '1 / 1',
-              objectFit: 'contain',
-              display: 'block',
-              border: diceShowBottomHilite[cc][index] ? '2px solid red' : 'none',
-              borderRadius: '0.25rem',
-            }}
-          />
-        </div>
-        );
-      })}
+          return (
+            <div
+              key={`dice-top-${index}`}
+              style={{
+                gridRow: 3,
+                gridColumn: index + 3,
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                backgroundColor: 'transparent',
+                zIndex: 0
+              }}
+            >
+              <img
+                src={imgRef.src}
+                alt={`Die ${index + 1}`}
+                className={`${diceBlinking && diceBlinkList[index] ? 'show-dice' : ''}`}
+                style={{
+                  width: '80%',
+                  height: 'auto', // <<< key fix: height is based on aspect ratio
+                  aspectRatio: '1 / 1',
+                  objectFit: 'contain',
+                  display: 'block',
+                  border: diceShowBottomHilite[cc][index] ? '2px solid red' : 'none',
+                  borderRadius: '0.25rem',
+                }}
+              />
+            </div>
+          );
+        })}
 
-      {/*--------------------------------------------------------
+        {/*--------------------------------------------------------
         Stick image(s) in (3,1) and (3,2) if the player has them
       --------------------------------------------------------*/}
-      {ggc.allSticks[cc] > 0 && (
-        <div
-          key="stick-1"
-          style={{
-            gridRow: 3,
-            gridColumn: 1,
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-            backgroundColor: 'transparent',
-            zIndex: 0,
+        {ggc.allSticks[cc] > 0 && (
+          <div
+            key="stick-1"
+            style={{
+              gridRow: 3,
+              gridColumn: 1,
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+              backgroundColor: 'transparent',
+              zIndex: 0,
 
-          }}
-        >
-          <img
-            src={stickImageRef.current.src}
-            alt="Stick 1"
+            }}
+          >
+            <img
+              src={stickImageRef.current.src}
+              alt="Stick 1"
+              className={sticksBlinking ? 'img-pulse' : ''}
+              style={{
+                width: '80%',
+                height: 'auto',
+                aspectRatio: '1 / 1',
+                objectFit: 'contain',
+                display: 'block',
+              }}
+            />
+          </div>
+        )}
+
+        {ggc.allSticks[cc] > 1 && (
+          <div
+            key="stick-2"
             className={sticksBlinking ? 'img-pulse' : ''}
             style={{
-              width: '80%',
-              height: 'auto',
-              aspectRatio: '1 / 1',
-              objectFit: 'contain',
-              display: 'block',
+              gridRow: 3,
+              gridColumn: 2,
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+              backgroundColor: 'transparent',
+              zIndex: 0,
             }}
-          />
-        </div>
-      )}
+          >
+            <img
+              src={stickImageRef.current.src}
+              alt="Stick 2"
+              style={{
+                width: '80%',
+                height: 'auto',
+                aspectRatio: '1 / 1',
+                objectFit: 'contain',
+                display: 'block',
+              }}
+            />
+          </div>
+        )}
+      </div>
+      <audio ref={Shake10Ref} src="/sounds/Shake10.mp3" preload="auto" />
+      <audio ref={Shake01Ref} src="/sounds/Shake01.mp3" preload="auto" />
+      <audio ref={Shake02Ref} src="/sounds/Shake02.mp3" preload="auto" />
+      <audio ref={Shake03Ref} src="/sounds/Shake03.mp3" preload="auto" />
+      <audio ref={Shake04Ref} src="/sounds/Shake04.mp3" preload="auto" />
 
-      {ggc.allSticks[cc] > 1 && (
-        <div
-          key="stick-2"
-          className={sticksBlinking ? 'img-pulse' : ''}
-          style={{
-            gridRow: 3,
-            gridColumn: 2,
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-            backgroundColor: 'transparent',
-            zIndex: 0,
-          }}
-        >
-          <img
-            src={stickImageRef.current.src}
-            alt="Stick 2"
-            style={{
-              width: '80%',
-              height: 'auto',
-              aspectRatio: '1 / 1',
-              objectFit: 'contain',
-              display: 'block',
-            }}
-          />
-        </div>
-      )}
+      <audio ref={Roll10Ref} src="/sounds/Roll10.mp3" preload="auto" />
+      <audio ref={Roll01Ref} src="/sounds/Roll01.mp3" preload="auto" />
+      <audio ref={Roll02Ref} src="/sounds/Roll02.mp3" preload="auto" />
+      <audio ref={Roll03Ref} src="/sounds/Roll03.mp3" preload="auto" />
+      <audio ref={Roll04Ref} src="/sounds/Roll04.mp3" preload="auto" />
     </div>
-  </div>
 
-  );  
+  );
 }
 
 export default PlayerGrid;

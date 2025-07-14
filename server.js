@@ -569,44 +569,46 @@ io.on('connection', (socket) => {
     // show and shake?
     //----------------------------------------------------
     if (ggs.curRound.curBid.bShowShake) {
-        // initialize shown
-        ggs.curRound.curBid.howManyShown = 0;
-        ggs.curRound.curBid.bWhichShown = Array(5).fill(false); 
-        for (let i = 0; i < 5; i++) {
-            ggs.curRound.curBid.bWhichShaken[i] = true;
-            ggs.curRound.curBid.bDiceHidden[i] = ggs.bDiceHidden[index][i];
-            if (ggs.bDiceHidden[index][i]) {
-                let die = ggs.dice[index][i];
-                if (ggs.bPaloFijoRound) {
-                    if (die == ggs.curRound.curBid.ofWhat) {
-                        // they just showed this one, don't shake it
-                        ggs.curRound.curBid.howManyShown++;
-                        ggs.curRound.curBid.bWhichShown[i] = true;
-                        ggs.curRound.curBid.bWhichShaken[i] = false;
-                        ggs.curRound.curBid.bDiceHidden[i] = false;
-                        ggs.bDiceHidden[index][i] = false;
-                    }
-                    
-                } else {
-                    if ((die == ggs.curRound.curBid.ofWhat) || (die == 1)) {
-                        // they just showed this one, don't shake it
-                        ggs.curRound.curBid.howManyShown++;
-                        ggs.curRound.curBid.bWhichShown[i] = true;
-                        ggs.curRound.curBid.bWhichShaken[i] = false;
-                        ggs.curRound.curBid.bDiceHidden[i] = false;
-                        ggs.bDiceHidden[index][i] = false;
-                    }
-                }
-            } else {
-                // die already showing, don't shake it
-                ggs.curRound.curBid.bWhichShaken[i] = false;
-            }
+      // initialize shown
+      ggs.curRound.curBid.howManyShown = 0;
+      ggs.curRound.curBid.bWhichShown = Array(5).fill(false); 
+      for (let i = 0; i < 5; i++) {
+          ggs.curRound.curBid.bWhichShaken[i] = true;
+          ggs.curRound.curBid.bDiceHidden[i] = ggs.bDiceHidden[index][i];
+          if (ggs.bDiceHidden[index][i]) {
+              let die = ggs.dice[index][i];
+              if (ggs.bPaloFijoRound) {
+                  if (die == ggs.curRound.curBid.ofWhat) {
+                      // they just showed this one, don't shake it
+                      ggs.curRound.curBid.howManyShown++;
+                      ggs.curRound.curBid.bWhichShown[i] = true;
+                      ggs.curRound.curBid.bWhichShaken[i] = false;
+                      ggs.curRound.curBid.bDiceHidden[i] = false;
+                      ggs.bDiceHidden[index][i] = false;
+                  }
+                  
+              } else {
+                  if ((die == ggs.curRound.curBid.ofWhat) || (die == 1)) {
+                      // they just showed this one, don't shake it
+                      ggs.curRound.curBid.howManyShown++;
+                      ggs.curRound.curBid.bWhichShown[i] = true;
+                      ggs.curRound.curBid.bWhichShaken[i] = false;
+                      ggs.curRound.curBid.bDiceHidden[i] = false;
+                      ggs.bDiceHidden[index][i] = false;
+                  }
+              }
+          } else {
+              // die already showing, don't shake it
+              ggs.curRound.curBid.bWhichShaken[i] = false;
+          }
         }
         // shake
+        ggs.curRound.curBid.howManyShaken = 0;
         for (let i = 0; i < 5; i++) {
             if (ggs.curRound.curBid.bWhichShaken[i]) {
                 const random = Math.floor(Math.random() * 6) + 1;
                 ggs.dice[ggs.curRound.curBid.playerIndex][i] = random;
+                ggs.curRound.curBid.howManyShaken++;
             }
         }
     }

@@ -1129,6 +1129,7 @@ export class DudoBid {
   bShowShake;
   howManyShown;
   bWhichShown = [];
+	howManyShaken;
   bWhichShaken = [];
 	showing;
 	lookingFor;
@@ -1143,6 +1144,7 @@ export class DudoBid {
     this.bDudo = false;
     this.bShowShake = false;
     this.howManyShown = 0;
+    this.howManyShaken = 0;
 		this.showing = 0;
 		this.lookingFor = 0;
 
@@ -1162,6 +1164,7 @@ export class DudoBid {
     this.bDudo = false;
     this.bShowShake = false;
     this.howManyShown = 0;
+    this.howManyShaken = 0;
 		this.showing = 0;
 		this.lookingFor = 0;
 
