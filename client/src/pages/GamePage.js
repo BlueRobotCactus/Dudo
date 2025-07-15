@@ -191,16 +191,11 @@ import { STICKS_BLINK_TIME, SHOWN_DICE_BLINK_TIME, SHAKE_CUPS_TIME } from '../Du
     const [histLookage, setHistLookage] = useState('');
 
     // Refs
-    const canvasRef = useRef(null);
-    //const cupDownImageRef = useRef(null);
-    //const cupUpImageRef = useRef(null);
-    //const diceImagesRef = useRef({});
-    //const diceHiddenImageRef = useRef({});
-    //const stickImageRef = useRef({});
     const myShowShakeRef = useRef(false);
     const bidHistoryRef = useRef([]);
     const reversedBids = useRef([]);
     const observersRef = useRef([]);
+    const leaveLobbyTimerRef = useRef(null);
 
     // Refs debugging
     const prevReconnect = useRef(null);
@@ -890,16 +885,31 @@ import { STICKS_BLINK_TIME, SHOWN_DICE_BLINK_TIME, SHAKE_CUPS_TIME } from '../Du
   const handleForceLeaveLobby = () => {
     setOkMessage("The host has closed the lobby.");
     setOkTitle("Closing lobby");
-    setOnOkHandler(() => () => {
+
+    // user clicks OK or auto-times out
+    const onOk = () => {
+      // Clear the timer if still pending
+      if (leaveLobbyTimerRef.current) {
+        clearTimeout(leaveLobbyTimerRef.current);
+        leaveLobbyTimerRef.current = null;
+      }
       if (connected) {
         socket.emit('leaveLobby', { playerName, lobbyId });
         navigate('/');
-        console.log ('GamePage: handleForceLeaveLobby, leaving"');
+        console.log('GamePage: handleForceLeaveLobby, leaving');
       }
       setShowOkDlg(false);
-    });
+    };
+
+    // Set the dialog's handler
+    setOnOkHandler(() => onOk);
     setShowOkDlg(true);
-  }
+
+    // Auto-trigger leave after 15 seconds
+    leaveLobbyTimerRef.current = setTimeout(() => {
+      onOk();
+    }, 15000);
+  };
 
   //************************************************************
   // functions to handle disconnectdCountdown
