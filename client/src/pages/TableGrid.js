@@ -11,7 +11,7 @@ import { MAX_CONNECTIONS, CONN_PLAYER_IN, CONN_PLAYER_OUT } from '../DudoGameC.j
 // TableGrid (PlayerCards placed within it)
 // ggc = DudoGame object
 //************************************************************
-export function TableGrid({ggc, myIndex, backgroundColor}) {
+export function TableGrid({lobbyId, ggc, myIndex, backgroundColor}) {
   console.log("TableGrid: entering TableGrid ()");
 
   const [isNarrow, setIsNarrow] = useState(window.innerWidth < 500);
@@ -158,7 +158,7 @@ export function TableGrid({ggc, myIndex, backgroundColor}) {
         >
         <div style={{ maxWidth: '300px', width: '100%', height: '100%' }}>
           {/* <PlayerCard ggc={ggc} myIndex={myIndex} cc={ccList[index]} /> */}
-          <PlayerGrid ggc={ggc} cc={ccList[index]} myIndex={myIndex}/>
+          <PlayerGrid lobbyId={lobbyId} ggc={ggc} cc={ccList[index]} myIndex={myIndex}/>
         </div>
         </div>
       ))}

@@ -1133,6 +1133,7 @@ export class DudoBid {
   bWhichShaken = [];
 	showing;
 	lookingFor;
+	didUIShake;		// avoid re-shaking on reconnect
 
   constructor() {
     this.text = "";
@@ -1147,7 +1148,8 @@ export class DudoBid {
     this.howManyShaken = 0;
 		this.showing = 0;
 		this.lookingFor = 0;
-
+		this.didUIShake = false;
+		
     this.dice = Array(5).fill(0);
     this.bDiceHidden = Array(5).fill(false);
     this.bWhichShaken = Array(5).fill(false);
@@ -1167,6 +1169,7 @@ export class DudoBid {
     this.howManyShaken = 0;
 		this.showing = 0;
 		this.lookingFor = 0;
+		this.didUIShake = false;
 
     this.dice = Array(5).fill(0);
     this.bDiceHidden = Array(5).fill(false);

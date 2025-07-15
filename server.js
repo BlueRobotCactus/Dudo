@@ -517,6 +517,24 @@ io.on('connection', (socket) => {
 
   //************************************************************
   // socket.on
+  // UI SHAKING/ROLLING
+  // need to track this, to avoid re-shaking on reconnect
+  //************************************************************
+  socket.on('UIShaking', (lobbyId) => {
+    const lobby = lobbies[lobbyId];
+    const ggs = lobby.game;
+
+    const lastBid = ggs.curRound?.Bids[ggs.curRound?.numBids - 1];
+    lastBid.didUIShake = true;
+
+    io.to(lobbyId).emit('gameStateUpdate', lobby.game);
+    console.log("server.js: socket.on('UIShaking'): emitting 'gameStateUpdate'");
+  });
+
+
+
+  //************************************************************
+  // socket.on
   // PROCESS THE DIRECTION
   //************************************************************
   socket.on('direction', ({ lobbyId, index, direction }) => {

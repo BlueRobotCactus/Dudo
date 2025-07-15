@@ -1670,7 +1670,7 @@ useEffect(() => {
               ...backgroundStyle
             }}
           >
-            <TableGrid ggc={ggc} myIndex={myIndex} backgroundColor="transparent" />
+            <TableGrid lobbyId={lobbyId} ggc={ggc} myIndex={myIndex} backgroundColor="transparent" />
           </div>
         </div>
 

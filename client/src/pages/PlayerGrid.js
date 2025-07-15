@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useContext } from 'react';
 
 import './PlayerGrid.css';
-//import './GamePage.js'
+import { SocketContext } from '../SocketContext.js';
 import { ImageRefsContext } from '../ImageRefsContext.js';
 import { DudoGame, DudoRound } from '../DudoGameC.js';
 import { MAX_CONNECTIONS, CONN_PLAYER_IN, CONN_PLAYER_OUT } from '../DudoGameC.js';
@@ -12,8 +12,7 @@ import { STICKS_BLINK_TIME, SHOWN_DICE_BLINK_TIME, SHAKE_CUPS_TIME } from '../Du
 // ggc = DudoGame object
 // cc = connection number of this player
 //************************************************************
-export function PlayerGrid({ ggc, myIndex, cc }) {
-
+export function PlayerGrid({ lobbyId, ggc, myIndex, cc }) {
   const gridRef = useRef();
   const [cupShaking, setCupShaking] = useState(false);
   const [sticksBlinking, setSticksBlinking] = useState(false);
@@ -22,6 +21,9 @@ export function PlayerGrid({ ggc, myIndex, cc }) {
   const [bubbleText, setBubbleText] = useState('');
 
   const BUBBLE_SHOW_TIME = 3000;
+
+  // get our socket so we can emit
+  const { socket, socketId, connected } = useContext(SocketContext);
 
   // images
   const {
@@ -99,6 +101,9 @@ export function PlayerGrid({ ggc, myIndex, cc }) {
   useEffect(() => {
     if (ggc.bGameInProgress && ggc.curRound.numBids > 0) {
       const lastBid = ggc.curRound?.Bids[ggc.curRound?.numBids - 1];
+
+      if (lastBid.didUIShake) { return; }
+
       if (lastBid.playerIndex === cc && lastBid.bShowShake) {
         // Enable blinking
         setDiceBlinking(true);
@@ -107,6 +112,7 @@ export function PlayerGrid({ ggc, myIndex, cc }) {
           if (!ggc.PlayerShowingAllDice(cc)) {
             // get how many shaken and re-rolled
             triggerCupShaking(lastBid.howManyShaken);      // Start cup shake after that
+   					socket.emit('UIShaking', lobbyId);
           }
         }, SHOWN_DICE_BLINK_TIME);
       }
