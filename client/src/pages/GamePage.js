@@ -1449,6 +1449,7 @@ useEffect(() => {
         }
         ggc.PopulateBidListTrim();
         setPossibleBids(ggc.possibleBids || []);
+        ggc.PopulateBidMatrix();
 
         // show dialog, handle responses
         if (ggc.curRound.whichDirection == undefined) {

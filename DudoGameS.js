@@ -60,13 +60,15 @@ export class DudoGame {
 	bPasoAllowed;
 	bPaloFijoAllowed;
 	bPaloFijoRound;
-	
 
 /*
 	these java definitions are now defined in the construtor
 	dice = [][];                
 	diceHidden = [][];      
+	diceHilite = [][];
+	BidMatrix = [][];   
 */
+
 	firstRound;
 	bSettingGameParms;
 	bGameInProgress;
@@ -90,11 +92,10 @@ export class DudoGame {
 	// for building possible bids list
 	parsedHowMany;
 	parsedOfWhat;
-	possibleBids = [];
 	numPossibleBids;
+	possibleBids = [];
 
 	bWinnerRound;
-
 	bWinnerGame;
 	whoWonGame;
 	orderOfFinish = [];
@@ -104,7 +105,7 @@ export class DudoGame {
 	//****************************************************************
 	constructor() {
 		this.maxPlayers = 8;
-		//this.allSticks = [];
+
 		for (let cc = 0; cc < MAX_CONNECTIONS; cc++) {
 			this.allParticipantNames[cc] = '';
 			this.allConnectionID[cc] = '';
@@ -131,6 +132,11 @@ export class DudoGame {
 		this.bDiceHilite = new Array(MAX_CONNECTIONS);
 		for (let i = 0; i < MAX_CONNECTIONS; i++) {
 			this.bDiceHilite[i] = new Array(5);
+		}
+
+		this.BidMatrix = new Array(5 * this.maxPlayers);
+		for (let i = 0; i < 6; i++) {
+			this.BidMatrix[i] = new Array(6);
 		}
 
 		this.bSettingGameParms = false;
@@ -669,6 +675,7 @@ export class DudoGame {
 		}
 
 		//&&& testing
+/*		
 		const testString1 = "1 - \u2680";
 		const testString2 = "1 - \u2681";
 		const testString3 = "1 - \u2682";
@@ -690,6 +697,8 @@ export class DudoGame {
 										this.numPossibleBids++;
 		this.possibleBids[this.numPossibleBids] = testString6;
 										this.numPossibleBids++;
+*/
+
 	}
 
 	//****************************************************************
@@ -833,6 +842,27 @@ export class DudoGame {
 			if (this.possibleBids[i] == "1 - aces") {
 				this.possibleBids[i] = "1 - ace";
 			}
+		}
+	}
+
+	//****************************************************************
+	// PopulateBidMatrix
+	//****************************************************************
+	PopulateBidMatrix () {
+		// initialize 
+		this.BidMatrix.length = 0; // clear existing contents
+		for (let i = 0; i < 5 * this.GetNumberPlayersStillIn(); i++) {
+			this.BidMatrix[i] = [];
+			for (let j = 0; j < 6; j++) {
+				this.BidMatrix[i][j] = false;
+			}
+		}
+		// fill in from possibleBids
+		for (let i=1; i<this.numPossibleBids; i++) {		// start from 1 to avoid --Select--
+			this.parseBid (this.possibleBids[i]);
+			const row = this.parsedHowMany - 1;
+			const col = (this.parsedOfWhat === 1 ? 5: this.parsedOfWhat - 2);	// aces go at the end
+			this.BidMatrix[row][col] = true;
 		}
 	}
 
