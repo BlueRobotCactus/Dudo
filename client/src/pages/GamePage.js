@@ -3,8 +3,9 @@ import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import { SocketContext } from '../SocketContext.js';
 import { ImageRefsContext } from '../ImageRefsContext.js';
 import { DudoGame } from '../DudoGameC.js'
-import { PlayerGrid } from './PlayerGrid.js'
 import { TableGrid } from './TableGrid.js'
+import { BidGrid } from './BidGrid.js'
+
 import tableBackground from '../assets/table-background.png';
 import tableBackgroundFaded from '../assets/table-background-faded.png';
 import './GamePage.css';
@@ -62,6 +63,7 @@ import { STICKS_BLINK_TIME, SHOWN_DICE_BLINK_TIME, SHAKE_CUPS_TIME } from '../Du
     });
     const [ggc] = useState(() => new DudoGame());
     const [possibleBids, setPossibleBids] = useState([]);
+    const [bidMatrix, setBidMatrix] = useState([]);
 
     const [myIndex, setMyIndex] = useState(0);
     const [myName, setMyName] = useState('');
@@ -1450,6 +1452,7 @@ useEffect(() => {
         ggc.PopulateBidListTrim();
         setPossibleBids(ggc.possibleBids || []);
         ggc.PopulateBidMatrix();
+        setBidMatrix(ggc.BidMatrix);
 
         // show dialog, handle responses
         if (ggc.curRound.whichDirection == undefined) {
@@ -1647,7 +1650,8 @@ useEffect(() => {
 
               {/* {ggc.bAskInOut && RenderInOut()} */}
 
-              {isMyTurn && RenderBid()}
+              {/* isMyTurn && RenderBid() */}
+              {isMyTurn && RenderGridBid()}
 
               {!ggc.bDoubtInProgress && !ggc.bShowDoubtResult && !ggc.bAskInOut && !isMyTurn && (
                 <div className="border border-primary rounded p-1">
@@ -1920,7 +1924,7 @@ useEffect(() => {
   }
 
   /*----------------------------------------------
-          IN OR OUT
+          IN OR OUT (obsolete)
   -----------------------------------------------*/
    function RenderInOut () {
     return (
@@ -1987,6 +1991,7 @@ useEffect(() => {
   /*----------------------------------------------
           BID
   -----------------------------------------------*/
+  /*
   function BidPanel({ show, onClose }) {
     return (
       <div className={`bid-panel ${show ? 'open' : ''}`}>
@@ -2000,7 +2005,7 @@ useEffect(() => {
       </div>
     );
   }
-
+*/
   function RenderBid () {
     return (
       //----- MY TURN -----//
@@ -2123,7 +2128,130 @@ useEffect(() => {
   }
 
   /*----------------------------------------------
-          DOUBT
+          BID USING GRID
+  -----------------------------------------------*/
+  function RenderGridBid () {
+    return (
+     
+      //----- MY TURN -----//
+      <div className="border border-primary rounded p-2">
+        <div
+          className="d-grid"
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'auto auto auto auto auto',
+            gridTemplateRows: 'auto auto',
+            alignItems: 'center',
+            rowGap: '0.5rem',
+            columnGap: '0.75rem',
+          }}
+        >
+          {/* Row 1: message spans first 4 cols */}
+          <div style={{ gridColumn: '1 / span 4' }}>
+            <p className="fw-bold mb-1">{row2YourTurnString}</p>
+            <p className="fw-bold mb-0">{row2SpecialPasoString}</p>
+          </div>
+
+          {/* Row 1: Paso button (col 5) on narrow screens*/}
+          {ggc.bPasoAllowed && getViewportWidth() < 500 ? (
+            <div style={{ gridColumn: 5 }}>
+              <button
+                className="btn btn-outline-secondary btn-sm"
+                disabled={!ggc.CanPaso()}
+                onClick={() => handleBidOK('PASO', bidShowShake)}
+              >
+                Paso
+              </button>
+            </div>
+          ) : null}
+
+          {/* Row 2: bordered wrapper around cols 1-3 */}
+          <div
+            style={{
+              gridColumn: '1 / span 3',
+              display: 'contents', // children placed directly in grid
+            }}
+          >
+            <div
+              className="border border-secondary rounded p-2 d-flex align-items-center justify-content-start"
+              style={{
+                gridColumn: '1 / span 3',
+                display: 'grid',
+                gridTemplateColumns: 'auto auto auto',
+                columnGap: '0.75rem',
+              }}
+            >
+
+              <BidGrid
+                validBids={bidMatrix}
+                onBidSelect={(row, col) => {
+                  console.log(`You selected: ${row + 1} x ${col + 1}`);
+                  setSelectedBid(`${row + 1} - ${col + 1}`);
+                }}
+              />
+
+              {/* Checkbox */}
+              <div className="form-check me-2">
+                <input
+                  className="form-check-input"
+                  type="checkbox"
+                  id="showShakeCheckbox"
+                  disabled={!canShowShake}
+                  checked={bidShowShake}
+                  onChange={(e) => setBidShowShake(e.target.checked)}
+                />
+                <label
+                  className="form-check-label"
+                  htmlFor="showShakeCheckbox"
+                  style={{
+                    color: canShowShake ? 'black' : 'gray',
+                  }}
+                >
+                  Show
+                </label>
+              </div>
+
+              {/* Bid button */}
+              <button
+                className="btn btn-primary btn-sm"
+                disabled={selectedBid === '--Select--'}
+                onClick={() => handleBidOK(selectedBid, bidShowShake)}
+              >
+                Bid
+              </button>
+            </div>
+          </div>
+
+          {/* Row 2: Paso button (col 4) on wider screens*/}
+          {ggc.bPasoAllowed && getViewportWidth() >= 500 ? (
+            <div style={{ gridColumn: 4 }}>
+              <button
+                className="btn btn-outline-secondary btn-sm"
+                disabled={!ggc.CanPaso()}
+                onClick={() => handleBidOK('PASO', bidShowShake)}
+              >
+                Paso
+              </button>
+            </div>
+            ) : null}
+
+          {/* Row 2: Doubt button (col 5) */}
+          <div style={{ gridColumn: 5 }}>
+            <button
+              className="btn btn-danger btn-sm text-white"
+              disabled={!ggc.curRound.numBids > 0}
+              onClick={() => handleBidOK('DOUBT', bidShowShake)}
+            >
+              Doubt
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  /*----------------------------------------------
+          DOUBT (obsolete)
   -----------------------------------------------*/
   function RenderDoubt () {
     return (
