@@ -2130,125 +2130,99 @@ useEffect(() => {
   /*----------------------------------------------
           BID USING GRID
   -----------------------------------------------*/
-  function RenderGridBid () {
-    return (
-     
-      //----- MY TURN -----//
-      <div className="border border-primary rounded p-2">
-        <div
-          className="d-grid"
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'auto auto auto auto auto',
-            gridTemplateRows: 'auto auto',
-            alignItems: 'center',
-            rowGap: '0.5rem',
-            columnGap: '0.75rem',
-          }}
-        >
-          {/* Row 1: message spans first 4 cols */}
-          <div style={{ gridColumn: '1 / span 4' }}>
-            <p className="fw-bold mb-1">{row2YourTurnString}</p>
-            <p className="fw-bold mb-0">{row2SpecialPasoString}</p>
-          </div>
+function RenderGridBid() {
+  const bidGridRows = bidMatrix.length;
 
-          {/* Row 1: Paso button (col 5) on narrow screens*/}
-          {ggc.bPasoAllowed && getViewportWidth() < 500 ? (
-            <div style={{ gridColumn: 5 }}>
-              <button
-                className="btn btn-outline-secondary btn-sm"
-                disabled={!ggc.CanPaso()}
-                onClick={() => handleBidOK('PASO', bidShowShake)}
-              >
-                Paso
-              </button>
-            </div>
-          ) : null}
+  return (
+    <div className="border border-primary rounded p-2">
+      {/* Row 1: header message (span all 8 cols) */}
+      <div style={{ marginBottom: '0.5rem' }}>
+        <p className="fw-bold mb-1">{row2YourTurnString}</p>
+        <p className="fw-bold mb-0">{row2SpecialPasoString}</p>
+      </div>
 
-          {/* Row 2: bordered wrapper around cols 1-3 */}
-          <div
-            style={{
-              gridColumn: '1 / span 3',
-              display: 'contents', // children placed directly in grid
+      <div
+        className="d-grid"
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(7, auto) auto', // 7 bid columns + 1 right column
+          gridTemplateRows: `repeat(${bidGridRows}, auto)`, // each row of BidGrid = 1 row
+          columnGap: '0.75rem',
+          rowGap: '0.25rem',
+        }}
+      >
+        {/* BidGrid: spans 7 columns and all rows */}
+        <div style={{ gridColumn: '1 / span 7', gridRow: `1 / span ${bidGridRows}` }}>
+          <BidGrid
+            validBids={bidMatrix}
+            onBidSelect={(row, col) => {
+              console.log(`You selected: ${row + 1} x ${col + 1}`);
+              setSelectedBid(`${row + 1} - ${col + 1}`);
             }}
-          >
-            <div
-              className="border border-secondary rounded p-2 d-flex align-items-center justify-content-start"
-              style={{
-                gridColumn: '1 / span 3',
-                display: 'grid',
-                gridTemplateColumns: 'auto auto auto',
-                columnGap: '0.75rem',
-              }}
+          />
+        </div>
+
+        {/* Right-side controls aligned with rows 1–4 */}
+
+        {/* Row 1: Checkbox */}
+        <div style={{ gridColumn: 8, gridRow: 1 }}>
+          <div className="form-check">
+            <input
+              className="form-check-input"
+              type="checkbox"
+              id="showShakeCheckbox"
+              disabled={!canShowShake}
+              checked={bidShowShake}
+              onChange={(e) => setBidShowShake(e.target.checked)}
+            />
+            <label
+              className="form-check-label"
+              htmlFor="showShakeCheckbox"
+              style={{ color: canShowShake ? 'black' : 'gray' }}
             >
-
-              <BidGrid
-                validBids={bidMatrix}
-                onBidSelect={(row, col) => {
-                  console.log(`You selected: ${row + 1} x ${col + 1}`);
-                  setSelectedBid(`${row + 1} - ${col + 1}`);
-                }}
-              />
-
-              {/* Checkbox */}
-              <div className="form-check me-2">
-                <input
-                  className="form-check-input"
-                  type="checkbox"
-                  id="showShakeCheckbox"
-                  disabled={!canShowShake}
-                  checked={bidShowShake}
-                  onChange={(e) => setBidShowShake(e.target.checked)}
-                />
-                <label
-                  className="form-check-label"
-                  htmlFor="showShakeCheckbox"
-                  style={{
-                    color: canShowShake ? 'black' : 'gray',
-                  }}
-                >
-                  Show
-                </label>
-              </div>
-
-              {/* Bid button */}
-              <button
-                className="btn btn-primary btn-sm"
-                disabled={selectedBid === '--Select--'}
-                onClick={() => handleBidOK(selectedBid, bidShowShake)}
-              >
-                Bid
-              </button>
-            </div>
-          </div>
-
-          {/* Row 2: Paso button (col 4) on wider screens*/}
-          {ggc.bPasoAllowed && getViewportWidth() >= 500 ? (
-            <div style={{ gridColumn: 4 }}>
-              <button
-                className="btn btn-outline-secondary btn-sm"
-                disabled={!ggc.CanPaso()}
-                onClick={() => handleBidOK('PASO', bidShowShake)}
-              >
-                Paso
-              </button>
-            </div>
-            ) : null}
-
-          {/* Row 2: Doubt button (col 5) */}
-          <div style={{ gridColumn: 5 }}>
-            <button
-              className="btn btn-danger btn-sm text-white"
-              disabled={!ggc.curRound.numBids > 0}
-              onClick={() => handleBidOK('DOUBT', bidShowShake)}
-            >
-              Doubt
-            </button>
+              Show
+            </label>
           </div>
         </div>
+
+        {/* Row 2: Bid button */}
+        <div style={{ gridColumn: 8, gridRow: 2 }}>
+          <button
+            className="btn btn-primary btn-sm w-100"
+            disabled={selectedBid === '--Select--'}
+            onClick={() => handleBidOK(selectedBid, bidShowShake)}
+          >
+            Bid
+          </button>
+        </div>
+
+        {/* Row 3: Doubt button */}
+        <div style={{ gridColumn: 8, gridRow: 3 }}>
+          <button
+            className="btn btn-danger btn-sm text-white w-100"
+            disabled={!ggc.curRound.numBids > 0}
+            onClick={() => handleBidOK('DOUBT', bidShowShake)}
+          >
+            Doubt
+          </button>
+        </div>
+
+        {/* Row 4: Paso button */}
+        {ggc.bPasoAllowed && (
+          <div style={{ gridColumn: 8, gridRow: 4 }}>
+            <button
+              className="btn btn-outline-secondary btn-sm w-100"
+              disabled={!ggc.CanPaso()}
+              onClick={() => handleBidOK('PASO', bidShowShake)}
+            >
+              Paso
+            </button>
+          </div>
+        )}
       </div>
-    )
-  }
+    </div>
+  );
+}
 
   /*----------------------------------------------
           DOUBT (obsolete)
