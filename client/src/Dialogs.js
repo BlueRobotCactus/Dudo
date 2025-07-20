@@ -3,6 +3,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import Modal from 'react-bootstrap/Modal';
 import Button from 'react-bootstrap/Button';
+import BidGrid from './pages/BidGrid.js';
 
 //************************************************************
 // Shared Hook: useDraggableDialog
@@ -218,6 +219,207 @@ export function DirectionDlg({
     </Modal>
   );
 }
+
+// begin &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
+
+export function BidDlg({ 
+  open, 
+  onHide, 
+  title, 
+  bidMatrix,
+  yourTurnString,
+  specialPasoString,
+  ggc,
+  myIndex,
+  onSubmit,
+}) {
+  const [selectedBid, setSelectedBid] = useState('');
+  const [canShowShake, setCanShowShake] = useState(false);
+  const [bidShowShake, setBidShowShake] = useState(false);
+
+  const [minimized, setMinimized] = useState(false);
+  const bidGridRows = bidMatrix.length;
+
+  //----------------------------------------------------
+  // UseEffect CHECKBOX [selectedBid, CanShowShake]
+  //           track changes in checkbox
+  //----------------------------------------------------
+  useEffect(() => {
+    if (ggc.allConnectionID.length === 0) { 
+      return;
+    }
+    console.log("GamePage: useEffect: CHECKBOX");
+    const result = CanShowShake(selectedBid);
+    setCanShowShake(result);
+    if (!result) setBidShowShake(false);
+  }, [selectedBid, canShowShake]);
+
+  //----------------------------------------------------
+  // helper functions
+  //----------------------------------------------------
+    const handleToggle = () => setMinimized(!minimized);
+
+  //----------------------------------------------------
+  // function to say whether they can show/shake 
+  // based on currently selected bid
+  //----------------------------------------------------
+  const CanShowShake = (bid) => {
+    // no, if special strings
+    if (bid == "PASO" || bid == "DOUBT" || bid == "--Select--") {
+      return false;
+    }
+
+    // does player have any of hidden dice of what they bid?
+    ggc.parseBid(bid);
+    for (let i = 0; i < 5; i++) {
+        if (ggc.bDiceHidden[myIndex][i]) {
+            if (ggc.dice[myIndex][i] == ggc.parsedOfWhat) {
+                return true;
+            }
+            if (!ggc.bPaloFijoRound) {
+                // aces wild if not palofijo
+                if (ggc.dice[myIndex][i] == 1) {
+                  return true;
+                }
+            }
+        }
+    }
+    return (false);
+  }
+
+  //----------------------------------------------------
+  // function called when they submit the bid 
+  // (Bid / Doubt / Paso buttons)
+  //----------------------------------------------------
+  const handleSubmit = (bidText, bShowShake) => {
+    onSubmit(bidText, bShowShake);   // ✅ call the passed function
+    onHide();                          // optional: close dialog
+  };
+
+  //****************************************************
+  // RENDER 
+  //****************************************************
+  return (
+    <Modal
+      show={open}
+      onHide={onHide}
+      backdrop="static"
+      keyboard={!minimized}
+      dialogClassName={minimized ? 'minimized-modal' : ''}
+    >
+      <Modal.Header
+        closeButton
+        className="bg-primary text-white py-2 px-3"
+        onClick={handleToggle}
+        style={{ cursor: 'pointer' }}
+      >
+        <Modal.Title style={{ fontSize: '1rem' }}>
+          {title} {minimized ? '(Tap to Expand)' : '(Tap to Minimize)'}
+        </Modal.Title>
+      </Modal.Header>
+
+      {!minimized && (
+        <Modal.Body style={{ padding: '1rem' }}>
+          <div className="border border-primary rounded p-2">
+            {/* Row 1: header message (span all 8 cols) */}
+            <div style={{ marginBottom: '0.5rem' }}>
+              <p className="fw-bold mb-1">{yourTurnString}</p>
+              <p className="fw-bold mb-0">{specialPasoString}</p>
+            </div>
+
+            <div
+              className="d-grid"
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(7, auto) auto', // 7 bid columns + 1 right column
+                gridTemplateRows: `repeat(${bidGridRows}, auto)`, // each row of BidGrid = 1 row
+                columnGap: '0.75rem',
+                rowGap: '0.25rem',
+              }}
+            >
+              {/* BidGrid: spans 7 columns and all rows */}
+              <div style={{ gridColumn: '1 / span 7', gridRow: `1 / span ${bidGridRows}` }}>
+                <BidGrid
+                  validBids={bidMatrix}
+                  onBidSelect={(row, col) => {
+                    console.log(`You selected: ${row + 1} x ${col + 1}`);
+                    setSelectedBid(`${row + 1} - ${col + 1}`);
+                  }}
+                />
+              </div>
+
+              {/* Right-side controls aligned with rows 1–4 */}
+
+              {/* Row 1: Checkbox */}
+              <div style={{ gridColumn: 8, gridRow: 1 }}>
+                <div className="form-check">
+                  <input
+                    className="form-check-input"
+                    type="checkbox"
+                    id="showShakeCheckbox"
+                    disabled={!canShowShake}
+                    checked={bidShowShake}
+                    onChange={(e) => setBidShowShake(e.target.checked)}
+                  />
+                  <label
+                    className="form-check-label"
+                    htmlFor="showShakeCheckbox"
+                    style={{ color: canShowShake ? 'black' : 'gray' }}
+                  >
+                    Show
+                  </label>
+                </div>
+              </div>
+
+              {/* Row 2: Bid button */}
+              <div style={{ gridColumn: 8, gridRow: 2 }}>
+                <button
+                  className="btn btn-primary btn-sm w-100"
+                  disabled={selectedBid === '--Select--'}
+                  onClick={() => handleSubmit(selectedBid, bidShowShake)}
+                >
+                  Bid
+                </button>
+              </div>
+
+              {/* Row 3: Doubt button */}
+              <div style={{ gridColumn: 8, gridRow: 3 }}>
+                <button
+                  className="btn btn-danger btn-sm text-white w-100"
+                  disabled={!ggc.curRound.numBids > 0}
+                  onClick={() => handleSubmit('DOUBT', bidShowShake)}
+                >
+                  Doubt
+                </button>
+              </div>
+
+              {/* Row 4: Paso button */}
+              {ggc.bPasoAllowed && (
+                <div style={{ gridColumn: 8, gridRow: 4 }}>
+                  <button
+                    className="btn btn-outline-secondary btn-sm w-100"
+                    disabled={!ggc.CanPaso()}
+                    onClick={() => handleSubmit('PASO', bidShowShake)}
+                  >
+                    Paso
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </Modal.Body>
+      )}
+
+      {!minimized && (
+        <Modal.Footer>
+          <Button variant="secondary" onClick={onHide}>Close</Button>
+        </Modal.Footer>
+      )}
+    </Modal>
+  );
+}
+
+// end &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
 
 //************************************************************
 // OkDlg (reuseable)

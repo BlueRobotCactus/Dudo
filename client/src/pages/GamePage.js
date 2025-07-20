@@ -21,6 +21,7 @@ import { BidHistoryDlg } from '../Dialogs.js';
 import { ObserversDlg } from '../Dialogs.js';
 import { GameSettingsDlg } from '../Dialogs.js';
 import { SetGameParametersDlg } from '../Dialogs.js';
+import { BidDlg } from '../Dialogs.js';
 
 import { MAX_CONNECTIONS, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER } from '../DudoGameC.js';
 import { STICKS_BLINK_TIME, SHOWN_DICE_BLINK_TIME, SHAKE_CUPS_TIME } from '../DudoGameC.js';
@@ -81,7 +82,7 @@ import { STICKS_BLINK_TIME, SHOWN_DICE_BLINK_TIME, SHAKE_CUPS_TIME } from '../Du
     const [row2PalofijoAllowed, setRow2PalofijoAllowed] = useState(true);
 
     // bid
-    const [showBidPanel, setShowBidPanel] = useState(false);  // obsolete
+    //const [showBidPanel, setShowBidPanel] = useState(false);  // obsolete
 
     const [row2YourTurnString, setRow2YourTurnString] = useState('');
     const [row2SpecialPasoString, setRow2SpecialPasoString] = useState('');
@@ -126,6 +127,9 @@ import { STICKS_BLINK_TIME, SHOWN_DICE_BLINK_TIME, SHAKE_CUPS_TIME } from '../Du
     const [rightTextDirection, setRightTextDirection] = useState(false);
     const [onLeftHandler, setOnLeftHandler] = useState(() => () => {});
     const [onRightHandler, setOnRightHandler] = useState(() => () => {});
+
+    // Bid
+    const [showBidDlg, setShowBidDlg] = useState(false);
 
     // OK
     const [showOkDlg, setShowOkDlg] = useState(false);
@@ -508,7 +512,7 @@ import { STICKS_BLINK_TIME, SHOWN_DICE_BLINK_TIME, SHAKE_CUPS_TIME } from '../Du
 
     setThisBid (bid);
     myShowShakeRef.current = bShowShake;
-    setShowBidPanel(false);
+    //setShowBidPanel(false);
 
     // prepare to confirm the bid using YesNoDlg
     if (bid == "PASO" || bid == "DOUBT") {
@@ -536,7 +540,7 @@ import { STICKS_BLINK_TIME, SHOWN_DICE_BLINK_TIME, SHAKE_CUPS_TIME } from '../Du
   }
 
   const handleOptObservers = () => {
-    observersRef.current = []; // ← Clear it first
+    observersRef.current = []; // Clear it first
     for (let cc=0; cc<MAX_CONNECTIONS; cc++) {
       if (ggc.allConnectionStatus[cc] === CONN_OBSERVER) {
         observersRef.current.push({ playerName: ggc.allParticipantNames[cc]});
@@ -556,6 +560,20 @@ import { STICKS_BLINK_TIME, SHOWN_DICE_BLINK_TIME, SHAKE_CUPS_TIME } from '../Du
       setShowGameSettingsDlg(false);
     });
 
+  }
+
+  const handleOptBidUIDropdown = () => {
+    ggc.allBidUIMode[myIndex] = 0;
+    socket.emit('BidUIMode', { lobbyId, index: myIndex, UIMode: 0 })
+
+    console.log ('GamePage: emiting "BidUIMode" with response 0');
+  }
+
+  const handleOptBidUIGrid = () => {
+    ggc.allBidUIMode[myIndex] = 1;
+    socket.emit('BidUIMode', { lobbyId, index: myIndex, UIMode: 1 })
+
+    console.log ('GamePage: emiting "BidUIMode" with response 0');
   }
 
   const handleOptHowToPlay = () => {
@@ -613,6 +631,7 @@ import { STICKS_BLINK_TIME, SHOWN_DICE_BLINK_TIME, SHAKE_CUPS_TIME } from '../Du
       //-------------------------------------------
 
       if (ggc.bDirectionInProgress) {
+        // first bid of round
         let s = (ggc.bPaloFijoRound ? 'PALO FIJO: ' : '');
         s += "You choose the direction";
         setRow2CurrentBid(s);
@@ -635,8 +654,11 @@ import { STICKS_BLINK_TIME, SHOWN_DICE_BLINK_TIME, SHAKE_CUPS_TIME } from '../Du
                               `Doubt the PASO or top the bid: ${ggc.curRound.Bids[ggc.FindLastNonPasoBid()].text}.` :
                               '');
         setSelectedBid (ggc.possibleBids[0]);
-        setShowBidPanel(true);
+        //setShowBidPanel(true);
       }
+
+      setShowBidDlg (true);
+
     } else {
       //-------------------------------------------
       // not my turn
@@ -1425,13 +1447,7 @@ useEffect(() => {
     if (ggc.SomebodyGotStick()) {
       delay += STICKS_BLINK_TIME;
     }
-//    if (ggc.ShouldAllRollDice()) {
-//      delay += SHAKE_CUPS_TIME;  
-//    }
     if (delay > 0) {
-  
-      console.log("DELAY - STICKS BLINKING", delay);
-
       setTimeout(() => {
         DoProcessBid();
       }, delay);
@@ -1441,75 +1457,50 @@ useEffect(() => {
   }
 
   function DoProcessBid() {
-      if (isMyTurn) {
-        // my turn
-        // populate the bid list
-        if (ggc.bPaloFijoRound) {
-          ggc.PopulateBidListPaloFijo();
-        } else {
-          ggc.PopulateBidListRegular();
-        }
-        ggc.PopulateBidListTrim();
-        setPossibleBids(ggc.possibleBids || []);
-        ggc.PopulateBidMatrix();
-        setBidMatrix(ggc.BidMatrix);
-
-        // show dialog, handle responses
-        if (ggc.curRound.whichDirection == undefined) {
-          //---------------------------------------------
-          // choose direction if starting a round
-          //---------------------------------------------
-          setTimeout(() => {
-            // wait until dice are shaken
-            let cc = ggc.getPlayerToLeft(myIndex);
-            setLeftTextDirection("to " + ggc.allParticipantNames[cc]);
-            cc = ggc.getPlayerToRight(myIndex);
-            setRightTextDirection("to " + ggc.allParticipantNames[cc]);
-            setOnLeftHandler(() => () => {
-              setShowDirectionDlg(false);
-              socket.emit('direction', { lobbyId, index: myIndex, direction: 1 })
-              PrepareBidUI();
-            });
-            setOnRightHandler(() => () => {
-              setShowDirectionDlg(false);
-              socket.emit('direction', { lobbyId, index: myIndex, direction: 2 })
-              PrepareBidUI();
-            });
-            setShowDirectionDlg(true);
-
-
-
-/*            
-            setYesNoMessage("You start the bidding.\nWhich way?");
-            setYesNoTitle("Choose direction");
-            let cc = ggc.getPlayerToLeft(myIndex);
-            setYesText("to " + ggc.allParticipantNames[cc]);
-            cc = ggc.getPlayerToRight(myIndex);
-            setNoText("to " + ggc.allParticipantNames[cc]);
-            setYesShowButton(true);
-            setNoShowButton(true);
-            setXShowButton(false);
-            setOnYesHandler(() => () => {
-              setShowYesNoDlg(false);
-              socket.emit('direction', { lobbyId, index: myIndex, direction: 1 })
-              PrepareBidUI();
-            });
-            setOnNoHandler(() => () => {
-              setShowYesNoDlg(false);
-              socket.emit('direction', { lobbyId, index: myIndex, direction: 2 })
-              PrepareBidUI();
-            });
-            setShowYesNoDlg(true);
-*/
-          }, SHAKE_CUPS_TIME);
-        } else {
-          PrepareBidUI();
-        }
+    if (isMyTurn) {
+      // my turn
+      // populate the bid list
+      if (ggc.bPaloFijoRound) {
+        ggc.PopulateBidListPaloFijo();
       } else {
-        // not my turn
-        // show current bid
+        ggc.PopulateBidListRegular();
+      }
+      ggc.PopulateBidListTrim();
+      setPossibleBids(ggc.possibleBids || []);
+      ggc.PopulateBidMatrix();
+      setBidMatrix(ggc.BidMatrix);
+
+      // show dialog, handle responses
+      if (ggc.curRound.whichDirection == undefined) {
+        //---------------------------------------------
+        // choose direction if starting a round
+        //---------------------------------------------
+        setTimeout(() => {
+          // wait until dice are shaken
+          let cc = ggc.getPlayerToLeft(myIndex);
+          setLeftTextDirection("to " + ggc.allParticipantNames[cc]);
+          cc = ggc.getPlayerToRight(myIndex);
+          setRightTextDirection("to " + ggc.allParticipantNames[cc]);
+          setOnLeftHandler(() => () => {
+            setShowDirectionDlg(false);
+            socket.emit('direction', { lobbyId, index: myIndex, direction: 1 })
+            PrepareBidUI();
+          });
+          setOnRightHandler(() => () => {
+            setShowDirectionDlg(false);
+            socket.emit('direction', { lobbyId, index: myIndex, direction: 2 })
+            PrepareBidUI();
+          });
+          setShowDirectionDlg(true);
+        }, SHAKE_CUPS_TIME);
+      } else {
         PrepareBidUI();
       }
+    } else {
+      // not my turn
+      // show current bid
+      PrepareBidUI();
+    }
   }
 
 }, [gameState, lobbyPlayers, isMyTurn, screenSize, imagesReady, socketId]);
@@ -1650,8 +1641,8 @@ useEffect(() => {
 
               {/* {ggc.bAskInOut && RenderInOut()} */}
 
-              {/* isMyTurn && RenderBid() */}
-              {isMyTurn && RenderGridBid()}
+              {isMyTurn && ggc.allBidUIMode[myIndex] === 0 && RenderBid()}
+              {isMyTurn && ggc.allBidUIMode[myIndex] === 1 && RenderGridBid()}
 
               {!ggc.bDoubtInProgress && !ggc.bShowDoubtResult && !ggc.bAskInOut && !isMyTurn && (
                 <div className="border border-primary rounded p-1">
@@ -1731,6 +1722,20 @@ useEffect(() => {
             rightText={rightTextDirection}
             onLeft={onLeftHandler}
             onRight={onRightHandler}
+          />
+        )}
+
+        {showBidDlg && (
+          <BidDlg
+            open={showBidDlg}
+            onHide={() => setShowBidDlg(false)}
+            title="Bid Dlg"
+            bidMatrix={bidMatrix}
+            yourTurnString={row2YourTurnString}
+            specialPasoString={row2SpecialPasoString}
+            ggc={ggc}
+            myIndex={myIndex}
+            onSubmit={handleBidOK}
           />
         )}
 
@@ -1859,28 +1864,53 @@ useEffect(() => {
                 onClick={handleOptBidHistory}
                 disabled={!ggc.bGameInProgress || ggc.curRound.numBids < 1}
               >
-                Bid History</button></li>
+                Bid History</button>
+              </li>
+
               <li><button className="dropdown-item" 
                 onClick={handleOptObservers}
               >
-                Observers</button></li>
+                Observers</button>
+              </li>
+
               <li><button className="dropdown-item" 
                 onClick={handleOptGameSettings}
                 disabled={!ggc.bGameInProgress}
               >
-                Game Settings</button></li>
+                Game Settings</button>
+              </li>
+
+              <li><button className="dropdown-item" 
+                onClick={handleOptBidUIDropdown}
+                disabled={!ggc.bGameInProgress}
+              >
+                Bid UI: dropdown list</button>
+              </li>
+
+              <li><button className="dropdown-item" 
+                onClick={handleOptBidUIGrid}
+                disabled={!ggc.bGameInProgress}
+              >
+                Bid UI: grid</button>
+              </li>
+
               <li><button className="dropdown-item" 
                 onClick={handleOptHowToPlay}
               >
-                How To Play</button></li>
+                How To Play</button>
+              </li>
+
               <li><button className="dropdown-item" 
                 onClick={handleOptAbout}
               >
-                About</button></li>
+                About</button>
+              </li>
+
               <li><button className="dropdown-item" 
                 onClick={handleOptHelp}
               >
-                Help</button></li>          
+                Help</button>
+              </li>          
             </ul>
           </div>
 

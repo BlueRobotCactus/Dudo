@@ -12,6 +12,8 @@ const CONN_PLAYER_IN_DISCONN = 5;
 const CONN_PLAYER_OUT_DISCONN = 6;
 const CONN_OBSERVER_DISCONN = 7;
 
+const MAX_PLAYERS = 8;
+
 // UI constants (milliseconds)
 const STICKS_BLINK_TIME = 3000;
 const SHOWN_DICE_BLINK_TIME = 4000;
@@ -53,9 +55,13 @@ export class DudoGame {
 	allParticipantNames = [];
 	allSticks = [];
 	allPasoUsed = [];
+	// for testing &&& keep track of each player's setting
+	// 0 = dropdown list
+	// 1 = grid
+	allBidUIMode = [];
+
 			
 	// game parameters
-	maxPlayers;
 	maxSticks;
 	bPasoAllowed;
 	bPaloFijoAllowed;
@@ -104,14 +110,13 @@ export class DudoGame {
 	// constructor
 	//****************************************************************
 	constructor() {
-		this.maxPlayers = 8;
-
 		for (let cc = 0; cc < MAX_CONNECTIONS; cc++) {
 			this.allParticipantNames[cc] = '';
 			this.allConnectionID[cc] = '';
 			this.allConnectionStatus[cc] = CONN_UNUSED;
 			this.allSticks[cc] = 0;
 			this.allPasoUsed[cc] = false;
+			this.allBidUIMode[cc] = 0;
 		}
 
 		// default game parameters
@@ -134,7 +139,7 @@ export class DudoGame {
 			this.bDiceHilite[i] = new Array(5);
 		}
 
-		this.BidMatrix = new Array(5 * this.maxPlayers);
+		this.BidMatrix = new Array(5 * MAX_PLAYERS);
 		for (let i = 0; i < 6; i++) {
 			this.BidMatrix[i] = new Array(6);
 		}

@@ -900,7 +900,27 @@ io.on('connection', (socket) => {
       }
     }
   });
+
+  //************************************************************
+  // socket.on
+  // BidUIMode
+  //************************************************************
+  socket.on('BidUIMode', ({ lobbyId, index, UIMode }) => {
+    const lobby = lobbies[lobbyId];
+    const ggs = lobby.game;
+
+    ggs.allBidUIMode[index] = UIMode;
+    console.log('server.js: BidUIMode (index,mode): ', index, ' ', UIMode);
+
+    io.to(lobbyId).emit('gameStateUpdate', lobby.game);
+  });
+
 });
+//**************************************************************
+//**************************************************************
+//  end of socket.on
+//**************************************************************
+//**************************************************************
 
 // ------------------------------
 // Express Endpoint: Lobbies
