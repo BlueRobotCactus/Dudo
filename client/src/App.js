@@ -15,6 +15,7 @@ import LandingPage from './pages/LandingPage.js';
 import GamePage from './pages/GamePage.js';
 import HowToPlayPage from './pages/HowToPlayPage.js';
 import AboutPage from './pages/AboutPage.js';
+import { SoundRefsProvider } from './SoundRefsContext.js';
 
 function App() {
   // Initialize from localStorage, or empty string if nothing
@@ -30,6 +31,7 @@ function App() {
 
   return (
    <div className="app-wrapper">
+    <SoundRefsProvider>
       <ImageRefsProvider>
         <Router>
           <Routes>
@@ -43,6 +45,7 @@ function App() {
           </Routes>
         </Router>
       </ImageRefsProvider>
+    </SoundRefsProvider>
   </div>
   );
 }

@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef, useContext } from 'react';
 import './PlayerGrid.css';
 import { SocketContext } from '../SocketContext.js';
 import { ImageRefsContext } from '../ImageRefsContext.js';
-import { DudoGame, DudoRound } from '../DudoGameC.js';
+import { SoundRefsContext } from '../SoundRefsContext.js';
 import { MAX_CONNECTIONS, CONN_PLAYER_IN, CONN_PLAYER_OUT } from '../DudoGameC.js';
 import { STICKS_BLINK_TIME, SHOWN_DICE_BLINK_TIME, SHAKE_CUPS_TIME } from '../DudoGameC.js';
 
@@ -38,6 +38,13 @@ export function PlayerGrid({ lobbyId, ggc, myIndex, cc }) {
   } = useContext(ImageRefsContext);
 
   // sounds
+  const { 
+    ShakeRefs, 
+    RollRefs, 
+    soundsReady 
+  } = useContext(SoundRefsContext);
+
+/*  
   const Shake10Ref = useRef(null);
   const Shake01Ref = useRef(null);
   const Shake02Ref = useRef(null);
@@ -59,7 +66,8 @@ export function PlayerGrid({ lobbyId, ggc, myIndex, cc }) {
                      Roll02Ref.current,
                      Roll03Ref.current,
                      Roll04Ref.current]
-                      
+*/
+
   //*****************************************************************
   // useEffect:  END OF ROUND
   //             [ggc.bGameInProgress, ggc.curRound.numBids, ggc.firstRound]
@@ -120,10 +128,13 @@ export function PlayerGrid({ lobbyId, ggc, myIndex, cc }) {
   }, [ggc.curRound?.numBids, ggc.bGameInProgress, ggc.curRound?.Bids, cc]);
 
   //--------------------------------------------------------
-  // bail out if images are not ready
+  // bail out if images or sounds are not ready
   //--------------------------------------------------------
   if (!imagesReady) {
     return <div>Loading images...</div>;
+  }
+  if (!soundsReady) {
+    return <div>Loading sounds...</div>;
   }
 
   //--------------------------------------------------------
@@ -307,20 +318,20 @@ export function PlayerGrid({ lobbyId, ggc, myIndex, cc }) {
     setCupShaking(true);
 
     // play the shake sound
-    ShakeArray[reroll].currentTime = 0;
-    ShakeArray[reroll].play();
+    ShakeRefs[reroll].currentTime = 0;
+    ShakeRefs[reroll].current.play();
 
     setTimeout(() => {
       // stop the animation
       setCupShaking(false)
 
       // stop shake sound
-      ShakeArray[reroll].pause();
-      ShakeArray[reroll].currentTime = 0;
+      ShakeRefs[reroll].current.pause();
+      ShakeRefs[reroll].currentTime = 0;
 
       // play the roll sound
-      RollArray[reroll].currentTime = 0;
-      RollArray[reroll].play();
+      RollRefs[reroll].currentTime = 0;
+      RollRefs[reroll].current.play();
     }, SHAKE_CUPS_TIME);
   }
 
@@ -675,17 +686,6 @@ export function PlayerGrid({ lobbyId, ggc, myIndex, cc }) {
           </div>
         )}
       </div>
-      <audio ref={Shake10Ref} src="/sounds/Shake10.mp3" preload="auto" />
-      <audio ref={Shake01Ref} src="/sounds/Shake01.mp3" preload="auto" />
-      <audio ref={Shake02Ref} src="/sounds/Shake02.mp3" preload="auto" />
-      <audio ref={Shake03Ref} src="/sounds/Shake03.mp3" preload="auto" />
-      <audio ref={Shake04Ref} src="/sounds/Shake04.mp3" preload="auto" />
-
-      <audio ref={Roll10Ref} src="/sounds/Roll10.mp3" preload="auto" />
-      <audio ref={Roll01Ref} src="/sounds/Roll01.mp3" preload="auto" />
-      <audio ref={Roll02Ref} src="/sounds/Roll02.mp3" preload="auto" />
-      <audio ref={Roll03Ref} src="/sounds/Roll03.mp3" preload="auto" />
-      <audio ref={Roll04Ref} src="/sounds/Roll04.mp3" preload="auto" />
     </div>
 
   );
