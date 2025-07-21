@@ -512,6 +512,7 @@ import { STICKS_BLINK_TIME, SHOWN_DICE_BLINK_TIME, SHAKE_CUPS_TIME } from '../Du
 
     setThisBid (bid);
     myShowShakeRef.current = bShowShake;
+    setShowBidDlg(false); // in case we're using it
     //setShowBidPanel(false);
 
     // prepare to confirm the bid using YesNoDlg
@@ -657,7 +658,9 @@ import { STICKS_BLINK_TIME, SHOWN_DICE_BLINK_TIME, SHAKE_CUPS_TIME } from '../Du
         //setShowBidPanel(true);
       }
 
-      setShowBidDlg (true);
+      if (ggc.allBidUIMode[myIndex] === 1) {
+        setShowBidDlg (true);
+      }
 
     } else {
       //-------------------------------------------
@@ -1642,7 +1645,7 @@ useEffect(() => {
               {/* {ggc.bAskInOut && RenderInOut()} */}
 
               {isMyTurn && ggc.allBidUIMode[myIndex] === 0 && RenderBid()}
-              {isMyTurn && ggc.allBidUIMode[myIndex] === 1 && RenderGridBid()}
+              {/* isMyTurn && ggc.allBidUIMode[myIndex] === 1 && RenderGridBid() */}
 
               {!ggc.bDoubtInProgress && !ggc.bShowDoubtResult && !ggc.bAskInOut && !isMyTurn && (
                 <div className="border border-primary rounded p-1">
@@ -1729,7 +1732,6 @@ useEffect(() => {
           <BidDlg
             open={showBidDlg}
             onHide={() => setShowBidDlg(false)}
-            title="Bid Dlg"
             bidMatrix={bidMatrix}
             yourTurnString={row2YourTurnString}
             specialPasoString={row2SpecialPasoString}

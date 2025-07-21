@@ -225,7 +225,6 @@ export function DirectionDlg({
 export function BidDlg({ 
   open, 
   onHide, 
-  title, 
   bidMatrix,
   yourTurnString,
   specialPasoString,
@@ -265,7 +264,7 @@ export function BidDlg({
   //----------------------------------------------------
   const CanShowShake = (bid) => {
     // no, if special strings
-    if (bid == "PASO" || bid == "DOUBT" || bid == "--Select--") {
+    if (bid === "PASO" || bid === "DOUBT" || bid === "--Select--" || bid === "") {
       return false;
     }
 
@@ -296,126 +295,132 @@ export function BidDlg({
     onHide();                          // optional: close dialog
   };
 
-  //****************************************************
+  //----------------------------------------------------
   // RENDER 
-  //****************************************************
+  //----------------------------------------------------
   return (
-    <Modal
-      show={open}
-      onHide={onHide}
-      backdrop="static"
-      keyboard={!minimized}
-      dialogClassName={minimized ? 'minimized-modal' : ''}
-    >
-      <Modal.Header
-        closeButton
-        className="bg-primary text-white py-2 px-3"
-        onClick={handleToggle}
-        style={{ cursor: 'pointer' }}
+    open && (
+      <div
+        className={`floating-dialog border border-primary rounded-3 bg-white shadow ${minimized ? 'minimized' : ''}`}
+style={{
+  position: 'fixed',
+  top: '10vh',
+  left: '50%',
+  transform: 'translateX(-50%)',
+  zIndex: 2000,
+  width: '80vw',
+  maxWidth: '600px',
+  height: minimized ? 'auto' : 'fit-content',
+  overflow: 'hidden',
+  borderRadius: '0.5rem',
+  padding: 0,
+  whiteSpace: 'nowrap',
+}}
       >
-        <Modal.Title style={{ fontSize: '1rem' }}>
-          {title} {minimized ? '(Tap to Expand)' : '(Tap to Minimize)'}
-        </Modal.Title>
-      </Modal.Header>
+        <div
+          className="bg-primary text-white py-2 px-3 d-flex justify-content-between align-items-center"
+          style={{ cursor: 'pointer', borderTopLeftRadius: '0.4rem', borderTopRightRadius: '0.4rem' }}
+          onClick={handleToggle}
+        >
+          <div style={{ fontSize: '1rem' }}>
+            {minimized ? 'Tap/Click to bid' : 'Make a Bid  (Tap/Click to see table)'}
+          </div>
+        </div>
 
-      {!minimized && (
-        <Modal.Body style={{ padding: '1rem' }}>
-          <div className="border border-primary rounded p-2">
-            {/* Row 1: header message (span all 8 cols) */}
-            <div style={{ marginBottom: '0.5rem' }}>
-              <p className="fw-bold mb-1">{yourTurnString}</p>
-              <p className="fw-bold mb-0">{specialPasoString}</p>
-            </div>
-
-            <div
-              className="d-grid"
-              style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(7, auto) auto', // 7 bid columns + 1 right column
-                gridTemplateRows: `repeat(${bidGridRows}, auto)`, // each row of BidGrid = 1 row
-                columnGap: '0.75rem',
-                rowGap: '0.25rem',
-              }}
-            >
-              {/* BidGrid: spans 7 columns and all rows */}
-              <div style={{ gridColumn: '1 / span 7', gridRow: `1 / span ${bidGridRows}` }}>
-                <BidGrid
-                  validBids={bidMatrix}
-                  onBidSelect={(row, col) => {
-                    console.log(`You selected: ${row + 1} x ${col + 1}`);
-                    setSelectedBid(`${row + 1} - ${col + 1}`);
-                  }}
-                />
+        {!minimized && (
+          <div className="p-3">
+            <div className="border border-primary rounded p-2">
+              {/* Row 1: header message (span all 8 cols) */}
+              <div style={{ marginBottom: '0.5rem' }}>
+                <p className="fw-bold mb-1">{yourTurnString}</p>
+                <p className="fw-bold mb-0">{specialPasoString}</p>
               </div>
 
-              {/* Right-side controls aligned with rows 1–4 */}
-
-              {/* Row 1: Checkbox */}
-              <div style={{ gridColumn: 8, gridRow: 1 }}>
-                <div className="form-check">
-                  <input
-                    className="form-check-input"
-                    type="checkbox"
-                    id="showShakeCheckbox"
-                    disabled={!canShowShake}
-                    checked={bidShowShake}
-                    onChange={(e) => setBidShowShake(e.target.checked)}
+              <div
+                className="d-grid"
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(7, auto) auto',
+                  gridTemplateRows: `repeat(${bidGridRows}, auto)`,
+                  columnGap: '0.75rem',
+                  rowGap: '0.25rem',
+                }}
+              >
+                {/* BidGrid: spans 7 columns and all rows */}
+                <div style={{ 
+                  gridColumn: '1 / span 7', 
+                  gridRow: `1 / span ${bidGridRows}`,
+                  maxHeight: '70vh',
+                  overflowY: 'auto',  // enables vertical scroll
+                  paddingRight: '.50rem',
+                  }}>
+                  <BidGrid
+                    validBids={bidMatrix}
+                    onBidSelect={(row, col) => {
+                      console.log(`You selected: ${row + 1} x ${col + 1}`);
+                      setSelectedBid(`${row + 1} - ${col + 1}`);
+                    }}
                   />
-                  <label
-                    className="form-check-label"
-                    htmlFor="showShakeCheckbox"
-                    style={{ color: canShowShake ? 'black' : 'gray' }}
-                  >
-                    Show
-                  </label>
                 </div>
-              </div>
 
-              {/* Row 2: Bid button */}
-              <div style={{ gridColumn: 8, gridRow: 2 }}>
-                <button
-                  className="btn btn-primary btn-sm w-100"
-                  disabled={selectedBid === '--Select--'}
-                  onClick={() => handleSubmit(selectedBid, bidShowShake)}
-                >
-                  Bid
-                </button>
-              </div>
+                {/* Right-side controls aligned with rows 1–4 */}
+                <div style={{ gridColumn: 8, gridRow: 1 }}>
+                  <div className="form-check">
+                    <input
+                      className="form-check-input"
+                      type="checkbox"
+                      id="showShakeCheckbox"
+                      disabled={!canShowShake}
+                      checked={bidShowShake}
+                      onChange={(e) => setBidShowShake(e.target.checked)}
+                    />
+                    <label
+                      className="form-check-label"
+                      htmlFor="showShakeCheckbox"
+                      style={{ color: canShowShake ? 'black' : 'gray' }}
+                    >
+                      Show
+                    </label>
+                  </div>
+                </div>
 
-              {/* Row 3: Doubt button */}
-              <div style={{ gridColumn: 8, gridRow: 3 }}>
-                <button
-                  className="btn btn-danger btn-sm text-white w-100"
-                  disabled={!ggc.curRound.numBids > 0}
-                  onClick={() => handleSubmit('DOUBT', bidShowShake)}
-                >
-                  Doubt
-                </button>
-              </div>
-
-              {/* Row 4: Paso button */}
-              {ggc.bPasoAllowed && (
-                <div style={{ gridColumn: 8, gridRow: 4 }}>
+                <div style={{ gridColumn: 8, gridRow: 2 }}>
                   <button
-                    className="btn btn-outline-secondary btn-sm w-100"
-                    disabled={!ggc.CanPaso()}
-                    onClick={() => handleSubmit('PASO', bidShowShake)}
+                    className="btn btn-primary btn-sm w-100"
+                    disabled={selectedBid === '--Select--' || selectedBid === ''}
+                    onClick={() => handleSubmit(selectedBid, bidShowShake)}
                   >
-                    Paso
+                    Bid
                   </button>
                 </div>
-              )}
+
+                <div style={{ gridColumn: 8, gridRow: 3 }}>
+                  <button
+                    className="btn btn-danger btn-sm text-white w-100"
+                    disabled={!ggc.curRound.numBids > 0}
+                    onClick={() => handleSubmit('DOUBT', bidShowShake)}
+                  >
+                    Doubt
+                  </button>
+                </div>
+
+                {ggc.bPasoAllowed && (
+                  <div style={{ gridColumn: 8, gridRow: 4 }}>
+                    <button
+                      className="btn btn-outline-secondary btn-sm w-100"
+                      disabled={!ggc.CanPaso()}
+                      onClick={() => handleSubmit('PASO', bidShowShake)}
+                    >
+                      Paso
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
-        </Modal.Body>
-      )}
-
-      {!minimized && (
-        <Modal.Footer>
-          <Button variant="secondary" onClick={onHide}>Close</Button>
-        </Modal.Footer>
-      )}
-    </Modal>
+        )}
+      </div>
+    )
   );
 }
 
