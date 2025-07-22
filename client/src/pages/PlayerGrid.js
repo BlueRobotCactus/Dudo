@@ -44,30 +44,6 @@ export function PlayerGrid({ lobbyId, ggc, myIndex, cc }) {
     soundsReady 
   } = useContext(SoundRefsContext);
 
-/*  
-  const Shake10Ref = useRef(null);
-  const Shake01Ref = useRef(null);
-  const Shake02Ref = useRef(null);
-  const Shake03Ref = useRef(null);
-  const Shake04Ref = useRef(null);
-  const Roll10Ref = useRef(null);
-  const Roll01Ref = useRef(null);
-  const Roll02Ref = useRef(null);
-  const Roll03Ref = useRef(null);
-  const Roll04Ref = useRef(null);
-  
-  const ShakeArray = [Shake10Ref.current,
-                      Shake01Ref.current,
-                      Shake02Ref.current,
-                      Shake03Ref.current,
-                      Shake04Ref.current]
-  const RollArray = [Roll10Ref.current, 
-                     Roll01Ref.current,
-                     Roll02Ref.current,
-                     Roll03Ref.current,
-                     Roll04Ref.current]
-*/
-
   //*****************************************************************
   // useEffect:  END OF ROUND
   //             [ggc.bGameInProgress, ggc.curRound.numBids, ggc.firstRound]

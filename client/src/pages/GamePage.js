@@ -10,7 +10,7 @@ import tableBackground from '../assets/table-background.png';
 import tableBackgroundFaded from '../assets/table-background-faded.png';
 import './GamePage.css';
 
-import { ConfirmBidDlg } from '../Dialogs.js';
+//import { ConfirmBidDlg } from '../Dialogs.js';
 import { InOutDlg } from '../Dialogs.js';
 import { DirectionDlg } from '../Dialogs.js';
 import { OkDlg } from '../Dialogs.js';
@@ -109,9 +109,9 @@ import { STICKS_BLINK_TIME, SHOWN_DICE_BLINK_TIME, SHAKE_CUPS_TIME } from '../Du
 
     // dialogs
     // confirm Bid (obsolete)
-    const [showConfirmBidDlg, setShowConfirmBidDlg] = useState(false);
-    const [confirmPosition, setConfirmPosition] = useState({ x: 200, y: 200 });
-    const [confirmMessage, setConfirmMessage] = useState('');
+//    const [showConfirmBidDlg, setShowConfirmBidDlg] = useState(false);
+//    const [confirmPosition, setConfirmPosition] = useState({ x: 200, y: 200 });
+//    const [confirmMessage, setConfirmMessage] = useState('');
 
     // In / Out
     const [showInOutDlg, setShowInOutDlg] = useState(false);
@@ -325,7 +325,7 @@ import { STICKS_BLINK_TIME, SHOWN_DICE_BLINK_TIME, SHAKE_CUPS_TIME } from '../Du
     console.log("GamePage: entering function: handleGameStateUpdate");
 
     // close down any dialogs
-    setShowConfirmBidDlg (false);
+    //setShowConfirmBidDlg (false);
     setShowOkDlg (false);
     setShowYesNoDlg (false);
     setShowLiftCupDlg (false);
@@ -957,6 +957,7 @@ import { STICKS_BLINK_TIME, SHOWN_DICE_BLINK_TIME, SHAKE_CUPS_TIME } from '../Du
   // functions handle Yes, No from ConfirmBidDlg
   // (obsolete)
   //************************************************************
+  /*
   const handleConfirmBidYes = () => {
     setShowConfirmBidDlg(false);
 
@@ -977,7 +978,7 @@ import { STICKS_BLINK_TIME, SHOWN_DICE_BLINK_TIME, SHAKE_CUPS_TIME } from '../Du
     setThisBid('');
     PrepareBidUI();
   };
-  
+  */
   //************************************************************
   // useEffect:  LISTENERS ON [socket, connected]
   //             turn on listeners 
@@ -1446,10 +1447,23 @@ useEffect(() => {
   function DrawProcessBid() {
 
     // wait for UI to be ready
+    // all shaking dice?
     let delay = 0;
     if (ggc.SomebodyGotStick()) {
+      console.log('Gamepage.js: delaying bid, SomebodyGotStick');
       delay += STICKS_BLINK_TIME;
     }
+    // last bid show/shake?
+    if (ggc.bGameInProgress && ggc.curRound.numBids > 0) {
+      const lastBid = ggc.curRound?.Bids[ggc.curRound?.numBids - 1];
+      if (!lastBid.didUIShake) {
+        if (lastBid.bShowShake) {
+          console.log('Gamepage.js: delaying bid, lastBid.bShowShake');
+          delay += (SHOWN_DICE_BLINK_TIME + SHAKE_CUPS_TIME);
+        }
+      } 
+    }
+    // apply delay, if any
     if (delay > 0) {
       setTimeout(() => {
         DoProcessBid();
@@ -1526,6 +1540,7 @@ useEffect(() => {
   //  function Draw Doubt in Progress
   //  (obsolete)
   //************************************************************
+  /*
   function DrawDoubtInProgress () {
     // prepare strings to say what happened
     let s1 = "";  // who doubted whom
@@ -1561,11 +1576,12 @@ useEffect(() => {
     setRow2DoubtWin('');
     setIsMyTurn(false);
   }
-
+*/
   //************************************************************
   //  function Draw Doubt Result
   //  obsolete?
   //************************************************************
+  /*
   function DrawDoubtResult() {
     // prepare strings to say what happened
     let s1 = "";  // who doubted whom
@@ -1610,7 +1626,7 @@ useEffect(() => {
     }
     setIsMyTurn(false);
   }
-
+*/
   //************************************************************
   //************************************************************
   //  Render 
@@ -1696,6 +1712,7 @@ useEffect(() => {
         {/*-------------------------------------------------------------------
           DIALOGS
         --------------------------------------------------------------------*/}
+        {/*
         {showConfirmBidDlg && (
           <ConfirmBidDlg
             open={showConfirmBidDlg}
@@ -1706,6 +1723,7 @@ useEffect(() => {
             onNo={handleConfirmBidNo}
           />
         )}
+        */}
 
         {showInOutDlg && (
           <InOutDlg
