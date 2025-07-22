@@ -572,13 +572,11 @@ export class DudoGame {
 					for (let i = 0; i < (5 * this.GetNumberPlayersStillIn()) - this.parsedHowMany; i++) {
 						// list non-aces first
 						for (let j = 1; j < 6; j++) {
-							bidStr = (this.parsedHowMany + 1 + i).toString() + " - ";
-							bidStr += (j + 1).toString();
+							bidStr = this.GenerateBidString (this.parsedHowMany + 1 + i, j + 1);
 							this.possibleBids.push(bidStr);
 						}
 						// then put aces after
-						bidStr = (this.parsedHowMany + 1 + i).toString() + " - ";
-						bidStr += "aces";
+						bidStr = this.GenerateBidString (this.parsedHowMany + 1 + i, 1);
 						this.possibleBids.push(bidStr);
 					}
 					return;
@@ -587,7 +585,7 @@ export class DudoGame {
 		}
 
 		//------------------------------------------------------------
-		// generate (and count) possible bids
+		// generate possible bids
 		//------------------------------------------------------------
 		if (this.parsedOfWhat != 1) {
 				//--------------------------------------------------------
@@ -596,33 +594,28 @@ export class DudoGame {
 				// baja de aces bids
 				for (let i = 0; i < Math.floor(this.parsedHowMany / 2); i++) {
 					const temp = Math.floor(this.parsedHowMany / 2) + (this.parsedHowMany) % 2 + i;
-					bidStr = temp.toString() + " - ";
-					bidStr += "aces";
+					bidStr = this.GenerateBidString (temp, 1);
 					this.possibleBids.push(bidStr);
 				}
 				// same level bids
 				// list non-aces first
 				for (let i = 0; i < 6 - this.parsedOfWhat; i++) {
-					bidStr = (this.parsedHowMany).toString() + " - ";
-					bidStr += (this.parsedOfWhat + 1 + i).toString();
+					bidStr = this.GenerateBidString (this.parsedHowMany, (this.parsedOfWhat + 1 + i));
 					this.possibleBids.push(bidStr);
 				}
 				// then put aces after
-				bidStr = (this.parsedHowMany).toString() + " - ";
-				bidStr += "aces";
+				bidStr = this.GenerateBidString(this.parsedHowMany, 1);			
 				this.possibleBids.push(bidStr);
 				
 				// next level bids
 				for (let howMany = 0; howMany < (5 * this.GetNumberPlayersStillIn()) - this.parsedHowMany; howMany++) {
 					// list non-aces first
 					for (let j = 1; j < 6; j++) {
-						bidStr = (this.parsedHowMany + 1 + howMany).toString() + " - ";
-						bidStr += (j + 1).toString();
+						bidStr = this.GenerateBidString(this.parsedHowMany + 1 + howMany, j +1);
 						this.possibleBids.push(bidStr);
 					}
 					// then put aces after
-					bidStr = (this.parsedHowMany + 1 + howMany).toString() + " - ";
-					bidStr += "aces";
+					bidStr = this.GenerateBidString(this.parsedHowMany + 1 + howMany, 1)
 					this.possibleBids.push(bidStr);
 				}
 		} else {
@@ -634,13 +627,11 @@ export class DudoGame {
 					for (let i = 0; i < (5 * this.GetNumberPlayersStillIn()) - this.parsedHowMany; i++) {
 						// list non-aces first
 						for (let j = 1; j < 6; j++) {
-							bidStr = (this.parsedHowMany + 1 + i).toString() + " - ";
-							bidStr += (j + 1).toString();
+							bidStr = this.GenerateBidString(this.parsedHowMany + 1 + i, j + 1)
 							this.possibleBids.push(bidStr);
 						}
 						// then put aces after
-						bidStr = (this.parsedHowMany + 1 + i).toString() + " - ";
-						bidStr += "aces";
+						bidStr = this.GenerateBidString(this.parsedHowMany + 1 + i, 1)
 						this.possibleBids.push(bidStr);
 					}
 				} else {
@@ -650,21 +641,18 @@ export class DudoGame {
 						if (numAces > 5 * this.GetNumberPlayersStillIn()) {
 							break;
 						}
-						bidStr = (numAces).toString() + " - ";
-						bidStr += "aces";
+						bidStr = this.GenerateBidString(numAces, 1);
 						this.possibleBids.push(bidStr);
 				}
 				// next level bids (double + 1)
 				for (let i = 0; i < (5 * this.GetNumberPlayersStillIn()) - ( 2 * this.parsedHowMany); i++) {
 					// list non-aces first
 					for (let j = 1; j < 6; j++) {
-						bidStr = (2 * this.parsedHowMany + 1 + i)+ " - ";
-						bidStr += (j + 1);
+						bidStr = this.GenerateBidString(2 * this.parsedHowMany + 1 + i, j + 1);
 						this.possibleBids.push(bidStr);
 					}
 					// then put aces after
-					bidStr = (2 * this.parsedHowMany + 1 + i)+ " - ";
-					bidStr += "aces";
+					bidStr = this.GenerateBidString(2 * this.parsedHowMany + 1 + i, 1)
 					this.possibleBids.push(bidStr);
 				}
 			}
@@ -732,26 +720,22 @@ export class DudoGame {
 				//--------------------------------------------------------
 				// same level bids
 				for (let i = 0; i < 6 - this.parsedOfWhat; i++) {
-					bidStr = (this.parsedHowMany).toString() + " - ";
-					bidStr += (this.parsedOfWhat + 1 + i).toString();
+					bidStr = this.GenerateBidString(this.parsedHowMany, this.parsedOfWhat + 1 + i);
 					this.possibleBids.push(bidStr);
 				}
 				// put aces after the rest (aces are highest in palofijo)
-				bidStr = (this.parsedHowMany).toString() + " - ";
-				bidStr += "aces";
+				bidStr = this.GenerateBidString(this.parsedHowMany, 1)
 				this.possibleBids.push(bidStr);
 
 				// next level bids
 				for (let i = 0; i < (5 * this.GetNumberPlayersStillIn()) - this.parsedHowMany; i++) {
 					for (let j = 1; j < 6; j++) {
-						bidStr = (this.parsedHowMany + 1 + i).toString() + " - ";
-						bidStr += (j + 1);
+						bidStr = this.GenerateBidString(this.parsedHowMany + 1 + i, j + 1);
 						this.possibleBids.push(bidStr);
 					}
 					// aces on top
-				bidStr = (this.parsedHowMany + 1 + i).toString() + " - ";
-				bidStr += "aces";
-				this.possibleBids.push(bidStr);
+					bidStr = this.GenerateBidString(this.parsedHowMany + 1 + i, 1);
+					this.possibleBids.push(bidStr);
 				}
 		} else {
 			//--------------------------------------------------------
@@ -759,20 +743,17 @@ export class DudoGame {
 			//--------------------------------------------------------
 			// raise aces bid
 			for (let i = 0; i < this.parsedHowMany - 1; i++) {
-				bidStr = ((this.parsedHowMany) + 1 + i).toString() + " - ";
-				bidStr += "aces";
+				bidStr = this.GenerateBidString(this.parsedHowMany + 1 + i, 1);
 				this.possibleBids.push(bidStr);
 			}
 			// next level bids
 			for (let i = 0; i < (5 * this.GetNumberPlayersStillIn()) - this.parsedHowMany; i++) {
 				for (let j = 1; j < 6; j++) {
-					bidStr = (this.parsedHowMany + 1 + i).toString() + " - ";
-					bidStr += (j + 1);
+					bidStr = this.GenerateBidString(this.parsedHowMany + 1 + i, j + 1);
 					this.possibleBids.push(bidStr);
 				}
 				// aces on top
-				bidStr = (this.parsedHowMany + 1 + i).toString() + " - ";
-				bidStr += "aces";
+				bidStr = this.GenerateBidString(this.parsedHowMany + 1 + i, 1);
 				this.possibleBids.push(bidStr);
 			}
 		}
@@ -782,12 +763,7 @@ export class DudoGame {
 			// I can only raise or doubt
 			//--------------------------------------------------------
 			for (let i = this.parsedHowMany; i < this.GetNumberPlayersStillIn() * 5; i++) {
-				bidStr = (i + 1).toString() + " - ";
-				if (this.parsedOfWhat == 1) {
-					bidStr += "aces";
-				} else {
-					bidStr += (this.parsedOfWhat).toString();
-				}
+				bidStr = this.GenerateBidString(i + 1, this.parsedOfWhat);
 				this.possibleBids.push(bidStr);
 			}
 		}
@@ -801,23 +777,12 @@ export class DudoGame {
 		for (let howMany = 0; howMany < this.GetNumberPlayersStillIn() * 5; howMany++) {
 			// list non-aces first
 			for (let ofWhat = 1; ofWhat < 6; ofWhat++) {
-				sTemp = (howMany + 1) + " - " +  (ofWhat + 1);
+				sTemp = this.GenerateBidString(howMany  + 1, ofWhat + 1);
 				this.possibleBids.push(sTemp);
 			}
 			// then put aces after
-			sTemp = (howMany + 1) + " - aces";
+			sTemp = this.GenerateBidString(howMany + 1, 1);
 			this.possibleBids.push(sTemp);
-		}
-	}
-
-	//****************************************************************
-	// Trim the bid list (1 - aces) => (1 - ace)
-	//****************************************************************
-	PopulateBidListTrim () {
-		for (let i = 0; i < this.possibleBids.length; i++) {
-			if (this.possibleBids[i] == "1 - aces") {
-				this.possibleBids[i] = "1 - ace";
-			}
 		}
 	}
 
@@ -839,6 +804,61 @@ export class DudoGame {
 			const row = this.parsedHowMany - 1;
 			const col = (this.parsedOfWhat === 1 ? 5: this.parsedOfWhat - 2);	// aces go at the end
 			this.BidMatrix[row][col] = true;
+		}
+	}
+
+	//****************************************************************
+	// Generate bid string
+	//	inputs:  number, face
+	//	output:  string of form (a - b)
+	//****************************************************************
+	GenerateBidString (num, face) {
+		let str = '';
+
+		if (face === 1) {
+			str = num.toString() + " - ace";
+		} else {
+			str = num.toString() + " - " + face.toString();
+		}
+		if (num > 1) {
+			str += 's';
+		}
+		return str;
+	}
+
+	//****************************************************************
+	// Extract from bid string (inverse of GenerateBidString())
+	//	inputs:  string of form '(a - b)'
+	//	output:  2 integers: number, face (as an object)
+	//****************************************************************
+	ExtractBidString(bidString) {
+		let num = 0;
+		let face = 0;
+		let str = bidString;
+
+		// remove trailing 's'
+		if (str.endsWith('s')) {
+			str = str.slice(0, -1);
+		}
+
+		// split the cleaned string
+		const sSplit = str.split(" ");
+		if (sSplit.length === 3) {
+			num = Number(sSplit[0]);  
+			face = (sSplit[2] === "ace") ? 1 : Number(sSplit[2]);
+		}
+
+		return [num, face];
+	}
+
+	//****************************************************************
+	// Trim the bid list (1 - aces) => (1 - ace)
+	//****************************************************************
+	PopulateBidListTrim () {
+		for (let i = 0; i < this.possibleBids.length; i++) {
+			if (this.possibleBids[i] == "1 - aces") {
+				this.possibleBids[i] = "1 - ace";
+			}
 		}
 	}
 

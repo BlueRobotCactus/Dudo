@@ -123,6 +123,7 @@ import { STICKS_BLINK_TIME, SHOWN_DICE_BLINK_TIME, SHAKE_CUPS_TIME } from '../Du
 
     // choose direction
     const [showDirectionDlg, setShowDirectionDlg] = useState(false);
+    const [titleDirection, setTitleDirection] = useState('');
     const [leftTextDirection, setLeftTextDirection] = useState(false);
     const [rightTextDirection, setRightTextDirection] = useState(false);
     const [onLeftHandler, setOnLeftHandler] = useState(() => () => {});
@@ -510,19 +511,27 @@ import { STICKS_BLINK_TIME, SHOWN_DICE_BLINK_TIME, SHAKE_CUPS_TIME } from '../Du
     console.log("GamePage: entering function: handleBidOK()");
     console.log("GamePage: selected bid:", bid, " show/shake = ", bShowShake);
 
-    setThisBid (bid);
+    // standardize the bid text
+    let theBid;
+    if (bid === 'PASO' || bid === 'DOUBT') {
+      theBid = bid;
+    } else {
+      const [num, face] = ggc.ExtractBidString(bid);
+      theBid = ggc.GenerateBidString(num, face);
+    }
+
     myShowShakeRef.current = bShowShake;
     setShowBidDlg(false); // in case we're using it
     //setShowBidPanel(false);
 
     // prepare to confirm the bid using YesNoDlg
-    if (bid == "PASO" || bid == "DOUBT") {
-      PrepareConfirmBidDlg('Your bid is:\n' + bid + '\n\nSubmit this bid?', bid);
+    if (bid === "PASO" || bid === "DOUBT") {
+      PrepareConfirmBidDlg('Your bid is:\n' + theBid + '\n\nSubmit this bid?', theBid);
     } else {
         if (bShowShake) {
-          PrepareConfirmBidDlg('Your bid is:\n' + bid + ', Show and Shake\n\nSubmit this bid?', bid);
+          PrepareConfirmBidDlg('Your bid is:\n' + theBid + ', Show and Shake\n\nSubmit this bid?', theBid);
         } else {
-          PrepareConfirmBidDlg('Your bid is:\n' + bid + ', No  Show\n\nSubmit this bid?', bid);
+          PrepareConfirmBidDlg('Your bid is:\n' + theBid + ', No  Show\n\nSubmit this bid?', theBid);
         }
     }
     setShowYesNoDlg(true);
@@ -564,6 +573,7 @@ import { STICKS_BLINK_TIME, SHOWN_DICE_BLINK_TIME, SHAKE_CUPS_TIME } from '../Du
   }
 
   const handleOptBidUIDropdown = () => {
+    setShowBidDlg (false);
     ggc.allBidUIMode[myIndex] = 0;
     socket.emit('BidUIMode', { lobbyId, index: myIndex, UIMode: 0 })
 
@@ -753,7 +763,7 @@ import { STICKS_BLINK_TIME, SHOWN_DICE_BLINK_TIME, SHAKE_CUPS_TIME } from '../Du
     });
     setOnNoHandler(() => () => {
       setShowYesNoDlg(false);
-      setThisBid('');
+      //setThisBid('');
       PrepareBidUI();
     });
 
@@ -1453,6 +1463,7 @@ useEffect(() => {
       console.log('Gamepage.js: delaying bid, SomebodyGotStick');
       delay += STICKS_BLINK_TIME;
     }
+/*    
     // last bid show/shake?
     if (ggc.bGameInProgress && ggc.curRound.numBids > 0) {
       const lastBid = ggc.curRound?.Bids[ggc.curRound?.numBids - 1];
@@ -1463,6 +1474,7 @@ useEffect(() => {
         }
       } 
     }
+*/
     // apply delay, if any
     if (delay > 0) {
       setTimeout(() => {
@@ -1508,6 +1520,11 @@ useEffect(() => {
             socket.emit('direction', { lobbyId, index: myIndex, direction: 2 })
             PrepareBidUI();
           });
+          let title = 'Choose Direction';
+          if (ggc.bPaloFijoRound) {
+            title += ' (PALO FIJO)';
+          }
+          setTitleDirection (title);
           setShowDirectionDlg(true);
         }, SHAKE_CUPS_TIME);
       } else {
@@ -1739,6 +1756,7 @@ useEffect(() => {
         {showDirectionDlg && (
           <DirectionDlg
             open={showDirectionDlg}
+            title={titleDirection}
             leftText={leftTextDirection}
             rightText={rightTextDirection}
             onLeft={onLeftHandler}

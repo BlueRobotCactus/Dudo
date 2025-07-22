@@ -176,7 +176,7 @@ export function ConfirmBidDlg({
 //************************************************************
 export function DirectionDlg({
   open,
-  title = "Choose Direction",
+  title,
   message = "You start the bidding.\nWhich way?",
   leftText = leftText,
   rightText = rightText,

@@ -345,13 +345,13 @@ export function PlayerGrid({ lobbyId, ggc, myIndex, cc }) {
             bidText += (", showed " + thisBid.howManyShown);
           }
           if (thisBid.lookingFor !== undefined) {
-            bidText += (" (looking for " + thisBid.lookingFor + ")");
+            bidText += ("\n(looking for " + thisBid.lookingFor + ")");
           }
           break;
         }
       }
       if (bidText === '') {
-        showText = "I have not bid yet this round.";
+        showText = "I have not bid yet\nthis round.";
       } else {
         showText = "My last bid was: " + bidText;
       }
@@ -373,44 +373,43 @@ export function PlayerGrid({ lobbyId, ggc, myIndex, cc }) {
       onClick={handleClick}
       style={{ position: 'relative', width: '100%', height: '100%' }}
     >
-      {showBubble && (
-        <div
-          style={{
-            position: 'absolute',
-            top: '-2.9rem',
-            left: '50%',
-            transform: 'translateX(-50%)',
-            padding: '0.375rem 0.75rem',
-            backgroundColor: 'white',
-            border: '1px solid gray',
-            borderRadius: '0.75rem',
-            fontSize: '1rem',
-            whiteSpace: 'nowrap',
-            display: 'inline-block',     // size to content
-            width: 'auto',
-            maxWidth: 'none',            // remove any cap
-            minWidth: '0',
-
-            textAlign: 'center',
-            boxShadow: '0 2px 6px rgba(0,0,0,0.2)',
-            zIndex: 10,
-          }}
-        >
-          {bubbleText}
-          <div
-            style={{
-              position: 'absolute',
-              bottom: '-0.50rem',
-              left: '50%',
-              transform: 'translateX(-50%)',
-              width: 0,
-              height: 0,
-              borderLeft: '0.375rem solid transparent',
-              borderRight: '0.375rem solid transparent',
-              borderTop: '0.50rem solid white',
-            }}
-          />
-        </div>
+  {showBubble && (
+    <div
+      style={{
+        position: 'absolute',
+        top: '-4.3rem',
+        left: '50%',
+        transform: 'translateX(-50%)',
+        padding: '0.375rem 0.75rem',
+        backgroundColor: 'white',
+        border: '1px solid gray',
+        borderRadius: '0.75rem',
+        fontSize: '1rem',
+        whiteSpace: 'pre',
+        display: 'inline-block',
+        width: 'auto',
+        maxWidth: 'none',
+        minWidth: '0',
+        textAlign: 'center',
+        boxShadow: '0 2px 6px rgba(0,0,0,0.2)',
+        zIndex: 10,
+      }}
+    >
+      {bubbleText}
+      <div
+        style={{
+          position: 'absolute',
+          bottom: '-0.50rem',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          width: 0,
+          height: 0,
+          borderLeft: '0.375rem solid transparent',
+          borderRight: '0.375rem solid transparent',
+          borderTop: '0.50rem solid white',
+        }}
+      />
+    </div>
       )}
 
       <div className="player-grid" ref={gridRef}>
