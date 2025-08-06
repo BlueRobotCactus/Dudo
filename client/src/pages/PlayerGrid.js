@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef, useContext } from 'react';
 import './PlayerGrid.css';
 import { SocketContext } from '../SocketContext.js';
 import { ImageRefsContext } from '../ImageRefsContext.js';
-import { SoundRefsContext } from '../SoundRefsContext.js';
+import { DudoGame, DudoRound } from '../DudoGameC.js';
 import { MAX_CONNECTIONS, CONN_PLAYER_IN, CONN_PLAYER_OUT } from '../DudoGameC.js';
 import { STICKS_BLINK_TIME, SHOWN_DICE_BLINK_TIME, SHAKE_CUPS_TIME } from '../DudoGameC.js';
 
@@ -19,6 +19,7 @@ export function PlayerGrid({ lobbyId, ggc, myIndex, cc }) {
   const [diceBlinking, setDiceBlinking] = useState(false);
   const [showBubble, setShowBubble] = useState(false);
   const [bubbleText, setBubbleText] = useState('');
+  const [bubbleLines, setBubbleLines] = useState(1);
 
   const BUBBLE_SHOW_TIME = 3000;
 
@@ -38,11 +39,27 @@ export function PlayerGrid({ lobbyId, ggc, myIndex, cc }) {
   } = useContext(ImageRefsContext);
 
   // sounds
-  const { 
-    ShakeRefs, 
-    RollRefs, 
-    soundsReady 
-  } = useContext(SoundRefsContext);
+  const Shake10Ref = useRef(null);
+    const Shake01Ref = useRef(null);
+    const Shake02Ref = useRef(null);
+    const Shake03Ref = useRef(null);
+    const Shake04Ref = useRef(null);
+    const Roll10Ref = useRef(null);
+    const Roll01Ref = useRef(null);
+    const Roll02Ref = useRef(null);
+    const Roll03Ref = useRef(null);
+    const Roll04Ref = useRef(null);
+    
+    const ShakeSoundArray = [Shake10Ref.current,
+                        Shake01Ref.current,
+                        Shake02Ref.current,
+                        Shake03Ref.current,
+                        Shake04Ref.current]
+    const RollSoundArray = [Roll10Ref.current, 
+                      Roll01Ref.current,
+                      Roll02Ref.current,
+                      Roll03Ref.current,
+                      Roll04Ref.current]
 
   //*****************************************************************
   // useEffect:  END OF ROUND
@@ -50,12 +67,21 @@ export function PlayerGrid({ lobbyId, ggc, myIndex, cc }) {
   //*****************************************************************
   useEffect(() => {
     if (ggc.SomebodyGotStick()) {
+
+
+      console.log ("DEBUGGGG somebodyGotStick()");
+
+
       //-------------------------------------------------
       // somebody got a stick
       //-------------------------------------------------
       const numRounds = ggc.Rounds.length;
       if (ggc.Rounds[numRounds - 1].doubtLoser === cc) {
         // it was this player
+
+      console.log ("DEBUGGGG this player got stick, about to trigger SticksBlinkig()");
+
+
         triggerSticksBlinking();
       }
       // wait for sticks, then shake cup
@@ -104,13 +130,10 @@ export function PlayerGrid({ lobbyId, ggc, myIndex, cc }) {
   }, [ggc.curRound?.numBids, ggc.bGameInProgress, ggc.curRound?.Bids, cc]);
 
   //--------------------------------------------------------
-  // bail out if images or sounds are not ready
+  // bail out if images are not ready
   //--------------------------------------------------------
   if (!imagesReady) {
     return <div>Loading images...</div>;
-  }
-  if (!soundsReady) {
-    return <div>Loading sounds...</div>;
   }
 
   //--------------------------------------------------------
@@ -288,33 +311,67 @@ export function PlayerGrid({ lobbyId, ggc, myIndex, cc }) {
 
   //********************************************************
   //  function to shake cup (animation and sounds)
+  //  howMany = 0 means all players roll dice
+  //                    but only one player makes the sound
   //********************************************************
-  function triggerCupShaking(reroll) {
+  function triggerCupShaking(howMany) {
     // start animation
     setCupShaking(true);
 
     // play the shake sound
-    ShakeRefs[reroll].currentTime = 0;
-    ShakeRefs[reroll].current.play();
+    if (howMany === 0) {
+      // if all players are shaking, only one plays the sound
+      if (ggc.GetIndexFirstPlayerStillIn() === cc) {
+        if (ShakeSoundArray[howMany]) {
+          ShakeSoundArray[howMany].currentTime = 0;
+          ShakeSoundArray[howMany].play();
+          console.log(`triggerCupShaking: player sound of howMany=${howMany}`);
+        }
+      }
+    } else {
+      // if only this player is shaking, play the sound
+      if (ShakeSoundArray[howMany]) { 
+        ShakeSoundArray[howMany].currentTime = 0;
+        ShakeSoundArray[howMany].play();
+      }
+    }
 
     setTimeout(() => {
       // stop the animation
       setCupShaking(false)
 
-      // stop shake sound
-      ShakeRefs[reroll].current.pause();
-      ShakeRefs[reroll].currentTime = 0;
-
-      // play the roll sound
-      RollRefs[reroll].currentTime = 0;
-      RollRefs[reroll].current.play();
+      if (howMany === 0) {
+        if (ggc.GetIndexFirstPlayerStillIn() === cc) {
+          // stop shake sound
+          if (ShakeSoundArray[howMany]) { 
+            ShakeSoundArray[howMany].pause();
+            ShakeSoundArray[howMany].currentTime = 0;
+          }
+          // play the roll sound
+          if (RollSoundArray[howMany]) {
+            RollSoundArray[howMany].currentTime = 0;
+            RollSoundArray[howMany].play();
+          }
+        }
+      } else {
+        // stop shake sound
+        if (ShakeSoundArray[howMany]) {
+          ShakeSoundArray[howMany].pause();
+          ShakeSoundArray[howMany].currentTime = 0;
+        }
+        // play the roll sound
+        if (RollSoundArray[howMany]) {
+          RollSoundArray[howMany].currentTime = 0;
+          RollSoundArray[howMany].play();
+        }
+      }
     }, SHAKE_CUPS_TIME);
   }
-
   //********************************************************
   //  function to shake sticks
   //********************************************************
   function triggerSticksBlinking() {
+    console.log("triggerSticksBlinking - starting animation");
     setSticksBlinking(true);
     setTimeout(() => setSticksBlinking(false), STICKS_BLINK_TIME);
   }
@@ -326,11 +383,13 @@ export function PlayerGrid({ lobbyId, ggc, myIndex, cc }) {
     // bail out if nothing to show
     if (!ggc.bGameInProgress || ggc.curRound === null) {
       setBubbleText('');
+      setBubbleLines(1);
       setShowBubble(false);
       return;
     }
 
-    let showText = ''
+    let showText = '';
+    setBubbleLines(1);
     if (ggc.allConnectionStatus[cc] === CONN_PLAYER_OUT) {
       showText = "I'm out.";
     }
@@ -346,12 +405,13 @@ export function PlayerGrid({ lobbyId, ggc, myIndex, cc }) {
           }
           if (thisBid.lookingFor !== undefined) {
             bidText += ("\n(looking for " + thisBid.lookingFor + ")");
+            setBubbleLines(2);
           }
           break;
         }
       }
       if (bidText === '') {
-        showText = "I have not bid yet\nthis round.";
+        showText = "I have not bid yet this round.";
       } else {
         showText = "My last bid was: " + bidText;
       }
@@ -377,7 +437,7 @@ export function PlayerGrid({ lobbyId, ggc, myIndex, cc }) {
     <div
       style={{
         position: 'absolute',
-        top: '-4.3rem',
+        top: bubbleLines === 1 ? '-2.9rem' : '-4.3rem', 
         left: '50%',
         transform: 'translateX(-50%)',
         padding: '0.375rem 0.75rem',
@@ -661,6 +721,17 @@ export function PlayerGrid({ lobbyId, ggc, myIndex, cc }) {
           </div>
         )}
       </div>
+      <audio ref={Shake10Ref} src="/sounds/Shake10.mp3" preload="auto" />
+      <audio ref={Shake01Ref} src="/sounds/Shake01.mp3" preload="auto" />
+      <audio ref={Shake02Ref} src="/sounds/Shake02.mp3" preload="auto" />
+      <audio ref={Shake03Ref} src="/sounds/Shake03.mp3" preload="auto" />
+      <audio ref={Shake04Ref} src="/sounds/Shake04.mp3" preload="auto" />
+
+      <audio ref={Roll10Ref} src="/sounds/Roll10.mp3" preload="auto" />
+      <audio ref={Roll01Ref} src="/sounds/Roll01.mp3" preload="auto" />
+      <audio ref={Roll02Ref} src="/sounds/Roll02.mp3" preload="auto" />
+      <audio ref={Roll03Ref} src="/sounds/Roll03.mp3" preload="auto" />
+      <audio ref={Roll04Ref} src="/sounds/Roll04.mp3" preload="auto" />
     </div>
 
   );

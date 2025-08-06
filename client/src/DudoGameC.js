@@ -938,6 +938,21 @@ export class DudoGame {
 	}
 
 	//****************************************************************
+	// Get index of first player still in
+	//  index of first IN
+	//****************************************************************
+	GetIndexFirstPlayerStillIn () {
+		for (let cc = 0; cc < MAX_CONNECTIONS; cc++) {
+			if (this.allConnectionStatus[cc] == CONN_PLAYER_IN) {
+				return cc;
+			}
+		}
+		// this should never happen
+		console.log('ERROR: GetIndexFirstPlayersStillIn() - no players still in');
+		return undefined;
+	}
+
+	//****************************************************************
 	// Can we PASO?
 	//****************************************************************
 	CanPaso () {

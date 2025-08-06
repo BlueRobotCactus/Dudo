@@ -266,7 +266,6 @@ import { STICKS_BLINK_TIME, SHOWN_DICE_BLINK_TIME, SHAKE_CUPS_TIME } from '../Du
         window.myIndex = myIndex;
         window.myName = myName;
         window.isMyTurn = isMyTurn;
-        console.log("GamePage: UseEffect DEBUG");
       }
     }, [socket, gameState]);
 

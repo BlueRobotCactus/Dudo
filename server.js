@@ -50,10 +50,6 @@ const lobbies = {
   */
 };
 
-// hear back arrays
-let hearbackNextRound;  //&&& can delete?
-
-
 // ******************************
 // Socket.IO setup
 // ******************************
