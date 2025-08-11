@@ -13,6 +13,9 @@ import { STICKS_BLINK_TIME, SHOWN_DICE_BLINK_TIME, SHAKE_CUPS_TIME } from '../Du
 // cc = connection number of this player
 //************************************************************
 export function PlayerGrid({ lobbyId, ggc, myIndex, cc }) {
+
+  console.log ("ENTERING PlayerGrid, myIndex=", myIndex, " cc=", cc);
+
   const gridRef = useRef();
   const [cupShaking, setCupShaking] = useState(false);
   const [sticksBlinking, setSticksBlinking] = useState(false);
@@ -20,7 +23,8 @@ export function PlayerGrid({ lobbyId, ggc, myIndex, cc }) {
   const [showBubble, setShowBubble] = useState(false);
   const [bubbleText, setBubbleText] = useState('');
   const [bubbleLines, setBubbleLines] = useState(1);
-
+	const [bBlinkSticks, setBBlinkSticks] = useState(false);
+	const [blinkSticksPlayer, setBlinkSticksPlayer] = useState(undefined);
   const BUBBLE_SHOW_TIME = 3000;
 
   // get our socket so we can emit
@@ -61,29 +65,43 @@ export function PlayerGrid({ lobbyId, ggc, myIndex, cc }) {
                       Roll03Ref.current,
                       Roll04Ref.current]
 
+  //************************************************************
+  // function handleBlinkSticks
+  //************************************************************
+  const handleBlinkSticks = React.useCallback((playercc) => {
+    setBBlinkSticks(true);
+    setBlinkSticksPlayer(playercc);
+  }, [cc, myIndex]);
+
+  //************************************************************
+  // useEffect:  LISTENERS ON [socket, handleBlinkSticks]
+  //             turn on listeners 
+  //************************************************************
+  useEffect(() => {
+    if (!socket) {
+      console.log("PlayerGrid: useEffect: LISTENERS ON: socket not ready yet");
+      return;
+    }
+    console.log("PlayerGrid: useEffect: LISTENERS ON: socket ready");
+
+    socket.on('blinkSticks', handleBlinkSticks);
+
+    return () => {
+      socket.off('blinkSticks', handleBlinkSticks);
+    };
+  }, [socket, handleBlinkSticks]);
+
   //*****************************************************************
   // useEffect:  END OF ROUND
   //             [ggc.bGameInProgress, ggc.curRound.numBids, ggc.firstRound]
   //*****************************************************************
   useEffect(() => {
-    if (ggc.SomebodyGotStick()) {
-
-
-      console.log ("DEBUGGGG somebodyGotStick()");
-
-
+    if (bBlinkSticks) {
       //-------------------------------------------------
-      // somebody got a stick
+      // somebody got a stick, blink their sticks
       //-------------------------------------------------
-      const numRounds = ggc.Rounds.length;
-      if (ggc.Rounds[numRounds - 1].doubtLoser === cc) {
-        // it was this player
-
-      console.log ("DEBUGGGG this player got stick, about to trigger SticksBlinkig()");
-
-
-        triggerSticksBlinking();
-      }
+			setBBlinkSticks(false);
+      triggerSticksBlinking();
       // wait for sticks, then shake cup
       setTimeout(() => {
         if (ggc.ShouldAllRollDice()) {
@@ -171,16 +189,16 @@ export function PlayerGrid({ lobbyId, ggc, myIndex, cc }) {
   let diceShowBottomHilite = [];
 
   // initialize 
-  for (let cc = 0; cc < MAX_CONNECTIONS; cc++) {
-    diceImageTopList[cc] = [];
-    diceImageBottomList[cc] = [];
-    diceShowTopHilite[cc] = [];
-    diceShowBottomHilite[cc] = [];
+  for (let ccc = 0; ccc < MAX_CONNECTIONS; ccc++) {
+    diceImageTopList[ccc] = [];
+    diceImageBottomList[ccc] = [];
+    diceShowTopHilite[ccc] = [];
+    diceShowBottomHilite[ccc] = [];
     for (let i = 0; i < 5; i++) {
-      diceImageTopList[cc][i] = null;
-      diceImageBottomList[cc][i] = null;
-      diceShowTopHilite[cc][i] = false;
-      diceShowBottomHilite[cc][i] = false;
+      diceImageTopList[ccc][i] = null;
+      diceImageBottomList[ccc][i] = null;
+      diceShowTopHilite[ccc][i] = false;
+      diceShowBottomHilite[ccc][i] = false;
     }
   }
 
@@ -371,9 +389,11 @@ export function PlayerGrid({ lobbyId, ggc, myIndex, cc }) {
   //  function to shake sticks
   //********************************************************
   function triggerSticksBlinking() {
-    console.log("triggerSticksBlinking - starting animation");
-    setSticksBlinking(true);
-    setTimeout(() => setSticksBlinking(false), STICKS_BLINK_TIME);
+    if (blinkSticksPlayer === cc) {
+      console.log("triggerSticksBlinking - starting animation");
+      setSticksBlinking(true);
+      setTimeout(() => setSticksBlinking(false), STICKS_BLINK_TIME);
+    }
   }
 
   //********************************************************
@@ -475,7 +495,7 @@ export function PlayerGrid({ lobbyId, ggc, myIndex, cc }) {
       <div className="player-grid" ref={gridRef}>
         {/*--------------------------------------------------------
         Border box around rows 1 and 2 (cols 1–7)
-      --------------------------------------------------------*/}
+      	--------------------------------------------------------*/}
         <div
           style={{
             gridRow: '1 / span 2',
@@ -489,7 +509,7 @@ export function PlayerGrid({ lobbyId, ggc, myIndex, cc }) {
 
         {/*--------------------------------------------------------
         Cup (2x2)
-      --------------------------------------------------------*/}
+      	--------------------------------------------------------*/}
         <div style={{ gridRow: '1 / span 2', gridColumn: '1 / span 2', backgroundColor: bgColor }}>
           <div
             style={{
@@ -519,7 +539,7 @@ export function PlayerGrid({ lobbyId, ggc, myIndex, cc }) {
 
         {/*--------------------------------------------------------
         Player name (row 1, cols 3-7)
-      --------------------------------------------------------*/}
+      	--------------------------------------------------------*/}
         <div
           style={{
             gridRow: '1 / span 1',
@@ -552,7 +572,7 @@ export function PlayerGrid({ lobbyId, ggc, myIndex, cc }) {
 
         {/*--------------------------------------------------------
         Hidden dice in cells (2,3) to (2,7)
-      --------------------------------------------------------*/}
+      	--------------------------------------------------------*/}
         <div
           style={{
             gridRow: 2,
@@ -614,7 +634,7 @@ export function PlayerGrid({ lobbyId, ggc, myIndex, cc }) {
 
         {/*--------------------------------------------------------
         Row 3, where shown dice go
-      --------------------------------------------------------*/}
+      	--------------------------------------------------------*/}
         <div
           style={{
             gridRow: 3,
@@ -626,7 +646,7 @@ export function PlayerGrid({ lobbyId, ggc, myIndex, cc }) {
 
         {/*--------------------------------------------------------
         Shown dice in cells (3,3) to (3,7)
-      --------------------------------------------------------*/}
+      	--------------------------------------------------------*/}
         {diceImageBottomList[cc].map((imgRef, index) => {
           if (!imgRef) return null; // skip nulls
 
@@ -663,7 +683,7 @@ export function PlayerGrid({ lobbyId, ggc, myIndex, cc }) {
 
         {/*--------------------------------------------------------
         Stick image(s) in (3,1) and (3,2) if the player has them
-      --------------------------------------------------------*/}
+        --------------------------------------------------------*/}
         {ggc.allSticks[cc] > 0 && (
           <div
             key="stick-1"

@@ -158,7 +158,10 @@ export function TableGrid({lobbyId, ggc, myIndex, backgroundColor}) {
         >
         <div style={{ maxWidth: '300px', width: '100%', height: '100%' }}>
           {/* <PlayerCard ggc={ggc} myIndex={myIndex} cc={ccList[index]} /> */}
-          <PlayerGrid lobbyId={lobbyId} ggc={ggc} cc={ccList[index]} myIndex={myIndex}/>
+          <PlayerGrid key={`pg-${ccList[index]}`}lobbyId={lobbyId} ggc={ggc} cc={ccList[index]} myIndex={myIndex}/>
+          {/* the 'key' part is for React to render instances of the PlayerGrid component correctly
+              ('make sure keys are stable', according to chatgpt),
+              I don't ever need to reference it in my code*/}
         </div>
         </div>
       ))}

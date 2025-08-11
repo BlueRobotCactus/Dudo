@@ -744,7 +744,7 @@ io.on('connection', (socket) => {
       lobby.game.bDoubtInProgress = false;
       lobby.game.bShowDoubtResult = false;
 
-      PostRound(lobby.game);
+      PostRound(lobby.game, lobbyId);
 
       if (ggs.bWinnerGame) {
       //-----------------------------------
@@ -1063,7 +1063,7 @@ function StartRound (ggs) {
 //****************************************************************
 // End of round processing 
 //****************************************************************
-function PostRound(ggs) {
+function PostRound(ggs, lobbyId) {
     //------------------------------------------------------------
     // player who lost doubt gets a stick, are they out?
     // determine who goes next
@@ -1089,6 +1089,8 @@ function PostRound(ggs) {
                 ggs.bPaloFijoRound = true;
             }
         }
+
+        io.to(lobbyId).emit('blinkSticks', ggs.curRound.doubtLoser);
     }
     
     //------------------------------------------------------------
