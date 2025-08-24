@@ -745,7 +745,7 @@ io.on('connection', (socket) => {
       lobby.game.bShowDoubtResult = false;
 
       PostRound(lobby.game, lobbyId);
-
+      
       if (ggs.bWinnerGame) {
       //-----------------------------------
       // the game is over
@@ -766,7 +766,11 @@ io.on('connection', (socket) => {
         StartRound(lobby.game);
       }
     }
+
     io.to(lobbyId).emit('gameStateUpdate', lobby.game);
+    ggs.bBlinkSticks = false;
+    ggs.bBlinkSticksPlayer = undefined;
+
   });
   
   //************************************************************
@@ -1090,7 +1094,9 @@ function PostRound(ggs, lobbyId) {
             }
         }
 
-        io.to(lobbyId).emit('blinkSticks', ggs.curRound.doubtLoser);
+        ggs.bBlinkSticks = true;
+        ggs.bBlinkSticksPlayer = ggs.curRound.doubtLoser;
+        //io.to(lobbyId).emit('blinkSticks', ggs.curRound.doubtLoser);
     }
     
     //------------------------------------------------------------

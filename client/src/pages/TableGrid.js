@@ -28,14 +28,8 @@ export function TableGrid({lobbyId, ggc, myIndex, backgroundColor}) {
   // Images 
   // -----------------------------------------------
     const {
-      cupDownImageRef,
-      cupUpImageRef,
-      diceImagesRef,
-      diceHiddenImageRef,
-      stickImageRef,
       directionLeftImageRef,
       directionRightImageRef,
-      imagesReady,
     } = useContext(ImageRefsContext);
   
   // -----------------------------------------------

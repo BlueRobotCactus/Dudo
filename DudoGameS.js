@@ -15,7 +15,7 @@ const CONN_OBSERVER_DISCONN = 7;
 const MAX_PLAYERS = 8;
 
 // UI constants (milliseconds)
-const STICKS_BLINK_TIME = 3000;
+const STICKS_BLINK_TIME = 2000;
 const SHOWN_DICE_BLINK_TIME = 4000;
 const SHAKE_CUPS_TIME = 2000;	
 
@@ -59,7 +59,6 @@ export class DudoGame {
 	// 0 = dropdown list
 	// 1 = grid
 	allBidUIMode = [];
-
 			
 	// game parameters
 	maxSticks;
@@ -83,7 +82,9 @@ export class DudoGame {
 	bDoubtInProgress;
 	bShowDoubtResult;
 	bAskInOut;
-
+	bBlinkSticks;
+	bBlinkSticksPlayer;
+	
 	inOutMustSay = [];
 	inOutDidSay = [];
   doubtMustLiftCup = [];
@@ -150,6 +151,9 @@ export class DudoGame {
 		this.bDoubtInProgress = false;
 		this.bShowDoubtResult = false;
 		this.bAskInOut = false;
+		this.bBlinkSticks = false;
+		this.bBlinkSticksPlayer = undefined;
+
 		this.bWinnerRound = false;
 		this.bWinnerGame = false;
 		this.whoWonGame = undefined;
@@ -189,6 +193,9 @@ export class DudoGame {
 		this.bDoubtInProgress = false;
 		this.bShowDoubtResult = false;
 		this.bAskInOut = false;
+		this.bBlinkSticks = false;
+		this.bBlinkSticksPlayer = undefined;
+		
 		this.bWinnerRound = false;
 		this.bWinnerGame = false;
 		this.whoWonGame = undefined;

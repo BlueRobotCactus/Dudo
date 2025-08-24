@@ -42,8 +42,8 @@
   0%, 100% { opacity: 1; }
   50%      { opacity: 0.3; }
 }
-.img-pulse {
-  animation: pulse 1s ease-in-out infinite;
+.sticks-pulse {
+  animation: pulse 0.5s ease-in-out infinite;
 }
 
 @keyframes slide-down {
@@ -54,7 +54,7 @@
 .show-dice {
   animation:
     slide-down 0.5s ease-out forwards,
-    pulse 1s ease-in-out infinite;
+    pulse 0.5s ease-in-out infinite;
 }
 
 

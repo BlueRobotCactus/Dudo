@@ -37,8 +37,6 @@ export function PlayerGrid({ lobbyId, ggc, myIndex, cc }) {
     diceImagesRef,
     diceHiddenImageRef,
     stickImageRef,
-    directionLeftImageRef,
-    directionRightImageRef,
     imagesReady,
   } = useContext(ImageRefsContext);
 
@@ -66,17 +64,42 @@ export function PlayerGrid({ lobbyId, ggc, myIndex, cc }) {
                       Roll04Ref.current]
 
   //************************************************************
+  // useEffect:  BLINK STICKS [ggc.bBlinkSticks]
+  //************************************************************
+  // when the server flips the game flag, mirror it into local state
+  useEffect(() => {
+    if (ggc.bBlinkSticks) {
+      console.log("DEBUG useEffect got the sticks blinking");
+      setBBlinkSticks (true);
+      setBlinkSticksPlayer (ggc.bBlinkSticksPlayer);
+    } else {
+      setBBlinkSticks (false);
+      setBlinkSticksPlayer (undefined);
+    }
+  }, [ggc.bBlinkSticks, ggc.bBlinkSticksPlayer]);
+
+  // react to the local edge-trigger
+  useEffect(() => {
+    if (!bBlinkSticks) return;
+    triggerSticksBlinking();
+    setBBlinkSticks(false); // clear the edge-trigger
+  }, [bBlinkSticks, blinkSticksPlayer]);   // include both
+
+  //************************************************************
   // function handleBlinkSticks
   //************************************************************
+  /*
   const handleBlinkSticks = React.useCallback((playercc) => {
     setBBlinkSticks(true);
     setBlinkSticksPlayer(playercc);
   }, [cc, myIndex]);
+*/
 
   //************************************************************
   // useEffect:  LISTENERS ON [socket, handleBlinkSticks]
   //             turn on listeners 
   //************************************************************
+  /*
   useEffect(() => {
     if (!socket) {
       console.log("PlayerGrid: useEffect: LISTENERS ON: socket not ready yet");
@@ -90,6 +113,7 @@ export function PlayerGrid({ lobbyId, ggc, myIndex, cc }) {
       socket.off('blinkSticks', handleBlinkSticks);
     };
   }, [socket, handleBlinkSticks]);
+*/
 
   //*****************************************************************
   // useEffect:  END OF ROUND
@@ -100,7 +124,7 @@ export function PlayerGrid({ lobbyId, ggc, myIndex, cc }) {
       //-------------------------------------------------
       // somebody got a stick, blink their sticks
       //-------------------------------------------------
-			setBBlinkSticks(false);
+      setBBlinkSticks(false);
       triggerSticksBlinking();
       // wait for sticks, then shake cup
       setTimeout(() => {
@@ -701,7 +725,7 @@ export function PlayerGrid({ lobbyId, ggc, myIndex, cc }) {
             <img
               src={stickImageRef.current.src}
               alt="Stick 1"
-              className={sticksBlinking ? 'img-pulse' : ''}
+              className={sticksBlinking ? 'sticks-pulse' : ''}
               style={{
                 width: '80%',
                 height: 'auto',
@@ -716,7 +740,7 @@ export function PlayerGrid({ lobbyId, ggc, myIndex, cc }) {
         {ggc.allSticks[cc] > 1 && (
           <div
             key="stick-2"
-            className={sticksBlinking ? 'img-pulse' : ''}
+            className={sticksBlinking ? 'sticks-pulse' : ''}
             style={{
               gridRow: 3,
               gridColumn: 2,

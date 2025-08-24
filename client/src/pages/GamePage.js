@@ -1459,6 +1459,7 @@ useEffect(() => {
     // all shaking dice?
     let delay = 0;
     if (ggc.SomebodyGotStick()) {
+      // &&& never hits!
       console.log('Gamepage.js: delaying bid, SomebodyGotStick');
       delay += STICKS_BLINK_TIME;
     }
