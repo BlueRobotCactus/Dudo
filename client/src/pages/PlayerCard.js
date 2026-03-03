@@ -2,7 +2,7 @@
 
 import React, { useContext } from 'react';
 import { ImageRefsContext } from '../ImageRefsContext.js';
-import { CONN_PLAYER_IN, CONN_PLAYER_OUT } from '../DudoGameC.js';
+import { CONN_PLAYER_IN, CONN_PLAYER_OUT } from '../shared/DudoGame.js';
 
 //************************************************************
 // TableGrid (PlayerCards placed within it)

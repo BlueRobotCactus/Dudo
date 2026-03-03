@@ -3,9 +3,9 @@ import React, { useState, useEffect, useRef, useContext } from 'react';
 import './PlayerGrid.css';
 import { SocketContext } from '../SocketContext.js';
 import { ImageRefsContext } from '../ImageRefsContext.js';
-import { DudoGame, DudoRound } from '../DudoGameC.js';
-import { MAX_CONNECTIONS, CONN_PLAYER_IN, CONN_PLAYER_OUT } from '../DudoGameC.js';
-import { STICKS_BLINK_TIME, SHOWN_DICE_BLINK_TIME, SHAKE_CUPS_TIME } from '../DudoGameC.js';
+import { DudoGame, DudoRound } from '../shared/DudoGame.js';
+import { MAX_CONNECTIONS, CONN_PLAYER_IN, CONN_PLAYER_OUT } from '../shared/DudoGame.js';
+import { STICKS_BLINK_TIME, SHOWN_DICE_BLINK_TIME, SHAKE_CUPS_TIME } from '../shared/DudoGame.js';
 
 //************************************************************
 // PlayerGrid (placed inside TableGrid)

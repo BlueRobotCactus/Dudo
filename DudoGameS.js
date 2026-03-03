@@ -166,7 +166,7 @@ export class DudoGame {
 	//************************************************************
 	AssignGameState(state) {
 
-		console.log('DudoGameC: Entering AssignGameSate()');
+		console.log('DudoGame: Entering AssignGameSate()');
 
 		// Guard against invalid state
 		if (!state || typeof state !== 'object' || Object.keys(state).length === 0) {
@@ -539,7 +539,7 @@ export class DudoGame {
 	//****************************************************************
 	PopulateBidListRegular() {
 
-		console.log('DudoGameC: Entering PopulateBidListRegular()');
+		console.log('DudoGame: Entering PopulateBidListRegular()');
 		
 		//------------------------------------------------------------
 		// initialize possible bid list
@@ -682,7 +682,7 @@ export class DudoGame {
 	//****************************************************************
 	PopulateBidListPaloFijo() {
 
-		console.log('DudoGameC: Entering PopulateBidListPaloFijo()');
+		console.log('DudoGame: Entering PopulateBidListPaloFijo()');
 		
 		//------------------------------------------------------------
 		// initialize possible bid list

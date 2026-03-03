@@ -5,7 +5,7 @@ import { ImageRefsContext } from '../ImageRefsContext.js';
 import PlayerGrid from './PlayerGrid';
 import PlayerCard from './PlayerCard.js';
 
-import { MAX_CONNECTIONS, CONN_PLAYER_IN, CONN_PLAYER_OUT } from '../DudoGameC.js';
+import { MAX_CONNECTIONS, CONN_PLAYER_IN, CONN_PLAYER_OUT } from '../shared/DudoGame.js';
 
 //************************************************************
 // TableGrid (PlayerCards placed within it)
