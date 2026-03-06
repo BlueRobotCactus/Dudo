@@ -15,6 +15,7 @@ import LandingPage from './pages/LandingPage.js';
 import GamePage from './pages/GamePage.js';
 import HowToPlayPage from './pages/HowToPlayPage.js';
 import AboutPage from './pages/AboutPage.js';
+import AdminPage from './pages/AdminPage.js';
 
 function App() {
   // Initialize from localStorage, or empty string if nothing
@@ -40,6 +41,7 @@ function App() {
           <Route path="/game/:lobbyId" element={<GamePage />} />
           <Route path="/how-to-play" element={<HowToPlayPage />} />
           <Route path="/about" element={<AboutPage />} />
+          <Route path="/admin" element={<AdminPage />} />
         </Routes>
       </Router>
     </ImageRefsProvider>

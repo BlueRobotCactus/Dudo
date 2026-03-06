@@ -173,6 +173,10 @@ useEffect(() => {
     navigate('/about');
   }
 
+  const onOptAdmin = () => {
+    navigate('/admin');
+  }
+
   const onOptHelp = () => {
   }
 
@@ -211,30 +215,42 @@ useEffect(() => {
             <li><button className="dropdown-item" 
               disabled={true}
             >
-              Bid History</button></li> 
+              Bid History</button>
+            </li> 
             <li><button className="dropdown-item" 
               disabled={true}
             >
-              Observers</button></li>          
+              Observers</button>
+            </li>          
             <li><button className="dropdown-item" 
               disabled={true}
             >
-              Game Settings</button></li>          
+              Game Settings</button>
+            </li>          
             <li><button className="dropdown-item" 
               onClick={onOptHowToPlay}
               disabled={isAskingName}
             >
-              How To Play</button></li>          
+              How To Play</button>
+            </li>          
             <li><button className="dropdown-item" 
               disabled={isAskingName}
               onClick={onOptAbout}
             >
-              About</button></li>          
+              About</button>
+            </li>          
+            <li><button className="dropdown-item" 
+              disabled={isAskingName}
+              onClick={onOptAdmin}
+            >
+              Admin</button>
+            </li>          
             <li><button className="dropdown-item" 
               disabled={isAskingName}
               onClick={onOptHelp}
             >
-              Help</button></li>          
+              Help</button>
+            </li>          
           </ul>
         </div>
 
