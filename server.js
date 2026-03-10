@@ -12,6 +12,7 @@ import { Server } from 'socket.io';
 import cors from 'cors';
 import { v4 as uuidv4 } from 'uuid';
 import fs from 'fs';
+import { getPool } from './db.js';
 
 // Needed to replicate __dirname in ES modules
 import { fileURLToPath } from 'url';
@@ -31,9 +32,6 @@ const io = new Server(server, {
 
 app.use(cors());
 app.use(express.json());
-
-// Serve all the static files in the React app's build folder
-app.use(express.static(path.join(__dirname, 'client', 'build')));
 
 let session;
 
@@ -925,8 +923,41 @@ io.on('connection', (socket) => {
 // ------------------------------
 // Express Endpoint: Lobbies
 // ------------------------------
+
+app.get('/api/hello', (req, res) => {
+  console.log('hit /api/hello');
+  res.json({ msg: 'hello' });
+});
+
 app.get('/api/lobbies', (req, res) => {
   res.json(getLobbiesList());
+});
+
+// ------------------------------
+// test sql 
+// ------------------------------
+app.get('/api/db-test', async (req, res) => {
+  try {
+    const pool = getPool();
+    const [rows] = await pool.query(
+      'SELECT id, guid, username, created_at FROM players'
+    );
+    res.json({ ok: true, rows });
+  } catch (err) {
+    console.error('DB test failed:', err);
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+// Serve all the static files in the React app's build folder
+app.use(express.static(path.join(__dirname, 'client', 'build')));
+
+// ------------------------------
+// Catch-all handler: For any request that doesn't match an API route,
+// send back index.html so that client-side routing can handle it.
+// ------------------------------
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'client', 'build', 'index.html'));
 });
 
 // ------------------------------
@@ -941,17 +972,9 @@ function getLobbiesList() {
 }
 
 // ------------------------------
-// Catch-all handler: For any request that doesn't match an API route,
-// send back index.html so that client-side routing can handle it.
-// ------------------------------
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'client', 'build', 'index.html'));
-});
-
-// ------------------------------
 // Start server
 // ------------------------------
-const PORT = 8080;
+const PORT = process.env.PORT || 8080;
 server.listen(PORT, () => {
   console.log(`Server listening on port ${PORT}`);
 });

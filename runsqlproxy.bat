@@ -1,0 +1,1 @@
+.\cloud-sql-proxy.x64.exe trans-trees-453423-f7:us-east4:dudo-mysql

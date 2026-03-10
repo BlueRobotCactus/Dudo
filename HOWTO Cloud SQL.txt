@@ -1,0 +1,66 @@
+https://console.cloud.google.com/sql/get-started?project=trans-trees-453423-f7
+
+to get to Cloud Run:  https://console.cloud.google.com/run
+
+//----------------------------------------------
+// HOW TO CHECK ENV VARS IN CLOUD RUN
+//----------------------------------------------
+https://console.cloud.google.com/run
+click dudo-service
+click edit and deploy new revision
+click variables and secrets
+
+//----------------------------------------------
+// CREATE MySQL SERVER INSTANCE IN GOOGLE CLOUD
+//----------------------------------------------
+Database engine = MySQL
+Instance ID = dudo-mysql [user-name]
+Password = dudo-admin-root
+Region = us-east4 (Northern Virginia)
+
+    //----------------------------------------------
+    // CHATGPT SAYS
+    //----------------------------------------------
+    The password you are entering now is for:
+
+    MySQL root user
+
+    This is the database administrator account.
+
+    You will use it only for things like:
+    creating databases
+    creating users
+    administrative tasks
+    Your application should not use this account.
+
+//----------------------------------------------
+// LOG INTO DATABASE (dudo-db)
+//----------------------------------------------
+User name = dudo-app
+Password = dudo-app-nodejs
+
+    //----------------------------------------------
+    // CHATGPT SAYS
+    //----------------------------------------------
+    Your server will eventually connect using:
+
+    user: dudo_app
+    password: ********
+    database: dudo-db
+
+//----------------------------------------------
+// CREATE THE DATABASE TABLE
+//----------------------------------------------
+still in the google cloud console:
+- click dudo-mysql
+- click Cloud SQL Studio
+- put in credentials
+- click New SQL editor tab
+- put in the editor:
+    CREATE TABLE players (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    guid CHAR(36) NOT NULL UNIQUE,
+    username VARCHAR(50) NOT NULL UNIQUE,
+    password_hash VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );

@@ -10,6 +10,7 @@ RUN npm install
 
 # Step 3: Copy backend code
 COPY server.js ./
+COPY db.js ./
 COPY client/src/shared/DudoGame.js ./client/src/shared/DudoGame.js
 
 # 4) Build the React app (client)
