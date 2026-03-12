@@ -13,6 +13,7 @@ import cors from 'cors';
 import { v4 as uuidv4 } from 'uuid';
 import fs from 'fs';
 import { getPool } from './db.js';
+import bcrypt from 'bcrypt';
 
 // Needed to replicate __dirname in ES modules
 import { fileURLToPath } from 'url';
@@ -924,6 +925,7 @@ io.on('connection', (socket) => {
 // Express Endpoint: Lobbies
 // ------------------------------
 
+// delete this one, when everything is working
 app.get('/api/hello', (req, res) => {
   console.log('hit /api/hello');
   res.json({ msg: 'hello' });
@@ -934,20 +936,130 @@ app.get('/api/lobbies', (req, res) => {
 });
 
 // ------------------------------
-// test sql 
+// SQL Endpoint: list players
 // ------------------------------
-app.get('/api/db-test', async (req, res) => {
+app.get('/api/players', async (req, res) => {
   try {
     const pool = getPool();
     const [rows] = await pool.query(
       'SELECT id, guid, username, created_at FROM players'
     );
-    res.json({ ok: true, rows });
+    res.json({ ok: true, players: rows });
   } catch (err) {
-    console.error('DB test failed:', err);
+    console.error('Players query failed:', err);
     res.status(500).json({ ok: false, error: err.message });
   }
 });
+
+// ------------------------------
+// SQL POST: add player
+// ------------------------------
+app.post('/api/players', async (req, res) => {
+  try {
+    const pool = getPool();
+    const { username, password } = req.body;
+
+    if (!username || !password) {
+      return res.status(400).json({
+        ok: false,
+        error: 'Username and password are required',
+      });
+    }
+
+    const guid = uuidv4();
+    const passwordHash = await bcrypt.hash(password, 10);
+
+    const [result] = await pool.query(
+      'INSERT INTO players (guid, username, password_hash) VALUES (?, ?, ?)',
+      [guid, username, passwordHash]
+    );
+
+    res.json({
+      ok: true,
+      player: {
+        id: result.insertId,
+        guid,
+        username,
+      },
+    });
+  } catch (err) {
+    console.error('Add player failed:', err);
+
+    if (err.code === 'ER_DUP_ENTRY') {
+      return res.status(400).json({
+        ok: false,
+        error: 'Username already exists',
+      });
+    }
+
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+// ------------------------------
+// SQL Endpoint: delete a player
+// ------------------------------
+app.delete('/api/players/:id', async (req, res) => {
+  try {
+    const pool = getPool();
+    const playerId = req.params.id;
+
+    const [result] = await pool.query(
+      'DELETE FROM players WHERE id = ?',
+      [playerId]
+    );
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ ok: false, error: 'Player not found' });
+    }
+
+    res.json({ ok: true, deletedId: playerId });
+  } catch (err) {
+    console.error('Delete player failed:', err);
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+// ------------------------------
+// SQL put reset password
+// ------------------------------
+app.put('/api/players/:id/password', async (req, res) => {
+  try {
+    const pool = getPool();
+    const playerId = req.params.id;
+    const { password } = req.body;
+
+    if (!password || !password.trim()) {
+      return res.status(400).json({
+        ok: false,
+        error: 'Password is required',
+      });
+    }
+
+    const passwordHash = await bcrypt.hash(password, 10);
+
+    const [result] = await pool.query(
+      'UPDATE players SET password_hash = ? WHERE id = ?',
+      [passwordHash, playerId]
+    );
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({
+        ok: false,
+        error: 'Player not found',
+      });
+    }
+
+    res.json({
+      ok: true,
+      updatedId: playerId,
+    });
+  } catch (err) {
+    console.error('Reset password failed:', err);
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
 
 // Serve all the static files in the React app's build folder
 app.use(express.static(path.join(__dirname, 'client', 'build')));

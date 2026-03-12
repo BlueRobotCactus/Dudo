@@ -1,4 +1,3 @@
-https://console.cloud.google.com/sql/get-started?project=trans-trees-453423-f7
 
 to get to Cloud Run:  https://console.cloud.google.com/run
 
@@ -9,6 +8,30 @@ https://console.cloud.google.com/run
 click dudo-service
 click edit and deploy new revision
 click variables and secrets
+
+//----------------------------------------------
+// USEFUL SQL SCRIPTS
+//----------------------------------------------
+
+SELECT *
+FROM players;
+
+INSERT INTO players (guid, username, password_hash)
+VALUES (
+  UUID(),
+  'glenn',
+  '$2b$10$TmB/vW8IIM./q0BCyh2OsuGRdsB04ZFPqEWPnKP1bPMMVW6bSyymi'
+);
+
+DELETE FROM players
+WHERE username = 'glenn';
+
+
+//*****************************************************************************
+// Below is how I set things up
+//*****************************************************************************
+
+https://console.cloud.google.com/sql/get-started?project=trans-trees-453423-f7
 
 //----------------------------------------------
 // CREATE MySQL SERVER INSTANCE IN GOOGLE CLOUD

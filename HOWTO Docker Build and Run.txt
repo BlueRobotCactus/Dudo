@@ -139,6 +139,10 @@ gcloud config get-value project
 // see what containers are running
 docker ps
 
+// generate an ecrypted password
+// (remember to put the password in hash.bat)
+cmd /c hash
+
 //---------------------------------------
 // GOOGLE CLOUD SQL
 //---------------------------------------
