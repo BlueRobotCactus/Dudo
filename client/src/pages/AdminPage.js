@@ -1,5 +1,6 @@
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useEffect, useState } from 'react';
+import "./AdminPage.css";
 
 //-----------------------------------
 // format date and time
@@ -24,6 +25,7 @@ const handleShowGuid = (guid, username) => {
 // AdminPage function
 //************************************************************
 export default function AdminPage() {
+  const [guidModal, setGuidModal] = useState(null);
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -84,38 +86,34 @@ export default function AdminPage() {
   //-----------------------------------
   const handleAddPlayer = async (e) => {
     e.preventDefault();
-    setStatusMsg('');
 
-    if (!newUsername.trim() || !newPassword.trim()) {
-      setStatusMsg('Username and password are required.');
+    const username = newUsername.trim();
+    const password = newPassword.trim();
+
+    if (!username || !password) {
+      alert("Username and password are required");
       return;
     }
 
-    try {
-      const res = await fetch('/api/players', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          username: newUsername.trim(),
-          password: newPassword,
-        }),
-      });
+    if (username.length > 30) {
+      alert("Username cannot exceed 30 characters");
+      return;
+    }
 
-      const data = await res.json();
+    const res = await fetch("/api/players", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username, password })
+    });
 
-      if (data.ok) {
-        setNewUsername('');
-        setNewPassword('');
-        setStatusMsg(`Added player "${data.player.username}"`);
-        loadPlayers();
-      } else {
-        setStatusMsg(`Add failed: ${data.error}`);
-      }
-    } catch (err) {
-      console.error('Add player failed:', err);
-      setStatusMsg('Add failed.');
+    const data = await res.json();
+
+    if (data.ok) {
+      setNewUsername("");
+      setNewPassword("");
+      loadPlayers();
+    } else {
+      alert(data.error || "Failed to add player");
     }
   };
 
@@ -164,55 +162,59 @@ export default function AdminPage() {
     }
   };
 
+  //************************************************************
+  // rendering
+  //************************************************************
   return (
-    <div style={{ position: 'relative', padding: '20px' }}>
-      <button
-        onClick={handleClose}
-        style={{
-          position: 'absolute',
-          top: '10px',
-          right: '10px',
-          background: 'none',
-          border: 'none',
-          fontSize: '24px',
-          fontWeight: 'bold',
-          cursor: 'pointer',
-        }}
-        aria-label="Close"
-      >
-        ×
-      </button>
+    <div className="admin-container">
+      <nav className="navbar navbar-expand bg-primary text-white rounded mb-3">
+        <div className="container-fluid">
 
-      <h1>Admin Page</h1>
+          <span className="text-white mb-0 h5">
+            Admin Page
+          </span>
+
+          <button
+            onClick={handleClose}
+            className="btn btn-primary border border-white btn-sm"
+          >
+            Close
+          </button>
+
+        </div>
+      </nav>
+
 
       <h2>Add Player</h2>
 
-      <form onSubmit={handleAddPlayer} style={{ marginBottom: '20px' }}>
-        <div style={{ marginBottom: '10px' }}>
-          <label>
-            Username:{' '}
-            <input
-              type="text"
-              value={newUsername}
-              onChange={(e) => setNewUsername(e.target.value)}
-            />
-          </label>
+      <form onSubmit={handleAddPlayer}>
+
+        <div className="admin-form-row">
+          <label className="admin-form-label">Username:</label>
+          <input
+            className="admin-input"
+            type="text"
+            value={newUsername}
+            maxLength={30}
+            onChange={(e) => setNewUsername(e.target.value)}
+          />
         </div>
 
-        <div style={{ marginBottom: '10px' }}>
-          <label>
-            Password:{' '}
-            <input
-              type="text"
-              value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
-            />
-          </label>
+        <div className="admin-form-row">
+          <label className="admin-form-label">Password:</label>
+          <input
+            className="admin-input"
+            type="password"
+            value={newPassword}
+            onChange={(e) => setNewPassword(e.target.value)}
+          />
         </div>
 
-        <button type="submit">Add Player</button>
+        <button className="btn btn-primary" type="submit">
+          Add Player
+        </button>
+
       </form>
-
       {statusMsg && (
         <p style={{ fontWeight: 'bold' }}>
           {statusMsg}
@@ -221,37 +223,97 @@ export default function AdminPage() {
 
       <h2>Players</h2>
 
-      <table border="1" cellPadding="6" style={{ borderCollapse: 'collapse' }}>
-        <thead>
-          <tr>
-            <th>ID</th>
-            <th>Username</th>
-            <th>When created</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-
-        <tbody>
-          {players.map((p) => (
-            <tr key={p.id}>
-              <td>{p.id}</td>
-              <td>{p.username}</td>
-              <td>{formatDateTimeLocal(p.created_at)}</td>
-              <td>
-                <button onClick={() => handleResetPassword(p.id, p.username)}>
-                  Reset PW
-                </button>{' '}
-                <button onClick={() => handleShowGuid(p.guid, p.username)}>
-                  GUID
-                </button>
-                <button onClick={() => handleDelete(p.id, p.username)}>
-                  Delete
-                </button>
-              </td>
+      <div className="admin-table-container">
+        <table className="admin-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Username</th>
+              <th>When created</th>
+              <th>Actions</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+
+          <tbody>
+            {players.map((p) => (
+              <tr key={p.id}>
+                <td>{p.id}</td>
+                <td>{p.username}</td>
+                <td>{formatDateTimeLocal(p.created_at)}</td>
+                <td>
+                  <button
+                    className="btn btn-primary btn-sm me-2"
+                    onClick={() => handleResetPassword(p.id, p.username)}
+                  >
+                    Reset Password
+                  </button>
+                  <button
+                    className="btn btn-primary btn-sm me-2"
+                    onClick={() => setGuidModal({ guid: p.guid, username: p.username })}
+                  >
+                    GUID
+                  </button>
+                  <button
+                    className="btn btn-danger btn-sm"
+                    onClick={() => handleDelete(p.id, p.username)}
+                  >
+                    Delete
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {guidModal && (
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            width: "100%",
+            height: "100%",
+            background: "rgba(0,0,0,0.4)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 9999
+          }}
+        >
+          <div
+            style={{
+              background: "white",
+              padding: "20px",
+              borderRadius: "8px",
+              minWidth: "400px"
+            }}
+          >
+            <h3>GUID for {guidModal.username}</h3>
+
+            <input
+              type="text"
+              value={guidModal.guid}
+              readOnly
+              style={{ width: "100%", marginBottom: "10px" }}
+            />
+
+            <button
+              className="btn btn-primary btn-sm me-2"
+              onClick={() => navigator.clipboard.writeText(guidModal.guid)}
+            >
+              Copy
+            </button>
+
+            <button
+              className="btn btn-secondary btn-sm"
+              onClick={() => setGuidModal(null)}
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

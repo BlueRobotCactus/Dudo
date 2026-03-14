@@ -1,0 +1,72 @@
+.admin-container {
+  padding: .625rem;
+  position: relative;
+}
+
+.admin-table-container {
+  max-height: 38rem;
+  overflow-y: auto;
+  border: 1px solid #ddd;
+}
+
+/* remove spacing above header */
+.admin-table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 0;
+}
+
+/* keep headers visible while scrolling */
+.admin-table thead th {
+  position: sticky;
+  top: 0;
+  background: #f3f3f3;
+  z-index: 1;
+}
+
+.admin-table th {
+  background-color: #f3f3f3;
+  border: 1px solid #ccc;
+  padding: 0.5rem 0.6rem;
+  text-align: left;
+}
+
+.admin-table td {
+  border: 1px solid #ddd;
+  padding: 0.5rem 0.6rem;
+  vertical-align: top;
+}
+
+/* zebra striping */
+.admin-table tbody tr:nth-child(even) {
+  background-color: #f9f9f9;
+}
+
+/* hover highlight */
+.admin-table tbody tr:hover {
+  background-color: #eef5ff;
+}
+
+.admin-button:hover {
+  background-color: #e6e6e6;
+}
+
+/* form spacing */
+.admin-form-row {
+  margin-bottom: 0.6rem;
+}
+
+.admin-form-label {
+  display: inline-block;
+  width: 6rem;
+}
+
+.admin-input {
+  padding: 0.25rem 0.35rem;
+  width: 12rem;
+}
+
+/* guid button */
+.guid-button {
+  font-size: 0.75rem;
+}
