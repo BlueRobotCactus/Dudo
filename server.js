@@ -1,6 +1,6 @@
 'use strict';
 
-import { DudoSession, DudoGame, DudoRound, DudoBid } from './client/src/shared/DudoGame.js';
+import { LobbySession, DudoGame, DudoRound, DudoBid } from './client/src/shared/DudoGame.js';
 
 import { MAX_CONNECTIONS, CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYER_LEFT,
   CONN_PLAYER_IN_DISCONN, CONN_PLAYER_OUT_DISCONN, CONN_OBSERVER_DISCONN } from './client/src/shared/DudoGame.js';
@@ -14,6 +14,7 @@ import { v4 as uuidv4 } from 'uuid';
 import fs from 'fs';
 import { getPool } from './db.js';
 import bcrypt from 'bcrypt';
+import session from 'express-session';
 
 // Needed to replicate __dirname in ES modules
 import { fileURLToPath } from 'url';
@@ -34,7 +35,21 @@ const io = new Server(server, {
 app.use(cors());
 app.use(express.json());
 
-let session;
+//-------------------------------------------
+// session middleware (chatgpt)
+// cookies
+//-------------------------------------------
+app.use(session({
+  secret: process.env.SESSION_SECRET || 'dev-secret-change-this',
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    httpOnly: true,
+    sameSite: 'lax',
+    secure: false,
+    maxAge: 1000 * 60 * 60 * 24 * 7,
+  },
+}));
 
 // In-memory lobbies storage
 const lobbies = {
@@ -63,7 +78,7 @@ io.on('connection', (socket) => {
   //************************************************************
   socket.on('createLobby', (hostName, callback) => {
 
-    session = new DudoSession (hostName);
+    const lobbySession = new LobbySession(hostName);
 
     const ggs = new DudoGame();
 
@@ -78,15 +93,15 @@ io.on('connection', (socket) => {
       hostSocketId: socket.id,
       players: [{ id: socket.id, name: hostName }],
       game: ggs,
-      session: session,
+      lobbySession: lobbySession,
     };
 
     console.log("JUST CREATED LOBBY OBJECT");
 
     // log the start date/time
     const now = new Date();
-    lobbies[lobbyId].session.startDate = GetDate(now);
-    lobbies[lobbyId].session.startTime = GetTime(now);
+    lobbies[lobbyId].lobbySession.startDate = GetDate(now);
+    lobbies[lobbyId].lobbySession.startTime = GetTime(now);
 
     // add host to lobby
     ggs.allParticipantNames[0] = hostName;
@@ -346,8 +361,8 @@ io.on('connection', (socket) => {
 
       // log the end date/time
       const now = new Date();
-      lobbies[lobbyId].session.endDate = GetDate(now);
-      lobbies[lobbyId].session.endTime = GetTime(now);
+      lobbies[lobbyId].lobbySession.endDate = GetDate(now);
+      lobbies[lobbyId].lobbySession.endTime = GetTime(now);
 
       // delete the lobby from the lobbies array
       delete lobbies[lobbyId];
@@ -758,8 +773,8 @@ io.on('connection', (socket) => {
 
         // save this game
         const snapshot = JSON.parse(JSON.stringify(lobby.game));
-        session.Games.push(snapshot);
-        
+        lobby.lobbySession.Games.push(snapshot);
+
         ggs.PrepareNextGame();
       } else {
         StartRound(lobby.game);
@@ -921,22 +936,89 @@ io.on('connection', (socket) => {
 //**************************************************************
 //**************************************************************
 
-// ------------------------------
-// Express Endpoint: Lobbies
-// ------------------------------
+//**************************************************************
+//  Express endpoints (appended to '/api/')
+//**************************************************************
 
-// delete this one, when everything is working
-app.get('/api/hello', (req, res) => {
-  console.log('hit /api/hello');
-  res.json({ msg: 'hello' });
-});
-
+// ------------------------------
+// GET: Lobbies
+// ------------------------------
 app.get('/api/lobbies', (req, res) => {
   res.json(getLobbiesList());
 });
 
 // ------------------------------
-// SQL Endpoint: list players
+// AUTH POST: login
+// ------------------------------
+app.post('/api/auth/login', async (req, res) => {
+  try {
+    const pool = getPool();
+
+    const username = (req.body.username || '').trim();
+    const password = (req.body.password || '').trim();
+
+    if (!username || !password) {
+      return res.status(400).json({
+        ok: false,
+        error: 'Username and password are required',
+      });
+    }
+
+    const [rows] = await pool.query(
+      'SELECT id, guid, username, password_hash, created_at FROM players WHERE username = ?',
+      [username]
+    );
+
+    const player = rows[0];
+    const DUMMY_PASSWORD_HASH = '$2b$10$C6UzMDM.H6dfI/f/IKcEeOq7V0dKqzE6p5nK3X1i7tGZV5pJ8Q2W6';
+    if (!player) {
+      // fake comparison to equalize timing
+      // hackers can probe endpoint and tell when a username exists by the timing
+      // if username exists, decryption of pw takes a 'long time'. 
+      // so we decrypt this dummy even if username does not exist.
+      await bcrypt.compare(password, DUMMY_PASSWORD_HASH);
+
+      return res.status(401).json({
+        ok: false,
+        error: 'Invalid username or password',
+      });
+    }
+    const passwordMatches = await bcrypt.compare(password, player.password_hash);
+
+    if (!passwordMatches) {
+      return res.status(401).json({
+        ok: false,
+        error: 'Invalid username or password',
+      });
+    }
+
+    // remember the browser session
+    req.session.player = {
+      id: player.id,
+      guid: player.guid,
+      username: player.username,
+    };
+
+    res.json({
+      ok: true,
+      player: {
+        id: player.id,
+        guid: player.guid,
+        username: player.username,
+        created_at: player.created_at,
+      },
+    });
+  } catch (err) {
+    console.error('Login failed:', err);
+    res.status(500).json({
+      ok: false,
+      error: err.message,
+    });
+  }
+});
+
+// ------------------------------
+// PLAYERS GET: list players
 // ------------------------------
 app.get('/api/players', async (req, res) => {
   try {
@@ -952,13 +1034,15 @@ app.get('/api/players', async (req, res) => {
 });
 
 // ------------------------------
-// SQL POST: add player
+// PLAYERS POST: add player
 // ------------------------------
 app.post('/api/players', async (req, res) => {
   try {
     const pool = getPool();
-    const { username, password } = req.body;
 
+    const username = (req.body.username || '').trim();
+    const password = (req.body.password || '').trim();
+    
     if (!username || !password) {
       return res.status(400).json({
         ok: false,
@@ -997,7 +1081,7 @@ app.post('/api/players', async (req, res) => {
 });
 
 // ------------------------------
-// SQL Endpoint: delete a player
+// PLAYERS DELETE: delete a player
 // ------------------------------
 app.delete('/api/players/:id', async (req, res) => {
   try {
@@ -1021,7 +1105,7 @@ app.delete('/api/players/:id', async (req, res) => {
 });
 
 // ------------------------------
-// SQL put reset password
+// PLAYERS PUT: reset password
 // ------------------------------
 app.put('/api/players/:id/password', async (req, res) => {
   try {
@@ -1060,6 +1144,48 @@ app.put('/api/players/:id/password', async (req, res) => {
   }
 });
 
+// ------------------------------
+// AUTH GET: current logged-in player
+// ------------------------------
+app.get('/api/auth/me', (req, res) => {
+  if (!req.session.player) {
+    return res.status(401).json({
+      ok: false,
+      error: 'Not logged in',
+    });
+  }
+
+  res.json({
+    ok: true,
+    player: req.session.player,
+  });
+});
+
+// ------------------------------
+// AUTH POST: logout
+// ------------------------------
+app.post('/api/auth/logout', (req, res) => {
+  req.session.destroy((err) => {
+    if (err) {
+      console.error('Logout failed:', err);
+      return res.status(500).json({
+        ok: false,
+        error: 'Logout failed',
+      });
+    }
+
+    res.clearCookie('connect.sid');
+
+    res.json({
+      ok: true,
+      message: 'Logged out',
+    });
+  });
+});
+
+//**************************************************************
+//  end of Express endpoints
+//**************************************************************
 
 // Serve all the static files in the React app's build folder
 app.use(express.static(path.join(__dirname, 'client', 'build')));
