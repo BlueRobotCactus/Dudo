@@ -55,8 +55,8 @@ import { STICKS_BLINK_TIME, SHOWN_DICE_BLINK_TIME, SHAKE_CUPS_TIME } from '../sh
 
     // state hooks
     const [gameState, setGameState] = useState({});
-    const [lobby, setLobby] = useState([]);
-    const [lobbyHost, setLobbyHost] = useState([]);
+    const [lobby, setLobby] = useState({});
+    const [lobbyHost, setLobbyHost] = useState('');
     const [lobbyPlayers, setLobbyPlayers] = useState([]);
     const [screenSize, setScreenSize] = useState({
       width: window.innerWidth,
@@ -105,7 +105,7 @@ import { STICKS_BLINK_TIME, SHOWN_DICE_BLINK_TIME, SHAKE_CUPS_TIME } from '../sh
     // Row3 (TableGrid)
     const fixedRef = useRef(null);
     const [availableHeight, setAvailableHeight] = useState(window.innerHeight);
-    const [availableWidth, setAvailableWidth] = useState(window.innerWidth);
+    //const [availableWidth, setAvailableWidth] = useState(window.innerWidth);
 
     // dialogs
     // confirm Bid (obsolete)
@@ -240,7 +240,8 @@ import { STICKS_BLINK_TIME, SHOWN_DICE_BLINK_TIME, SHAKE_CUPS_TIME } from '../sh
     const UIMargin = '.5rem';
 
     //************************************************************
-    // UseEffect CHECKBOX [selectedBid, CanShowShake]
+    // UseEffect CHECKBOX [selectedBid, CanShowShake] &&& old
+    // UseEffect CHECKBOX [selectedBid]
     //           track changes in checkbox
     //************************************************************
     useEffect(() => {
@@ -251,7 +252,7 @@ import { STICKS_BLINK_TIME, SHOWN_DICE_BLINK_TIME, SHAKE_CUPS_TIME } from '../sh
       const result = CanShowShake(selectedBid);
       setCanShowShake(result);
       if (!result) setBidShowShake(false);
-    }, [selectedBid, canShowShake]);
+    }, [selectedBid, gameState, myIndex]);
 
 
     //************************************************************
@@ -298,6 +299,8 @@ import { STICKS_BLINK_TIME, SHOWN_DICE_BLINK_TIME, SHAKE_CUPS_TIME } from '../sh
         if (data && !data.error) {
           setLobby(data);
           setLobbyPlayers(data.players);
+          setLobbyHost(data.host);
+          setGameState(data.game || {});
         } else {
           navigate('/'); // lobby doesn't exist
         }
@@ -308,6 +311,7 @@ import { STICKS_BLINK_TIME, SHOWN_DICE_BLINK_TIME, SHAKE_CUPS_TIME } from '../sh
         if (updatedLobby.id === lobbyId) {
           setLobby(updatedLobby);
           setLobbyPlayers(updatedLobby.players);
+          setLobbyHost(updatedLobby.host);
         }
       };
       socket.on('lobbyData', handleLobbyData);
@@ -338,18 +342,19 @@ import { STICKS_BLINK_TIME, SHOWN_DICE_BLINK_TIME, SHAKE_CUPS_TIME } from '../sh
     ggc.AssignGameState(data);
 
     // What is my index and my name?
-    const stringSocketId = String(socketId);
-    const index = ggc.allConnectionID.indexOf(stringSocketId);
-    setMyIndex (index);
-    setMyName (ggc.allParticipantNames[index]);
-    setWhosTurnName(ggc.allParticipantNames[ggc.whosTurn]);
+    const index = ggc.allConnectionID.indexOf(String(socketId));
+    setMyIndex(index);
+    if (index >= 0) {
+      setMyName(ggc.allParticipantNames[index] || '');
+      setIsMyTurn(index === ggc.whosTurn);
+    } else {
+      setMyName('');
+      setIsMyTurn(false);
+    }
+    setWhosTurnName(ggc.allParticipantNames[ggc.whosTurn] || '');
 
     // is it my turn to bid?
-    setIsMyTurn(index == ggc.whosTurn);
-
-    if (ggc.curRound == null) { 
-      return;
-    }
+    if (!ggc.curRound) return;
 
     // update Bid History
     if (ggc.curRound.numBids < 1) {
@@ -357,7 +362,7 @@ import { STICKS_BLINK_TIME, SHOWN_DICE_BLINK_TIME, SHAKE_CUPS_TIME } from '../sh
     }
     const lastBidText = ggc.curRound.Bids[ggc.curRound.numBids-1].text;
     setHistCurrentBid(lastBidText);
-    if (lastBidText == "PASO" || lastBidText == "DOUBT") {
+    if (lastBidText === "PASO" || lastBidText === "DOUBT") {
       setHistShowing('');
       setHistLookage('');
     } else {
@@ -605,7 +610,7 @@ import { STICKS_BLINK_TIME, SHOWN_DICE_BLINK_TIME, SHAKE_CUPS_TIME } from '../sh
   //************************************************************
   const CanShowShake = (bid) => {
     // no, if special strings
-    if (bid == "PASO" || bid == "DOUBT" || bid == "--Select--") {
+    if (bid === "PASO" || bid === "DOUBT" || bid === "--Select--") {
       return false;
     }
 
@@ -613,12 +618,12 @@ import { STICKS_BLINK_TIME, SHOWN_DICE_BLINK_TIME, SHAKE_CUPS_TIME } from '../sh
     ggc.parseBid(bid);
     for (let i = 0; i < 5; i++) {
         if (ggc.bDiceHidden[myIndex][i]) {
-            if (ggc.dice[myIndex][i] == ggc.parsedOfWhat) {
+            if (ggc.dice[myIndex][i] === ggc.parsedOfWhat) {
                 return true;
             }
             if (!ggc.bPaloFijoRound) {
                 // aces wild if not palofijo
-                if (ggc.dice[myIndex][i] == 1) {
+                if (ggc.dice[myIndex][i] === 1) {
                   return true;
                 }
             }
@@ -660,7 +665,7 @@ import { STICKS_BLINK_TIME, SHOWN_DICE_BLINK_TIME, SHAKE_CUPS_TIME } from '../sh
           turnString = 'PALO FIJO: ' + turnString;
         }
         setRow2YourTurnString(turnString);
-        setRow2SpecialPasoString (ggc.curRound.numBids > 1 && ggc.curRound.Bids[ggc.curRound.numBids-1].text == "PASO" ?
+        setRow2SpecialPasoString (ggc.curRound.numBids > 1 && ggc.curRound.Bids[ggc.curRound.numBids-1].text === "PASO" ?
                               `Doubt the PASO or top the bid: ${ggc.curRound.Bids[ggc.FindLastNonPasoBid()].text}.` :
                               '');
         setSelectedBid (ggc.possibleBids[0]);
@@ -886,7 +891,7 @@ import { STICKS_BLINK_TIME, SHOWN_DICE_BLINK_TIME, SHAKE_CUPS_TIME } from '../sh
       // non-PASO
       s2 = ggc.allParticipantNames[ggc.curRound.whoGotDoubted] + "'s bid was " + ggc.curRound.doubtedText;
 
-      s3 = (ggc.curRound.doubtCount == 1 ? " . . . There is " : " . . . There are ") + ggc.curRound.doubtCount + '.';
+      s3 = (ggc.curRound.doubtCount === 1 ? " . . . There is " : " . . . There are ") + ggc.curRound.doubtCount + '.';
     }
     setDoubtDoubtedBid(s2);
 
@@ -1054,7 +1059,7 @@ import { STICKS_BLINK_TIME, SHOWN_DICE_BLINK_TIME, SHAKE_CUPS_TIME } from '../sh
       window.visualViewport?.removeEventListener('resize', updateLayout);
     };
   }, []);
-
+/*
 //************************************************************
 // useEffect:  REQUEST LOBBY DATA [lobbyId]
 //             Request from server with callback
@@ -1078,7 +1083,7 @@ useEffect(() => {
     });
   }
 }, [lobbyId]);
-
+*/
 //*************************************************************
 // useEffect:  RECONNECT [socket, socketId]
 //*************************************************************
@@ -1111,13 +1116,19 @@ useEffect(() => {
 
     if (lobbyId && nameFromStorage) {
       if (connected) {
-        socket.emit('rejoinLobby', { lobbyId, playerName: nameFromStorage, id: socket.id }, (serverLobbyData) => {
+        socket.emit('rejoinLobby', { lobbyId, playerName: nameFromStorage }, (serverLobbyData) => {
           console.log("handleRECONNECT: callback received lobby/game data:", serverLobbyData);
   
           // Reconstruct your client-side state
           setLobbyHost(serverLobbyData.host);
           setGameState(serverLobbyData.game);
           setLobbyPlayers(serverLobbyData.players);
+          setLobby({
+            id: lobbyId,
+            host: serverLobbyData.host,
+            players: serverLobbyData.players,
+            game: serverLobbyData.game,
+          });
 
           ggc.AssignGameState(serverLobbyData.game);
   
@@ -1160,7 +1171,7 @@ useEffect(() => {
     console.log("handleRECONNECT: socket.off('connect') for reconnect handling");
     socket.off('connect', handleReconnect);
   };
-}, [socket, socketId]);
+}, [socket, socketId, connected, lobbyId, myName]);
 
 
 //************************************************************
@@ -1411,7 +1422,7 @@ useEffect(() => {
   function DrawInOrOut() {
     let msg = "Starting a new game\n\n";
     msg += `Number of sticks: ${ggc.maxSticks}\n`;
-    if (ggc.maxSticks == 1) msg += ' (one and done)';
+    if (ggc.maxSticks === 1) msg += ' (one and done)';
     msg += ggc.bPasoAllowed ? "Paso allowed: Yes\n" : "Paso allowed: No\n";
     msg += ggc.bPaloFijoAllowed ? "Palofijo: Yes\n" : "Palofijo: No\n";
     msg += "\nAre you in?";
@@ -1422,10 +1433,10 @@ useEffect(() => {
       if (ggc.inOutMustSay[cc]) {
         ss += "\n" + ggc.allParticipantNames[cc];
         if (ggc.inOutDidSay[cc]) {
-          if (ggc.allConnectionStatus[cc] == CONN_PLAYER_IN) {
+          if (ggc.allConnectionStatus[cc] === CONN_PLAYER_IN) {
             ss += " - IN";
           }
-          if (ggc.allConnectionStatus[cc] == CONN_OBSERVER) {
+          if (ggc.allConnectionStatus[cc] === CONN_OBSERVER) {
             ss += " - OUT";
           }
         }
@@ -1500,7 +1511,7 @@ useEffect(() => {
       setBidMatrix(ggc.BidMatrix);
 
       // show dialog, handle responses
-      if (ggc.curRound.whichDirection == undefined) {
+      if (ggc.curRound.whichDirection === undefined) {
         //---------------------------------------------
         // choose direction if starting a round
         //---------------------------------------------
@@ -1546,7 +1557,7 @@ useEffect(() => {
     if (ggc.GetNumberPlayersStillIn() < 2) {
       setRow2CurrentBid(`Waiting for 2 or more players in the lobby to start a game...`);
     } else {
-      setRow2CurrentBid(myName == lobby.host ? 
+      setRow2CurrentBid(myName === lobby.host ? 
                         'Waiting for YOU to start the game...' :
                         `Waiting for ${lobby.host} to start the game...`);
     }
@@ -1623,7 +1634,7 @@ useEffect(() => {
       // non-PASO
       s2 = ggc.allParticipantNames[ggc.curRound.whoGotDoubted] + "'s bid was " + ggc.curRound.doubtedText;
 
-      s3 = (ggc.curRound.doubtCount == 1 ? "There is " : "There are ") + ggc.curRound.doubtCount;
+      s3 = (ggc.curRound.doubtCount === 1 ? "There is " : "There are ") + ggc.curRound.doubtCount;
     }
     setRow2DoubtBid(s2);
     setRow2DoubtResult(s3);
@@ -2184,7 +2195,7 @@ useEffect(() => {
           <div style={{ gridColumn: 5 }}>
             <button
               className="btn btn-danger btn-sm text-white"
-              disabled={!ggc.curRound.numBids > 0}
+              disabled={ggc.curRound.numBids < 1}
               onClick={() => handleBidOK('DOUBT', bidShowShake)}
             >
               Doubt
@@ -2268,7 +2279,7 @@ function RenderGridBid() {
         <div style={{ gridColumn: 8, gridRow: 3 }}>
           <button
             className="btn btn-danger btn-sm text-white w-100"
-            disabled={!ggc.curRound.numBids > 0}
+            disabled={ggc.curRound.numBids < 1}
             onClick={() => handleBidOK('DOUBT', bidShowShake)}
           >
             Doubt

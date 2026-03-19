@@ -1,5 +1,43 @@
+//----------------------------------------------
+// HOW TO USE GOOGLE CLOUD SQL TO
+// MANIPULATE THE DUDO SQL DATABASE
+//----------------------------------------------
+- go to Cloud Run:  https://console.cloud.google.com/run
+- click hamburger (upper left)
+- scroll down to and click on Cloud SQL
+- click on dudo-mysql
+- left menu:  Cloud SQL Studio
+- log in to database:
+    - Database:  dudo-db
+    - User: dudo-app
+    - Password: dudo-app-nodejs
+    - Authenticate
+- click on tab: '<> Untitled query'
 
-to get to Cloud Run:  https://console.cloud.google.com/run
+Now you can enter SQL commands and click Run
+
+//----------------------------------------------
+// USEFUL SQL SCRIPTS
+//----------------------------------------------
+// --- see everything in the database ---
+SELECT *
+FROM players;
+
+//--- add a player ---
+INSERT INTO players (guid, username, password_hash)
+VALUES (
+  UUID(),
+  'glenn',
+  '$2b$10$TmB/vW8IIM./q0BCyh2OsuGRdsB04ZFPqEWPnKP1bPMMVW6bSyymi'
+);
+NOTE: You first have to encrypt (hash) the password.
+from the VSCode terminal, something like:
+cmd /c hash mypassword
+It will generate an encrypted password, which you paste into the command above.
+
+// --- delete a player ---
+DELETE FROM players
+WHERE username = 'glenn';
 
 //----------------------------------------------
 // HOW TO CHECK ENV VARS IN CLOUD RUN
@@ -9,26 +47,12 @@ click dudo-service
 click edit and deploy new revision
 click variables and secrets
 
-//----------------------------------------------
-// USEFUL SQL SCRIPTS
-//----------------------------------------------
 
-SELECT *
-FROM players;
 
-INSERT INTO players (guid, username, password_hash)
-VALUES (
-  UUID(),
-  'glenn',
-  '$2b$10$TmB/vW8IIM./q0BCyh2OsuGRdsB04ZFPqEWPnKP1bPMMVW6bSyymi'
-);
-
-DELETE FROM players
-WHERE username = 'glenn';
 
 
 //*****************************************************************************
-// Below is how I set things up
+// Below is how I set things up, kind of stream of consciousness
 //*****************************************************************************
 
 https://console.cloud.google.com/sql/get-started?project=trans-trees-453423-f7
