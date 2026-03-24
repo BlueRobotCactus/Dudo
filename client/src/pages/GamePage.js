@@ -340,6 +340,7 @@ import { STICKS_BLINK_TIME, SHOWN_DICE_BLINK_TIME, SHAKE_CUPS_TIME } from '../sh
 
     setGameState(data);
     ggc.AssignGameState(data);
+    validateGameState(ggc);
 
     // What is my index and my name?
     const index = ggc.allConnectionID.indexOf(String(socketId));
@@ -374,6 +375,23 @@ import { STICKS_BLINK_TIME, SHOWN_DICE_BLINK_TIME, SHAKE_CUPS_TIME } from '../sh
     }
   };
 
+  //************************************************************
+  // function validateGameState
+  //************************************************************
+  function validateGameState(ggc) {
+  if (!Array.isArray(ggc.allConnectionID)) {
+    console.warn("Invalid allConnectionID", ggc.allConnectionID);
+  }
+
+  if (ggc.curRound) {
+    if (!Array.isArray(ggc.curRound.Bids)) {
+      console.warn("Invalid Bids array", ggc.curRound.Bids);
+    }
+    if (typeof ggc.curRound.numBids !== 'number') {
+      console.warn("Invalid numBids", ggc.curRound.numBids);
+    }
+  }
+}
   //************************************************************
   // function handleGameOver
   //************************************************************
@@ -602,7 +620,6 @@ import { STICKS_BLINK_TIME, SHOWN_DICE_BLINK_TIME, SHAKE_CUPS_TIME } from '../sh
   const handleOptHelp = () => {
 
   }
-
 
   //************************************************************
   // function to say whether they can show/shake 

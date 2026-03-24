@@ -111,6 +111,8 @@ export class DudoGame {
 	// constructor
 	//****************************************************************
 	constructor() {
+		this.curRound = null;
+
 		for (let cc = 0; cc < MAX_CONNECTIONS; cc++) {
 			this.allParticipantNames[cc] = '';
 			this.allParticipantGuid[cc] = '';
@@ -176,6 +178,9 @@ export class DudoGame {
 
 		Object.assign(this, state);
 
+		// Always reset curRound explicitly
+  	this.curRound = null;
+
 		// Rehydrate current round
 		if (state.curRound) {
 			this.curRound = new DudoRound();
@@ -189,6 +194,9 @@ export class DudoGame {
 				});
 			}
 		}
+
+		// Always reset Rounds explicitly too
+	  this.Rounds = [];
 
 		// Rehydrate rounds history
 		if (Array.isArray(state.Rounds)) {
@@ -213,6 +221,8 @@ export class DudoGame {
 	// initialize game parameters
 	//************************************************************
 	PrepareNextGame () {
+		this.curRound = null;
+
 		this.bPasoAllowed = true;
 		this.bPaloFijoAllowed = true;
 		this.bPaloFijoRound =  false;
@@ -926,7 +936,7 @@ export class DudoGame {
 
 		return [num, face];
 	}
-/*
+
 	//****************************************************************
 	// Trim the bid list (1 - aces) => (1 - ace)
 	//****************************************************************
@@ -937,7 +947,6 @@ export class DudoGame {
 			}
 		}
 	}
-*/
 
 	//****************************************************************
 	// Parse the bid string into integers

@@ -20,8 +20,7 @@ Now you can enter SQL commands and click Run
 // USEFUL SQL SCRIPTS
 //----------------------------------------------
 // --- see everything in the database ---
-SELECT *
-FROM players;
+SELECT * FROM players;
 
 //--- add a player ---
 INSERT INTO players (guid, username, password_hash)
