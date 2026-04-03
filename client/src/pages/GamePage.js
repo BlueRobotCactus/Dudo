@@ -978,10 +978,16 @@ import { STICKS_BLINK_TIME, SHOWN_DICE_BLINK_TIME, SHAKE_CUPS_TIME } from '../sh
     setShowCountdown(true);
   };
 
-  const handleDisconnectCountdownEnded = ({ playerName }) => {
-    console.log(`Countdown for ${playerName} ended`);
-    setCountdownMessage(`${playerName} did not reconnect in time.`);
-    setTimeout(() => setShowCountdown(false), 3000);  // Optional: hide after brief display
+  const handleDisconnectCountdownEnded = ({ playerName, reason }) => {
+    console.log(`Countdown for ${playerName} ended: ${reason}`);
+
+    if (reason === 'reconnected') {
+      setCountdownMessage(`${playerName} reconnected.`);
+    } else {
+      setCountdownMessage(`${playerName} did not reconnect in time.`);
+    }
+
+    setTimeout(() => setShowCountdown(false), 3000);
   };
 
   //************************************************************

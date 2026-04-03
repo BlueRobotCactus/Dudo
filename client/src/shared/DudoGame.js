@@ -1223,6 +1223,7 @@ export class DudoRound {
 	doubtLoserOut = undefined;
 	doubtWasPaso = undefined;
 	doubtPasoWasThere = undefined;
+	startingPlayerIndex = -1;
 
   constructor() {
     this.curBid = new DudoBid();
@@ -1243,6 +1244,7 @@ export class DudoRound {
 		this.doubtLoserOut = undefined;
 		this.doubtWasPaso = undefined;
 		this.doubtPasoWasThere = undefined;
+		this.startingPlayerIndex = -1;
 	}
 }
 

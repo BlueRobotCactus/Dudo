@@ -58,24 +58,34 @@ io.use((socket, next) => {
 });
 
 // In-memory lobbies storage
-const lobbies = {
-  /*
-    lobbies[lobbyId] = {
-      id: lobbyId,
-      hostGuid: authedPlayer.guid,
-      host: hostName,              // optional display field
-      hostSocketId: socket.id,     // temporary, can keep for now
-      players: [{
-        guid: authedPlayer.guid,
-        socketId: socket.id,
-        username: authedPlayer.username,
-        displayName: hostName
-      }],
-      game: ggs,
-      lobbySession,
-    };
-  */
-};
+const lobbies = {};
+/*
+  lobbies[lobbyId] = {
+    id: lobbyId,
+    hostGuid: authedPlayer.guid,
+    host: hostName,              // optional display field
+    hostSocketId: socket.id,     // temporary, can keep for now
+    players: [{
+      guid: authedPlayer.guid,
+      socketId: socket.id,
+      username: authedPlayer.username,
+      displayName: hostName
+    }],
+    game: ggs,
+    lobbySession,
+  };
+*/
+
+const disconnectTimers = {};
+/*
+  disconnectTimers[lobbyId] = {
+    [guid]: {
+      intervalId,
+      timeoutAt
+    }
+  };
+*/
+const COUNTDOWN_SECONDS = 10;
 
 // ******************************
 // Socket.IO setup
@@ -97,6 +107,205 @@ io.on('connection', (socket) => {
     if (status === CONN_OBSERVER_DISCONN) return CONN_OBSERVER;
     return status;
   }
+
+  //---------------------------------------
+  // helper functions for disconnect
+  //---------------------------------------
+  //----------------------------------------
+  function ensureLobbyTimerMap(lobbyId) {
+    if (!disconnectTimers[lobbyId]) {
+      disconnectTimers[lobbyId] = {};
+    }
+    return disconnectTimers[lobbyId];
+  }
+
+  //----------------------------------------
+  function clearDisconnectTimer(lobbyId, guid) {
+    const lobbyTimers = disconnectTimers[lobbyId];
+    if (!lobbyTimers || !lobbyTimers[guid]) return;
+
+    clearInterval(lobbyTimers[guid].intervalId);
+    delete lobbyTimers[guid];
+
+    if (Object.keys(lobbyTimers).length === 0) {
+      delete disconnectTimers[lobbyId];
+    }
+  }
+
+  //----------------------------------------
+  function removePlayerFromActiveGame(ggs, index) {
+    if (index < 0) return;
+
+    // mark them out
+    ggs.allConnectionID[index] = '';
+    ggs.allConnectionStatus[index] = CONN_PLAYER_OUT;
+    ggs.allSticks[index] = 0;
+    ggs.allPasoUsed[index] = false;
+
+    // if whose turn / previous turn points to disconnected player,
+    // move them to a sane value
+    if (ggs.whosTurn === index) {
+      ggs.whosTurn = ggs.getWhosTurnNext();
+    }
+    if (ggs.whosTurnPrev === index) {
+      ggs.whosTurnPrev = -1;
+    }
+  }
+
+  //----------------------------------------
+  function handleDisconnectTimeout(lobbyId, guid) {
+    const lobby = lobbies[lobbyId];
+    if (!lobby) return;
+
+    const ggs = lobby.game;
+    const gameIndex = findGameIndexByGuid(ggs, guid);
+    if (gameIndex === -1) return;
+
+    const playerName = ggs.allParticipantNames[gameIndex];
+
+    // only act if they are still disconnected
+    if (ggs.allConnectionStatus[gameIndex] !== CONN_PLAYER_IN_DISCONN &&
+        ggs.allConnectionStatus[gameIndex] !== CONN_PLAYER_OUT_DISCONN &&
+        ggs.allConnectionStatus[gameIndex] !== CONN_OBSERVER_DISCONN) {
+      return;
+    }
+
+    clearDisconnectTimer(lobbyId, guid);
+
+    // If game not in progress, just leave them disconnected/out of lobby state
+    if (!ggs.bGameInProgress) {
+      
+      io.to(lobbyId).emit('disconnectCountdownEnded', { playerName, reason: 'timed_out' });
+      io.to(lobbyId).emit('lobbyData', lobby);
+      io.emit('lobbiesList', getLobbiesList());
+      io.to(lobbyId).emit('gameStateUpdate', ggs);
+      return;
+    }
+
+    // Observers: simply mark back to observer/out-of-room state
+    if (ggs.allConnectionStatus[gameIndex] === CONN_OBSERVER_DISCONN) {
+      ggs.allConnectionStatus[gameIndex] = CONN_OBSERVER;
+      ggs.allConnectionID[gameIndex] = '';
+      io.to(lobbyId).emit('disconnectCountdownEnded', { playerName, reason: 'timed_out' });
+      io.to(lobbyId).emit('gameStateUpdate', ggs);
+      return;
+    }
+
+    const hadAnyBid =
+      ggs.bRoundInProgress &&
+      ggs.curRound &&
+      ggs.curRound.numBids > 0;
+
+    const originalStarter = ggs.curRound?.startingPlayerIndex ?? ggs.whosTurn;
+
+    removePlayerFromActiveGame(ggs, gameIndex);
+
+    // need at least 2 players still in
+    if (ggs.GetNumberPlayersStillIn() <= 1) {
+      ggs.bRoundInProgress = false;
+      ggs.bDoubtInProgress = false;
+      ggs.bShowDoubtResult = false;
+      ggs.bGameInProgress = false;
+      io.to(lobbyId).emit('disconnectCountdownEnded', { playerName, reason: 'timed_out' });
+      io.to(lobbyId).emit('gameStateUpdate', ggs);
+      return;
+    }
+
+    if (hadAnyBid) {
+      // discard current round and restart it
+      ggs.bDoubtInProgress = false;
+      ggs.bShowDoubtResult = false;
+      ggs.bDirectionInProgress = false;
+
+      // keep same starting player for restarted round
+      ggs.firstRound = false;
+      ggs.whosTurn = originalStarter;
+
+      // if starter was the disconnected player, advance to next live player
+      if (ggs.whosTurn === gameIndex ||
+          ggs.allConnectionStatus[ggs.whosTurn] !== CONN_PLAYER_IN) {
+        ggs.whosTurn = ggs.getWhosTurnNext();
+      }
+
+      StartRound(ggs);
+    } else {
+      // no bid yet: player is simply out, game goes on
+      if (ggs.whosTurn === gameIndex ||
+          ggs.allConnectionStatus[ggs.whosTurn] !== CONN_PLAYER_IN) {
+        ggs.whosTurn = ggs.getWhosTurnNext();
+      }
+    }
+
+    io.to(lobbyId).emit('disconnectCountdownEnded', { playerName, reason: 'timed_out' });
+    io.to(lobbyId).emit('lobbyData', lobby);
+    io.emit('lobbiesList', getLobbiesList());
+    io.to(lobbyId).emit('gameStateUpdate', ggs);
+  }
+
+  //----------------------------------------
+  function startDisconnectCountdown(lobbyId, removedPlayer, index) {
+    const lobby = lobbies[lobbyId];
+    if (!lobby) return;
+
+    const lobbyTimers = ensureLobbyTimerMap(lobbyId);
+
+    clearDisconnectTimer(lobbyId, removedPlayer.guid);
+
+    let secondsRemaining = COUNTDOWN_SECONDS;
+
+    io.to(lobbyId).emit('disconnectCountdown', {
+      playerName: removedPlayer.displayName,
+      playerGuid: removedPlayer.guid,
+      secondsRemaining
+    });
+
+    const intervalId = setInterval(() => {
+      const stillLobby = lobbies[lobbyId];
+      if (!stillLobby) {
+        clearDisconnectTimer(lobbyId, removedPlayer.guid);
+        return;
+      }
+
+      const ggs = stillLobby.game;
+      const gameIndex = findGameIndexByGuid(ggs, removedPlayer.guid);
+
+      if (gameIndex === -1) {
+        clearDisconnectTimer(lobbyId, removedPlayer.guid);
+        return;
+      }
+
+      const status = ggs.allConnectionStatus[gameIndex];
+      const stillDisconnected =
+        status === CONN_PLAYER_IN_DISCONN ||
+        status === CONN_PLAYER_OUT_DISCONN ||
+        status === CONN_OBSERVER_DISCONN;
+
+      if (!stillDisconnected) {
+        clearDisconnectTimer(lobbyId, removedPlayer.guid);
+        return;
+      }
+
+      secondsRemaining--;
+
+      if (secondsRemaining > 0) {
+        io.to(lobbyId).emit('disconnectCountdown', {
+          playerName: removedPlayer.displayName,
+          playerGuid: removedPlayer.guid,
+          secondsRemaining
+        });
+      } else {
+        handleDisconnectTimeout(lobbyId, removedPlayer.guid);
+      }
+    }, 1000);
+
+    lobbyTimers[removedPlayer.guid] = {
+      intervalId,
+      timeoutAt: Date.now() + (COUNTDOWN_SECONDS * 1000)
+    };
+  }
+  //---------------------------------------
+  // END HELPER FUNCTIONS
+  //---------------------------------------
 
   console.log('server.js: New client connected:', socket.id);
 
@@ -232,6 +441,7 @@ io.on('connection', (socket) => {
         ggs.allParticipantNames[gameIndex] = playerName;
         ggs.allConnectionID[gameIndex] = socket.id;
         ggs.allConnectionStatus[gameIndex] = reconnectStatus(ggs.allConnectionStatus[gameIndex]);
+        clearDisconnectTimer(lobbyId, authedPlayer.guid);
 
         if (authedPlayer.guid === lobby.hostGuid) {
           lobby.hostSocketId = socket.id;
@@ -610,10 +820,8 @@ io.on('connection', (socket) => {
     if (authedPlayer.guid === lobby.hostGuid) {
       lobby.hostSocketId = socket.id;
     }
-
-    io.to(socket.id).emit('disconnectCountdownEnded', {
-      playerName: playerName
-    });
+    clearDisconnectTimer(lobbyId, authedPlayer.guid);
+    io.to(lobbyId).emit('disconnectCountdownEnded', { playerName, reason: 'reconnected' });
 
     socket.join(lobbyId);
     io.to(lobbyId).emit('lobbyData', lobby);
@@ -963,37 +1171,43 @@ io.on('connection', (socket) => {
     console.log('server.js: Client disconnected:', socket.id);
 
     // Find any lobby that this player was in
-    socket.on('disconnect', () => {
-      console.log('server.js: Client disconnected:', socket.id);
+    for (const lobbyId in lobbies) {
+      const lobby = lobbies[lobbyId];
+      const playerIndex = lobby.players.findIndex((p) => p.socketId === socket.id);
 
-      for (let id in lobbies) {
-        const lobby = lobbies[id];
-        const playerIndex = lobby.players.findIndex((p) => p.socketId === socket.id);
+      if (playerIndex === -1) continue;
 
-        if (playerIndex === -1) continue;
+      const removedPlayer = lobby.players[playerIndex];
 
-        const [removedPlayer] = lobby.players.splice(playerIndex, 1);
+      // remove only from live socket list in lobby.players
+      lobby.players.splice(playerIndex, 1);
 
-        const ggs = lobby.game;
-        const index = findGameIndexByGuid(ggs, removedPlayer.guid);
+      const ggs = lobby.game;
+      const index = findGameIndexByGuid(ggs, removedPlayer.guid);
 
-        if (index !== -1) {
-          ggs.allConnectionID[index] = '';
+      let bCountDown = true;
+      if (index !== -1) {
+        ggs.allConnectionID[index] = '';
 
-          if (ggs.allConnectionStatus[index] === CONN_PLAYER_IN) {
-            ggs.allConnectionStatus[index] = CONN_PLAYER_IN_DISCONN;
-          }
-          if (ggs.allConnectionStatus[index] === CONN_PLAYER_OUT) {
-            ggs.allConnectionStatus[index] = CONN_PLAYER_OUT_DISCONN;
-          }
-          if (ggs.allConnectionStatus[index] === CONN_OBSERVER) {
-            ggs.allConnectionStatus[index] = CONN_OBSERVER_DISCONN;
-          }
+        if (ggs.allConnectionStatus[index] === CONN_PLAYER_IN) {
+          ggs.allConnectionStatus[index] = CONN_PLAYER_IN_DISCONN;
+        } else if (ggs.allConnectionStatus[index] === CONN_PLAYER_OUT) {
+          ggs.allConnectionStatus[index] = CONN_PLAYER_OUT_DISCONN;
+        } else if (ggs.allConnectionStatus[index] === CONN_OBSERVER) {
+          ggs.allConnectionStatus[index] = CONN_OBSERVER_DISCONN;
+          bCountDown = false;
         }
-
-        break;
       }
-    });
+
+      io.to(lobbyId).emit('lobbyData', lobby);
+      io.emit('lobbiesList', getLobbiesList());
+      io.to(lobbyId).emit('gameStateUpdate', ggs);
+
+      if (bCountDown) {
+        startDisconnectCountdown(lobbyId, removedPlayer, index);
+      }
+      break;
+    }
   });
 
 //&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
@@ -1006,7 +1220,7 @@ io.on('connection', (socket) => {
         let secondsRemaining = countdownDuration;
 
         io.to(id).emit('disconnectCountdown', {
-          playerName: removedPlayer.name,
+          playerName: removedPlayer.displayName,
           secondsRemaining
         });
 
@@ -1017,7 +1231,7 @@ io.on('connection', (socket) => {
           if (secondsRemaining > 0) {
             // still giving them time for re-connect
             io.to(id).emit('disconnectCountdown', {
-              playerName: removedPlayer.name,
+              playerName: removedPlayer.displayName,
               secondsRemaining
             });
           } else {
@@ -1026,7 +1240,8 @@ io.on('connection', (socket) => {
             clearInterval(intervalId);
 
             io.to(id).emit('disconnectCountdownEnded', {
-              playerName: removedPlayer.name
+              playerName: removedPlayer.displayName
+              reason: 'disconnected'
             });
           }
         }, 1000);
@@ -1402,8 +1617,6 @@ function StartRound (ggs) {
     // (otherwise determined in PostRound())
     //------------------------------------------------------------
     if (ggs.firstRound) {
-
-        //let rr = randomGenerator.nextInt(ggs.GetNumberPlayersStillIn());
         const random = Math.floor(Math.random() * ggs.GetNumberPlayersStillIn());
         let temp = 0;
         for (let cc = 0; cc < MAX_CONNECTIONS; cc++) {
@@ -1417,6 +1630,7 @@ function StartRound (ggs) {
             }
         }
     }
+    ggs.curRound.startingPlayerIndex = ggs.whosTurn; 
 
     //------------------------------------------------------------
     // roll the dice for all players
