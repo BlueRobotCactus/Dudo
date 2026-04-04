@@ -101,16 +101,18 @@ io.on('connection', (socket) => {
   function findGameIndexByGuid(ggs, guid) {
     return ggs.allParticipantGuid.indexOf(guid);
   }
+  function disconnectStatus (status) {
+    if (status === CONN_PLAYER_IN)  return CONN_PLAYER_IN_DISCONN;
+    if (status === CONN_PLAYER_OUT) return CONN_PLAYER_OUT_DISCONN;
+    if (status === CONN_OBSERVER)   return CONN_OBSERVER_DISCONN;
+  }
   function reconnectStatus(status) {
-    if (status === CONN_PLAYER_IN_DISCONN) return CONN_PLAYER_IN;
+    if (status === CONN_PLAYER_IN_DISCONN)  return CONN_PLAYER_IN;
     if (status === CONN_PLAYER_OUT_DISCONN) return CONN_PLAYER_OUT;
-    if (status === CONN_OBSERVER_DISCONN) return CONN_OBSERVER;
+    if (status === CONN_OBSERVER_DISCONN)   return CONN_OBSERVER;
     return status;
   }
 
-  //---------------------------------------
-  // helper functions for disconnect
-  //---------------------------------------
   //----------------------------------------
   function ensureLobbyTimerMap(lobbyId) {
     if (!disconnectTimers[lobbyId]) {
@@ -303,6 +305,7 @@ io.on('connection', (socket) => {
       timeoutAt: Date.now() + (COUNTDOWN_SECONDS * 1000)
     };
   }
+
   //---------------------------------------
   // END HELPER FUNCTIONS
   //---------------------------------------
@@ -1183,20 +1186,27 @@ io.on('connection', (socket) => {
       lobby.players.splice(playerIndex, 1);
 
       const ggs = lobby.game;
-      const index = findGameIndexByGuid(ggs, removedPlayer.guid);
+      const gameIndex = findGameIndexByGuid(ggs, removedPlayer.guid);
 
       let bCountDown = true;
-      if (index !== -1) {
-        ggs.allConnectionID[index] = '';
-
-        if (ggs.allConnectionStatus[index] === CONN_PLAYER_IN) {
-          ggs.allConnectionStatus[index] = CONN_PLAYER_IN_DISCONN;
-        } else if (ggs.allConnectionStatus[index] === CONN_PLAYER_OUT) {
-          ggs.allConnectionStatus[index] = CONN_PLAYER_OUT_DISCONN;
-        } else if (ggs.allConnectionStatus[index] === CONN_OBSERVER) {
-          ggs.allConnectionStatus[index] = CONN_OBSERVER_DISCONN;
-          bCountDown = false;
+      if (gameIndex !== -1) {
+        ggs.allConnectionID[gameIndex] = '';
+        let status = ggs.allConnectionStatus[gameIndex];
+        // do we countdown?
+        if (ggs.bGameInProgress) {
+          // game in progress: YES
+          if (status === CONN_PLAYER_IN)  bCountDown = true;
+          if (status === CONN_PLAYER_OUT) bCountDown = false;
+          if (status === CONN_OBSERVER)   bCountDown = false;
         }
+        if (!ggs.bGameInProgress) {
+          // game in progress: NO
+          if (status === CONN_PLAYER_IN)  bCountDown = false;
+          if (status === CONN_PLAYER_OUT) bCountDown = false;
+          if (status === CONN_OBSERVER)   bCountDown = false;
+        }
+        // now flip statuses to disconnected
+        ggs.allConnectionStatus[gameIndex] = disconnectStatus(status);
       }
 
       io.to(lobbyId).emit('lobbyData', lobby);
@@ -1204,7 +1214,7 @@ io.on('connection', (socket) => {
       io.to(lobbyId).emit('gameStateUpdate', ggs);
 
       if (bCountDown) {
-        startDisconnectCountdown(lobbyId, removedPlayer, index);
+        startDisconnectCountdown(lobbyId, removedPlayer, gameIndex);
       }
       break;
     }
