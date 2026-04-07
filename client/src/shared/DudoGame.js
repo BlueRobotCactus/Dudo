@@ -107,6 +107,10 @@ export class DudoGame {
 	whoWonGame;
 	orderOfFinish = [];
 
+	bDisconnectPause;
+	disconnectPausedPlayerName;
+	disconnectSecondsRemaining;
+
 	//****************************************************************
 	// constructor
 	//****************************************************************
@@ -162,6 +166,10 @@ export class DudoGame {
 		this.bWinnerGame = false;
 		this.whoWonGame = undefined;
 		this.whosTurn = -1;
+
+		this.bDisconnectPause = false;
+		this.disconnectPausedPlayerName = '';
+		this.disconnectSecondsRemaining = 0;		
 	}
 
 	//************************************************************

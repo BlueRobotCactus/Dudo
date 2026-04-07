@@ -85,7 +85,7 @@ const disconnectTimers = {};
     }
   };
 */
-const COUNTDOWN_SECONDS = 10;
+const COUNTDOWN_SECONDS = 30;
 
 // ******************************
 // Socket.IO setup
@@ -112,7 +112,17 @@ io.on('connection', (socket) => {
     if (status === CONN_OBSERVER_DISCONN)   return CONN_OBSERVER;
     return status;
   }
-
+  function turnPauseON(ggs, name, seconds) {
+    ggs.bDisconnectPause = true;
+    ggs.disconnectPausedPlayerName = name;
+    ggs.disconnectSecondsRemaining = seconds;
+  }
+  function turnPauseOFF(ggs) {
+    ggs.bDisconnectPause = false;
+    ggs.disconnectPausedPlayerName = '';
+    ggs.disconnectSecondsRemaining = 0;
+  }
+  
   //----------------------------------------
   function ensureLobbyTimerMap(lobbyId) {
     if (!disconnectTimers[lobbyId]) {
@@ -176,19 +186,21 @@ io.on('connection', (socket) => {
 
     // If game not in progress, just leave them disconnected/out of lobby state
     if (!ggs.bGameInProgress) {
-      
       io.to(lobbyId).emit('disconnectCountdownEnded', { playerName, reason: 'timed_out' });
       io.to(lobbyId).emit('lobbyData', lobby);
       io.emit('lobbiesList', getLobbiesList());
+      turnPauseOFF (ggs);
       io.to(lobbyId).emit('gameStateUpdate', ggs);
       return;
     }
 
+    // Game is in progress 
     // Observers: simply mark back to observer/out-of-room state
     if (ggs.allConnectionStatus[gameIndex] === CONN_OBSERVER_DISCONN) {
       ggs.allConnectionStatus[gameIndex] = CONN_OBSERVER;
       ggs.allConnectionID[gameIndex] = '';
       io.to(lobbyId).emit('disconnectCountdownEnded', { playerName, reason: 'timed_out' });
+      turnPauseOFF (ggs);
       io.to(lobbyId).emit('gameStateUpdate', ggs);
       return;
     }
@@ -209,6 +221,7 @@ io.on('connection', (socket) => {
       ggs.bShowDoubtResult = false;
       ggs.bGameInProgress = false;
       io.to(lobbyId).emit('disconnectCountdownEnded', { playerName, reason: 'timed_out' });
+      turnPauseOFF (ggs);
       io.to(lobbyId).emit('gameStateUpdate', ggs);
       return;
     }
@@ -241,11 +254,12 @@ io.on('connection', (socket) => {
     io.to(lobbyId).emit('disconnectCountdownEnded', { playerName, reason: 'timed_out' });
     io.to(lobbyId).emit('lobbyData', lobby);
     io.emit('lobbiesList', getLobbiesList());
+    turnPauseOFF (ggs);
     io.to(lobbyId).emit('gameStateUpdate', ggs);
   }
 
   //----------------------------------------
-  function startDisconnectCountdown(lobbyId, removedPlayer, index) {
+  function startDisconnectCountdown(lobbyId, removedPlayer) {
     const lobby = lobbies[lobbyId];
     if (!lobby) return;
 
@@ -255,6 +269,14 @@ io.on('connection', (socket) => {
 
     let secondsRemaining = COUNTDOWN_SECONDS;
 
+    // turn pause ON
+    const ggs = lobby.game;
+    turnPauseON (ggs, removedPlayer.displayName, secondsRemaining);
+
+    // broadcast updated game state so clients freeze immediately
+    io.to(lobbyId).emit('gameStateUpdate', ggs);
+
+    // existing countdown event (you can keep this)
     io.to(lobbyId).emit('disconnectCountdown', {
       playerName: removedPlayer.displayName,
       playerGuid: removedPlayer.guid,
@@ -288,6 +310,10 @@ io.on('connection', (socket) => {
       }
 
       secondsRemaining--;
+
+      // update game state countdown
+      ggs.disconnectSecondsRemaining = secondsRemaining;
+      io.to(lobbyId).emit('gameStateUpdate', ggs);
 
       if (secondsRemaining > 0) {
         io.to(lobbyId).emit('disconnectCountdown', {
@@ -824,9 +850,13 @@ io.on('connection', (socket) => {
       lobby.hostSocketId = socket.id;
     }
     clearDisconnectTimer(lobbyId, authedPlayer.guid);
-    io.to(lobbyId).emit('disconnectCountdownEnded', { playerName, reason: 'reconnected' });
 
     socket.join(lobbyId);
+    io.to(lobbyId).emit('disconnectCountdownEnded', { playerName, reason: 'reconnected' });
+
+    turnPauseOFF (ggs);
+    io.to(lobbyId).emit('gameStateUpdate', ggs);
+
     io.to(lobbyId).emit('lobbyData', lobby);
     io.emit('lobbiesList', getLobbiesList());
 
@@ -872,6 +902,9 @@ io.on('connection', (socket) => {
 
     const lobby = lobbies[lobbyId];
     const ggs = lobby.game;
+    if (ggs.bDisconnectPause) {
+      return;
+    }
 
     ggs.bDirectionInProgress = false;
     ggs.curRound.whichDirection = direction;
@@ -891,6 +924,9 @@ io.on('connection', (socket) => {
 
     const lobby = lobbies[lobbyId];
     const ggs = lobby.game;
+    if (ggs.bDisconnectPause) {
+      return;
+    }
 
     //-------------------------------------------------
     // add this bid to the bid array
@@ -1031,6 +1067,9 @@ io.on('connection', (socket) => {
 
     const lobby = lobbies[lobbyId];
     const ggs = lobby.game;
+    if (ggs.bDisconnectPause) {
+      return;
+    }
 
     // mark this player cup lifted
     ggs.doubtDidLiftCup[index] = true;
@@ -1073,6 +1112,9 @@ io.on('connection', (socket) => {
 
     const lobby = lobbies[lobbyId];
     const ggs = lobby.game;
+    if (ggs.bDisconnectPause) {
+      return;
+    }
 
     // mark this player heard back
     ggs.nextRoundDidSay[index] = true;
@@ -1214,50 +1256,11 @@ io.on('connection', (socket) => {
       io.to(lobbyId).emit('gameStateUpdate', ggs);
 
       if (bCountDown) {
-        startDisconnectCountdown(lobbyId, removedPlayer, gameIndex);
+        startDisconnectCountdown(lobbyId, removedPlayer);
       }
       break;
     }
   });
-
-//&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
-// start
-/*
-        io.to(id).emit('lobbyData', lobby);
-
-        // Start disconnect countdown
-        const countdownDuration = 10;
-        let secondsRemaining = countdownDuration;
-
-        io.to(id).emit('disconnectCountdown', {
-          playerName: removedPlayer.displayName,
-          secondsRemaining
-        });
-
-        console.log('server.js: setting 30 second interval timer');
-        const intervalId = setInterval(() => {
-          secondsRemaining--;
-
-          if (secondsRemaining > 0) {
-            // still giving them time for re-connect
-            io.to(id).emit('disconnectCountdown', {
-              playerName: removedPlayer.displayName,
-              secondsRemaining
-            });
-          } else {
-            // time's up
-            console.log("server.js: clearing 30 second interval timer; time's up");
-            clearInterval(intervalId);
-
-            io.to(id).emit('disconnectCountdownEnded', {
-              playerName: removedPlayer.displayName
-              reason: 'disconnected'
-            });
-          }
-        }, 1000);
-*/        
-// end
-//&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
 
   //************************************************************
   // socket.on

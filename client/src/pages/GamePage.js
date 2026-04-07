@@ -1683,6 +1683,8 @@ useEffect(() => {
   //  Render 
   //************************************************************
   //************************************************************
+  const isFrozen = showCountdown || gameState?.bDisconnectPause;
+
   return (
     <>
         <div
@@ -1751,15 +1753,33 @@ useEffect(() => {
         </div>
 
         {/* Floating countdown overlay */}
-        {showCountdown && (
+        {isFrozen && (
           <div
-            className="position-absolute top-50 start-50 translate-middle bg-dark text-white p-1 rounded"
-            style={{ zIndex: 3000 }}
+            style={{
+              position: 'fixed',
+              inset: 0,
+              backgroundColor: 'rgba(0,0,0,0.5)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 5000,
+              pointerEvents: 'all'
+            }}
           >
-            {countdownMessage}
+            <div
+              style={{
+                background: 'white',
+                padding: '20px 30px',
+                borderRadius: '10px',
+                fontSize: '18px',
+                textAlign: 'center',
+                fontWeight: 'bold'
+              }}
+            >
+              {countdownMessage}
+            </div>
           </div>
         )}
-
         {/*-------------------------------------------------------------------
           DIALOGS
         --------------------------------------------------------------------*/}
