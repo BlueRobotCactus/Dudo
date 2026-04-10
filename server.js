@@ -420,6 +420,43 @@ io.on('connection', (socket) => {
       // First try to find this authenticated user in the game by guid
       const gameIndex = findGameIndexByGuid(ggs, authedPlayer.guid);
 
+//------------------------------------------------------------------- BEGIN
+
+      // ============================================================
+      // Prevent same authenticated player from joining twice
+      // in two different browsers/tabs at the same time.
+      //
+      // Allow only:
+      //   1) truly new player (gameIndex === -1), or
+      //   2) legitimate reconnect from a disconnected state
+      //
+      // Reject:
+      //   same guid already active in lobby on a different socket
+      // ============================================================
+      if (gameIndex !== -1) {
+        const status = ggs.allConnectionStatus[gameIndex];
+        const existingSocketId = ggs.allConnectionID[gameIndex];
+
+        const isAlreadyActive =
+          status === CONN_PLAYER_IN ||
+          status === CONN_PLAYER_OUT ||
+          status === CONN_OBSERVER;
+
+        if (isAlreadyActive && existingSocketId && existingSocketId !== socket.id) {
+          callback?.({ error: 'You are already in this lobby from another browser or tab.' });
+          return;
+        }
+
+        // Optional safety: if the same socket somehow calls join again,
+        // just return current lobby data instead of reprocessing.
+        if (isAlreadyActive && existingSocketId === socket.id) {
+          callback?.(lobby);
+          return;
+        }
+      }
+
+//------------------------------------------------------------------- END
+
       if (gameIndex === -1) {
         // truly new player
         lobby.players.push({
@@ -428,8 +465,6 @@ io.on('connection', (socket) => {
           username: authedPlayer.username,
           displayName: playerName
         });
-
-        socket.join(lobbyId);
 
         let ptr = -1;
         for (let i = 0; i < MAX_CONNECTIONS; i++) {
@@ -443,6 +478,8 @@ io.on('connection', (socket) => {
           callback?.({ error: 'Lobby is full' });
           return;
         }
+
+        socket.join(lobbyId);
 
         ggs.allParticipantGuid[ptr] = authedPlayer.guid;
         ggs.allParticipantNames[ptr] = playerName;
@@ -793,6 +830,30 @@ io.on('connection', (socket) => {
     }
 
     const ggs = lobby.game;
+/*
+CHATGPT code that breaks things.  Do we need it?
+//------------------------------------------------------------------- BEGIN
+    // Find player in game
+    const gameIndex = findGameIndexByGuid(ggs, authedPlayer.guid);
+
+    // BLOCK invalid rejoin
+    if (gameIndex !== -1) {
+      const status = ggs.allConnectionStatus[gameIndex];
+
+      const isDisconnected =
+        status === CONN_PLAYER_IN_DISCONN ||
+        status === CONN_PLAYER_OUT_DISCONN ||
+        status === CONN_OBSERVER_DISCONN;
+
+      if (!isDisconnected) {
+        callback?.({ error: 'You are already connected to this lobby from another browser or tab.' });
+        return;
+      }
+    }
+
+    // NOW safe to update lobby.players
+//------------------------------------------------------------------- END
+*/
 
     //-------------------------------------------------
     // lobby object
@@ -901,10 +962,9 @@ io.on('connection', (socket) => {
     }
 
     const lobby = lobbies[lobbyId];
+    if (!lobby) return;
     const ggs = lobby.game;
-    if (ggs.bDisconnectPause) {
-      return;
-    }
+    if (ggs.bDisconnectPause) return;
 
     ggs.bDirectionInProgress = false;
     ggs.curRound.whichDirection = direction;
@@ -923,10 +983,9 @@ io.on('connection', (socket) => {
     }
 
     const lobby = lobbies[lobbyId];
+    if (!lobby) return;
     const ggs = lobby.game;
-    if (ggs.bDisconnectPause) {
-      return;
-    }
+    if (ggs.bDisconnectPause) return;
 
     //-------------------------------------------------
     // add this bid to the bid array
@@ -1066,10 +1125,9 @@ io.on('connection', (socket) => {
     }
 
     const lobby = lobbies[lobbyId];
+    if (!lobby) return;
     const ggs = lobby.game;
-    if (ggs.bDisconnectPause) {
-      return;
-    }
+    if (ggs.bDisconnectPause) return;
 
     // mark this player cup lifted
     ggs.doubtDidLiftCup[index] = true;
@@ -1111,10 +1169,9 @@ io.on('connection', (socket) => {
     }
 
     const lobby = lobbies[lobbyId];
+    if (!lobby) return;
     const ggs = lobby.game;
-    if (ggs.bDisconnectPause) {
-      return;
-    }
+    if (ggs.bDisconnectPause) return;
 
     // mark this player heard back
     ggs.nextRoundDidSay[index] = true;
