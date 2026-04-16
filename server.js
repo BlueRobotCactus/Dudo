@@ -2,7 +2,7 @@
 
 import { LobbySession, DudoGame, DudoRound, DudoBid } from './client/src/shared/DudoGame.js';
 
-import { MAX_CONNECTIONS, CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYER_LEFT,
+import { MAX_CONNECTIONS, CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER,
   CONN_PLAYER_IN_DISCONN, CONN_PLAYER_OUT_DISCONN, CONN_OBSERVER_DISCONN } from './client/src/shared/DudoGame.js';
 
 import express from 'express';
@@ -145,15 +145,23 @@ io.on('connection', (socket) => {
   }
 
   //----------------------------------------
+  // removePlayerFromActiveGame
+  //----------------------------------------
   function removePlayerFromActiveGame(ggs, index) {
     if (index < 0) return;
 
+    ggs.allConnectionID.splice(index, 1);
+    ggs.allConnectionStatus.splice(index, 1);
+    ggs.allParticipantGuid.splice(index,1);
+    ggs.allParticipantNames.splice(index,1);
+
+    /*    
     // mark them out
     ggs.allConnectionID[index] = '';
-    ggs.allConnectionStatus[index] = CONN_PLAYER_OUT;
+    ggs.allConnectionStatus[index] = CONN_PLAYER_TIMED_OUT;
     ggs.allSticks[index] = 0;
     ggs.allPasoUsed[index] = false;
-
+*/
     // if whose turn / previous turn points to disconnected player,
     // move them to a sane value
     if (ggs.whosTurn === index) {
@@ -164,6 +172,8 @@ io.on('connection', (socket) => {
     }
   }
 
+  //----------------------------------------
+  // handleDisconnectTimeout
   //----------------------------------------
   function handleDisconnectTimeout(lobbyId, guid) {
     const lobby = lobbies[lobbyId];
@@ -258,6 +268,8 @@ io.on('connection', (socket) => {
     io.to(lobbyId).emit('gameStateUpdate', ggs);
   }
 
+  //----------------------------------------
+  // startDisconnectCountdown
   //----------------------------------------
   function startDisconnectCountdown(lobbyId, removedPlayer) {
     const lobby = lobbies[lobbyId];

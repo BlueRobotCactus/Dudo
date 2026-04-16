@@ -183,7 +183,7 @@ export function PlayerGrid({ lobbyId, ggc, myIndex, cc }) {
   //--------------------------------------------------------
   let cupImageToShow;
 
-  if (ggc.allConnectionStatus[cc] == CONN_PLAYER_OUT || !ggc.bGameInProgress) {
+  if (ggc.allConnectionStatus[cc] === CONN_PLAYER_OUT || !ggc.bGameInProgress) {
     cupImageToShow = cupUpImageRef.current;
   } else if ((ggc.bDoubtInProgress || ggc.bShowDoubtResult) && ggc.doubtDidLiftCup[cc]) {
     cupImageToShow = cupUpImageRef.current;
@@ -228,7 +228,7 @@ export function PlayerGrid({ lobbyId, ggc, myIndex, cc }) {
 
   // fill in the values
   if (ggc.bGameInProgress) {
-    if (ggc.allConnectionStatus[cc] == CONN_PLAYER_IN) {
+    if (ggc.allConnectionStatus[cc] === CONN_PLAYER_IN) {
       let x, y, w, h;
       for (let i = 0; i < 5; i++) {
         const value = ggc.dice[cc][i];
@@ -437,7 +437,7 @@ export function PlayerGrid({ lobbyId, ggc, myIndex, cc }) {
     if (ggc.allConnectionStatus[cc] === CONN_PLAYER_OUT) {
       showText = "I'm out.";
     }
-    if (ggc.allConnectionStatus[cc] == CONN_PLAYER_IN) {
+    if (ggc.allConnectionStatus[cc] === CONN_PLAYER_IN) {
       // look for this player's last bid
       let bidText = '';
       for (let i = ggc.curRound.numBids - 1; i >= 0; i--) {

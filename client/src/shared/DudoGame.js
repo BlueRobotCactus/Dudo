@@ -7,10 +7,9 @@ const CONN_UNUSED = 0;
 const CONN_PLAYER_IN = 1;
 const CONN_PLAYER_OUT = 2;
 const CONN_OBSERVER = 3;
-const CONN_PLAYER_LEFT = 4;
-const CONN_PLAYER_IN_DISCONN = 5;
-const CONN_PLAYER_OUT_DISCONN = 6;
-const CONN_OBSERVER_DISCONN = 7;
+const CONN_PLAYER_IN_DISCONN = 4;
+const CONN_PLAYER_OUT_DISCONN = 5;
+const CONN_OBSERVER_DISCONN = 6;
 
 const MAX_PLAYERS = 8;
 
@@ -1216,7 +1215,10 @@ export class DudoRound {
 	Bids = [];	// array of DudoBid objects
 
 	whichDirection = undefined;          // 1 = left (clockwise); 2 = right (counter-clockwise)
+	startingPlayerIndex = -1;
+	endRoundCause = undefined;					// 1 = doubt; 2 = disconnect/time-out
 
+	// round ended by doubt
 	doubtedText = undefined;
 	whoDoubted = undefined; 
 	whoGotDoubted = undefined;   
@@ -1231,13 +1233,17 @@ export class DudoRound {
 	doubtLoserOut = undefined;
 	doubtWasPaso = undefined;
 	doubtPasoWasThere = undefined;
-	startingPlayerIndex = -1;
+
+	// round ended by disconnect/time-out
+	timeoutPlayer = undefined;
 
   constructor() {
     this.curBid = new DudoBid();
   }
 
 	init() {
+		this.startingPlayerIndex = -1;
+		this.endRoundCause = undefined;
 		this.doubtedText = undefined;
 		this.whoDoubted = undefined;              
 		this.whoGotDoubted = undefined;           
@@ -1252,7 +1258,8 @@ export class DudoRound {
 		this.doubtLoserOut = undefined;
 		this.doubtWasPaso = undefined;
 		this.doubtPasoWasThere = undefined;
-		this.startingPlayerIndex = -1;
+
+		this.timeoutPlayer = undefined;
 	}
 }
 
@@ -1323,7 +1330,7 @@ export class DudoBid {
   
 export { 
 	MAX_CONNECTIONS,
-	CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYER_LEFT,
+	CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, 
   CONN_PLAYER_IN_DISCONN, CONN_PLAYER_OUT_DISCONN, CONN_OBSERVER_DISCONN,
 	STICKS_BLINK_TIME, SHOWN_DICE_BLINK_TIME, SHAKE_CUPS_TIME,
 };

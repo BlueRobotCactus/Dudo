@@ -974,7 +974,8 @@ import { STICKS_BLINK_TIME, SHOWN_DICE_BLINK_TIME, SHAKE_CUPS_TIME } from '../sh
   //************************************************************
   const handleDisconnectCountdown = ({ playerName, secondsRemaining }) => {
     console.log(`Countdown for ${playerName}: ${secondsRemaining}s`);
-    setCountdownMessage(`${playerName} disconnected. Pausing for ${secondsRemaining} seconds to allow reconnection...`);
+    setCountdownMessage(`${playerName} disconnected.\n${playerName} will be eliminated from the game in ${secondsRemaining} seconds...`);
+//    setCountdownMessage(`${playerName} disconnected. Pausing for ${secondsRemaining} seconds to allow reconnection...`);
     setShowCountdown(true);
   };
 
@@ -1773,7 +1774,8 @@ useEffect(() => {
                 borderRadius: '10px',
                 fontSize: '18px',
                 textAlign: 'center',
-                fontWeight: 'bold'
+                fontWeight: 'bold',
+                whiteSpace: 'pre-line'   // for multiline
               }}
             >
               {countdownMessage}
