@@ -2,7 +2,7 @@
 
 import { LobbySession, DudoGame, DudoRound, DudoBid } from './client/src/shared/DudoGame.js';
 
-import { MAX_CONNECTIONS, CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER,
+import { MAX_CONNECTIONS, CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYER_TIMED_OUT,
   CONN_PLAYER_IN_DISCONN, CONN_PLAYER_OUT_DISCONN, CONN_OBSERVER_DISCONN } from './client/src/shared/DudoGame.js';
 
 import express from 'express';
@@ -99,7 +99,12 @@ io.on('connection', (socket) => {
     return socket.request?.session?.player || null;
   }
   function findGameIndexByGuid(ggs, guid) {
-    return ggs.allParticipantGuid.indexOf(guid);
+    const index = ggs.allParticipantGuid.indexOf(guid);
+    if (ggs.allConnectionStatus[index] === CONN_PLAYER_TIMED_OUT) {
+      return -1;
+    } else {
+      return index;
+    } 
   }
   function disconnectStatus (status) {
     if (status === CONN_PLAYER_IN)  return CONN_PLAYER_IN_DISCONN;
@@ -145,23 +150,23 @@ io.on('connection', (socket) => {
   }
 
   //----------------------------------------
-  // removePlayerFromActiveGame
-  //----------------------------------------
   function removePlayerFromActiveGame(ggs, index) {
     if (index < 0) return;
 
-    ggs.allConnectionID.splice(index, 1);
-    ggs.allConnectionStatus.splice(index, 1);
-    ggs.allParticipantGuid.splice(index,1);
-    ggs.allParticipantNames.splice(index,1);
-
-    /*    
     // mark them out
     ggs.allConnectionID[index] = '';
+    //ggs.allConnectionStatus[index] = CONN_PLAYER_OUT;
     ggs.allConnectionStatus[index] = CONN_PLAYER_TIMED_OUT;
     ggs.allSticks[index] = 0;
     ggs.allPasoUsed[index] = false;
-*/
+
+  	ggs.inOutMustSay[index] = false;
+  	ggs.inOutDidSay[index] = false;
+  	ggs.doubtMustLiftCup[index] = false;
+  	ggs.doubtDidLiftCup[index] = false;
+  	ggs.nextRoundMustSay[index] = false;
+  	ggs.nextRoundDidSay[index] = false;
+
     // if whose turn / previous turn points to disconnected player,
     // move them to a sane value
     if (ggs.whosTurn === index) {
@@ -172,8 +177,6 @@ io.on('connection', (socket) => {
     }
   }
 
-  //----------------------------------------
-  // handleDisconnectTimeout
   //----------------------------------------
   function handleDisconnectTimeout(lobbyId, guid) {
     const lobby = lobbies[lobbyId];
@@ -268,8 +271,6 @@ io.on('connection', (socket) => {
     io.to(lobbyId).emit('gameStateUpdate', ggs);
   }
 
-  //----------------------------------------
-  // startDisconnectCountdown
   //----------------------------------------
   function startDisconnectCountdown(lobbyId, removedPlayer) {
     const lobby = lobbies[lobbyId];
@@ -734,17 +735,18 @@ io.on('connection', (socket) => {
     if (!lobby) return;
 
     // get player index and game index of player who left
-    const playerIndex = lobby.players.findIndex((p) => p.socketId === socket.id);    
+    const playerIndex = lobby.players.findIndex((p) => p.guid === authedPlayer.guid);
     if (playerIndex === -1) return;
     const removedPlayer = lobby.players[playerIndex];
     const gameIndex = findGameIndexByGuid(lobby.game, removedPlayer.guid);
-
+    if (gameIndex === -1) return;
+    
     // Remove this player from the lobby
     lobby.players.splice(playerIndex, 1);
     socket.leave(lobbyId);
 
     // If the removed player was the host
-    if (removedPlayer.socketId === lobby.hostSocketId) { 
+    if (removedPlayer.guid === lobby.hostGuid) { 
       console.log(`server.js: Host left lobby. Removing lobby: ${lobbyId}`);
 
       // log the end date/time
@@ -772,9 +774,20 @@ io.on('connection', (socket) => {
 
       return;
     }
+    
+  const ggs = lobby.game;
 
-    // Remove this player from game
-    const ggs = lobby.game;
+  if (ggs.allConnectionStatus[gameIndex] === CONN_OBSERVER) {
+    // Remove an observer without shifting indices
+    ggs.allParticipantGuid[gameIndex]  = '';
+    ggs.allParticipantNames[gameIndex] = '';
+    ggs.allConnectionID[gameIndex]     = '';
+    ggs.allConnectionStatus[gameIndex] = CONN_UNUSED;
+    ggs.allSticks[gameIndex]           = 0;
+    ggs.allPasoUsed[gameIndex]         = false;
+    console.log(`server.js: observer ${playerName} left lobby: ${lobbyId}, CONN marked UNUSED`);
+  } else if (!ggs.bGameInProgress) {
+    // no game in progress, shift indices
     for (let cc=gameIndex; cc < MAX_CONNECTIONS - 1; cc++) {
       ggs.allParticipantGuid[cc]  = ggs.allParticipantGuid[cc+1];
       ggs.allParticipantNames[cc] = ggs.allParticipantNames[cc+1];
@@ -789,15 +802,17 @@ io.on('connection', (socket) => {
     ggs.allConnectionStatus[MAX_CONNECTIONS - 1] = CONN_UNUSED;
     ggs.allSticks[MAX_CONNECTIONS - 1]           = 0;
     ggs.allPasoUsed[MAX_CONNECTIONS - 1]         = false;
-    
-    console.log(`server.js: ${playerName} left lobby: ${lobbyId}`)
-    io.to(lobbyId).emit('lobbyData', lobby);
-    io.emit('lobbiesList', getLobbiesList());
-    io.to(lobbyId).emit('gameStateUpdate', lobby.game);
-    console.log("server.js: 'leaveLobby': emitting 'gameStateUpdate'");
-/*
+    console.log(`server.js: ${playerName} left lobby: ${lobbyId}, shifted CONN indices`);
+  }
+  
+  io.to(lobbyId).emit('lobbyData', lobby);
+  io.emit('lobbiesList', getLobbiesList());
+  io.to(lobbyId).emit('gameStateUpdate', lobby.game);
+  console.log("server.js: 'leaveLobby': emitting 'gameStateUpdate'");
+
+  /*
     // If the removed player was the host
-    if (removedPlayer.id === lobby.hostSocketId) {
+    if (removedPlayer.guid === lobby.hostGuid) {
       // Reassign host the earliest joined player if players remain
       if (lobby.players.length > 0) {
         const newHost = lobby.players[0];

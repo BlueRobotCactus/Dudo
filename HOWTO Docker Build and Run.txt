@@ -62,6 +62,16 @@ git push origin main
 to throw away changes since last push:
 git reset --hard HEAD
 
+to revert to a previous version (commit)
+NOTE:  keep the .git file
+- github.com, log in 
+- click BlueRobotCactus/Dudo (on left)
+- click on xxx commits (top right on list)
+- click on the commit
+- click Browse Files (top right)
+- click Code 
+- click download .ZIP
+
 //---------------------------------------
 // GENERAL INFO
 //---------------------------------------
