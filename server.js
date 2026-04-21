@@ -424,7 +424,7 @@ io.on('connection', (socket) => {
       return;
     }
 
-    const { lobbyId, playerName } = data;
+    const { lobbyId, playerName, joinAsObserver } = data;
     const lobby = lobbies[lobbyId];
 
     if (lobby) {
@@ -497,7 +497,8 @@ io.on('connection', (socket) => {
         ggs.allParticipantGuid[ptr] = authedPlayer.guid;
         ggs.allParticipantNames[ptr] = playerName;
         ggs.allConnectionID[ptr] = socket.id;
-        ggs.allConnectionStatus[ptr] = ggs.bGameInProgress ? CONN_OBSERVER : CONN_PLAYER_IN;
+        //&&&ggs.allConnectionStatus[ptr] = ggs.bGameInProgress ? CONN_OBSERVER : CONN_PLAYER_IN;
+        ggs.allConnectionStatus[ptr] = joinAsObserver ? CONN_OBSERVER : CONN_PLAYER_IN;
       } else {
         // reconnect / duplicate-join by same authenticated player
         const lobbyIdx = lobby.players.findIndex(p => p.guid === authedPlayer.guid);
@@ -740,7 +741,7 @@ io.on('connection', (socket) => {
     const removedPlayer = lobby.players[playerIndex];
     const gameIndex = findGameIndexByGuid(lobby.game, removedPlayer.guid);
     if (gameIndex === -1) return;
-    
+
     // Remove this player from the lobby
     lobby.players.splice(playerIndex, 1);
     socket.leave(lobbyId);
@@ -1284,6 +1285,9 @@ CHATGPT code that breaks things.  Do we need it?
       if (ggs.GetNumberPlayersStillIn() > 1) {
         ggs.bRoundInProgress = true;  //&&& need this?
         ggs.whosTurn = 0; //&&& need this?
+
+        lobby.game.bGameInProgress = true;
+        io.emit('lobbiesList', getLobbiesList());
         StartGame(ggs);
       } else {
         // anything? &&&
@@ -1642,6 +1646,7 @@ function getLobbiesList() {
     id: lobby.id,
     host: lobby.host,
     playerCount: lobby.players.length,
+    gameInProgress: lobby.game?.bGameInProgress || false,
   }));
 }
 

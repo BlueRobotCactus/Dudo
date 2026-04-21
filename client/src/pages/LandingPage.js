@@ -28,6 +28,11 @@ function LandingPage({ playerName, setPlayerName }) {
   const [okMessage, setOkMessage] = useState('');
   const [onOkHandler, setOnOkHandler] = useState(() => () => {});
 
+// *** ADDED ***
+  // Join choice dialog state
+  const [showJoinChoiceDlg, setShowJoinChoiceDlg] = useState(false);
+  const [selectedLobby, setSelectedLobby] = useState(null);
+
   const usernameRef = useRef(null);
 
   const showMessage = (title, message, onOk = null) => {
@@ -41,7 +46,6 @@ function LandingPage({ playerName, setPlayerName }) {
   };
 
   //************************************************************
-  // *** CHANGED ***
   // helper: reconnect socket after successful login/logout so
   // server-side socket session picks up the latest HTTP session
   //************************************************************
@@ -83,7 +87,6 @@ function LandingPage({ playerName, setPlayerName }) {
           setLoggedIn(true);
           setPlayerName(data.player.username || '');
 
-          // *** CHANGED ***
           // If page loads and user is already logged in, refresh socket too,
           // so socket session and HTTP session stay aligned.
           refreshSocketSession();
@@ -261,7 +264,6 @@ function LandingPage({ playerName, setPlayerName }) {
       setLoggedIn(true);
       setPlayerName(loginData.player.username);
 
-      // *** CHANGED ***
       // Reconnect socket after auto-login too
       refreshSocketSession();
 
@@ -297,7 +299,6 @@ function LandingPage({ playerName, setPlayerName }) {
       setAuthMode('');
       resetAuthForm();
 
-      // *** CHANGED ***
       // Refresh socket after logout so server no longer sees
       // authenticated player on socket session
       refreshSocketSession();
@@ -341,9 +342,11 @@ function LandingPage({ playerName, setPlayerName }) {
   };
 
   //************************************************************
-  // Join lobby
+  // On Join Lobby click
   //************************************************************
-  const onJoinLobby = (lobbyId) => {
+  // *** ADDED ***
+  // open dialog instead of joining immediately
+  const onJoinLobbyClick = (lobby) => {
     if (!connected || !socket) return;
 
     if (!loggedIn || !playerName) {
@@ -351,14 +354,43 @@ function LandingPage({ playerName, setPlayerName }) {
       return;
     }
 
-    socket.emit('joinLobby', { lobbyId, playerName }, (lobbyData) => {
+    setSelectedLobby(lobby);
+    setShowJoinChoiceDlg(true);
+  };
+
+  //************************************************************
+  // Close JoinChoiceDlg
+  //************************************************************
+  // *** ADDED ***
+  const closeJoinChoiceDlg = () => {
+    setShowJoinChoiceDlg(false);
+    setSelectedLobby(null);
+  };
+
+  //************************************************************
+  // Join lobby
+  //************************************************************
+  // *** CHANGED ***
+  // joinLobby now accepts observer/player mode
+
+  const onJoinLobby = (lobbyId, joinAsObserver = false) => {
+    if (!connected || !socket) return;
+
+    if (!loggedIn || !playerName) {
+      showMessage('Join Lobby', 'Please sign in first.');
+      return;
+    }
+
+    socket.emit('joinLobby', { lobbyId, playerName, joinAsObserver }, (lobbyData) => {
       if (!lobbyData || lobbyData.error) {
         showMessage('Join Lobby', lobbyData?.error || 'Unable to join lobby.');
         return;
       }
 
+      closeJoinChoiceDlg();
+
       navigate(`/game/${lobbyId}`, {
-        state: { isHost: false, hostName: lobbyData.host, playerName },
+        state: { isHost: false, hostName: lobbyData.host, playerName, isObserver: joinAsObserver },
       });
     });
   };
@@ -380,6 +412,9 @@ function LandingPage({ playerName, setPlayerName }) {
 
   const onOptHelp = () => {
   };
+
+  // *** ADDED ***
+  const selectedLobbyGameInProgress = !!selectedLobby?.gameInProgress;
 
   //************************************************************
   //  Render
@@ -595,7 +630,7 @@ function LandingPage({ playerName, setPlayerName }) {
                   &nbsp;
                   <button
                     className="btn btn-primary btn-sm"
-                    onClick={() => onJoinLobby(lobby.id)}
+                    onClick={() => onJoinLobbyClick(lobby)}
                     disabled={!connected}
                   >
                     Join
@@ -616,6 +651,83 @@ function LandingPage({ playerName, setPlayerName }) {
           message={okMessage}
           onOk={onOkHandler}
         />
+      )}
+
+      {/* *** ADDED *** Join choice dialog */}
+      {showJoinChoiceDlg && selectedLobby && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: 'rgba(0,0,0,0.35)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 4000,
+          }}
+          onClick={closeJoinChoiceDlg}
+        >
+          <div
+            style={{
+              position: 'relative',
+              width: '360px',
+              maxWidth: '90vw',
+              backgroundColor: 'white',
+              border: '1px solid #888',
+              borderRadius: '8px',
+              boxShadow: '0 8px 24px rgba(0,0,0,0.25)',
+              padding: '20px',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              type="button"
+              onClick={closeJoinChoiceDlg}
+              aria-label="Close"
+              style={{
+                position: 'absolute',
+                top: '8px',
+                right: '10px',
+                border: 'none',
+                background: 'transparent',
+                fontSize: '22px',
+                lineHeight: '22px',
+                cursor: 'pointer',
+              }}
+            >
+              ×
+            </button>
+
+            <h4 style={{ marginBottom: '12px' }}>Join Lobby</h4>
+
+            <p style={{ marginBottom: '18px' }}>
+              How would you like to join <strong>{selectedLobby.host}</strong>'s lobby?
+            </p>
+
+            <div className="d-grid gap-2">
+              <button
+                className="btn btn-primary"
+                onClick={() => onJoinLobby(selectedLobby.id, false)}
+                disabled={!connected || selectedLobbyGameInProgress}
+                title={
+                  selectedLobbyGameInProgress
+                    ? 'Cannot join as player once the game has started.'
+                    : ''
+                }
+              >
+                Join as player
+              </button>
+
+              <button
+                className="btn btn-secondary"
+                onClick={() => onJoinLobby(selectedLobby.id, true)}
+                disabled={!connected}
+              >
+                Join as observer
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

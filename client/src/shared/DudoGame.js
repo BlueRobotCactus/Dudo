@@ -266,7 +266,8 @@ export class DudoGame {
 
 		for (let i = 0; i < MAX_CONNECTIONS; i++) {
 			const status = this.allConnectionStatus[i];
-			if (status === CONN_PLAYER_IN || status === CONN_PLAYER_OUT || status === CONN_OBSERVER) {
+			//&&&if (status === CONN_PLAYER_IN || status === CONN_PLAYER_OUT || status === CONN_OBSERVER) {
+			if (status === CONN_PLAYER_IN || status === CONN_PLAYER_OUT) {
 				this.allConnectionStatus[i] = CONN_PLAYER_IN;
 			}
 			this.allPasoUsed[i] = false;
@@ -549,7 +550,8 @@ export class DudoGame {
 	getInOutMustSay () {
 		for (let i=0; i<MAX_CONNECTIONS; i++) {
 			let st = this.allConnectionStatus[i];
-			if (st === CONN_PLAYER_IN || st === CONN_PLAYER_OUT || st === CONN_OBSERVER) {
+			//&&&if (st === CONN_PLAYER_IN || st === CONN_PLAYER_OUT || st === CONN_OBSERVER) {
+			if (st === CONN_PLAYER_IN || st === CONN_PLAYER_OUT) {
 				this.inOutMustSay[i] = true;
 			} else {
 				this.inOutMustSay[i] = false;
