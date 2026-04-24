@@ -3,7 +3,7 @@
 import { LobbySession, DudoGame, DudoRound, DudoBid } from './client/src/shared/DudoGame.js';
 
 import { MAX_CONNECTIONS, CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYER_TIMED_OUT,
-  CONN_PLAYER_IN_DISCONN, CONN_PLAYER_OUT_DISCONN, CONN_OBSERVER_DISCONN } from './client/src/shared/DudoGame.js';
+  CONN_PLAYER_IN_DISCONN, CONN_PLAYER_OUT_DISCONN } from './client/src/shared/DudoGame.js';
 
 import express from 'express';
 import path from 'path';
@@ -109,12 +109,11 @@ io.on('connection', (socket) => {
   function disconnectStatus (status) {
     if (status === CONN_PLAYER_IN)  return CONN_PLAYER_IN_DISCONN;
     if (status === CONN_PLAYER_OUT) return CONN_PLAYER_OUT_DISCONN;
-    if (status === CONN_OBSERVER)   return CONN_OBSERVER_DISCONN;
+    return status;
   }
   function reconnectStatus(status) {
     if (status === CONN_PLAYER_IN_DISCONN)  return CONN_PLAYER_IN;
     if (status === CONN_PLAYER_OUT_DISCONN) return CONN_PLAYER_OUT;
-    if (status === CONN_OBSERVER_DISCONN)   return CONN_OBSERVER;
     return status;
   }
   function turnPauseON(ggs, name, seconds) {
@@ -150,7 +149,34 @@ io.on('connection', (socket) => {
   }
 
   //----------------------------------------
-  function removePlayerFromActiveGame(ggs, index) {
+  function clearGameSlot(ggs, index) {
+    if (index < 0) return;
+
+    ggs.allParticipantGuid[index]  = '';
+    ggs.allParticipantNames[index] = '';
+    ggs.allConnectionID[index]     = '';
+    ggs.allConnectionStatus[index] = CONN_UNUSED;
+    ggs.allSticks[index]           = 0;
+    ggs.allPasoUsed[index]         = false;
+  }
+
+  //----------------------------------------
+  function shiftGameSlotsLeft(ggs, index) {
+    if (index < 0) return;
+
+    for (let cc=index; cc < MAX_CONNECTIONS - 1; cc++) {
+      ggs.allParticipantGuid[cc]  = ggs.allParticipantGuid[cc+1];
+      ggs.allParticipantNames[cc] = ggs.allParticipantNames[cc+1];
+      ggs.allConnectionID[cc]     = ggs.allConnectionID[cc+1];
+      ggs.allConnectionStatus[cc] = ggs.allConnectionStatus[cc+1];
+      ggs.allSticks[cc]           = ggs.allSticks[cc+1];
+      ggs.allPasoUsed[cc]         = ggs.allPasoUsed[cc+1];
+    }
+    clearGameSlot(ggs, MAX_CONNECTIONS - 1);
+  }
+
+  //----------------------------------------
+  function FromActiremovePlayerveGame(ggs, index) {
     if (index < 0) return;
 
     // mark them out
@@ -190,8 +216,7 @@ io.on('connection', (socket) => {
 
     // only act if they are still disconnected
     if (ggs.allConnectionStatus[gameIndex] !== CONN_PLAYER_IN_DISCONN &&
-        ggs.allConnectionStatus[gameIndex] !== CONN_PLAYER_OUT_DISCONN &&
-        ggs.allConnectionStatus[gameIndex] !== CONN_OBSERVER_DISCONN) {
+        ggs.allConnectionStatus[gameIndex] !== CONN_PLAYER_OUT_DISCONN) {
       return;
     }
 
@@ -208,6 +233,8 @@ io.on('connection', (socket) => {
     }
 
     // Game is in progress 
+
+/*    
     // Observers: simply mark back to observer/out-of-room state
     if (ggs.allConnectionStatus[gameIndex] === CONN_OBSERVER_DISCONN) {
       ggs.allConnectionStatus[gameIndex] = CONN_OBSERVER;
@@ -217,7 +244,7 @@ io.on('connection', (socket) => {
       io.to(lobbyId).emit('gameStateUpdate', ggs);
       return;
     }
-
+*/
     const hadAnyBid =
       ggs.bRoundInProgress &&
       ggs.curRound &&
@@ -314,8 +341,7 @@ io.on('connection', (socket) => {
       const status = ggs.allConnectionStatus[gameIndex];
       const stillDisconnected =
         status === CONN_PLAYER_IN_DISCONN ||
-        status === CONN_PLAYER_OUT_DISCONN ||
-        status === CONN_OBSERVER_DISCONN;
+        status === CONN_PLAYER_OUT_DISCONN;
 
       if (!stillDisconnected) {
         clearDisconnectTimer(lobbyId, removedPlayer.guid);
@@ -778,34 +804,26 @@ io.on('connection', (socket) => {
     
   const ggs = lobby.game;
 
+  /*
   if (ggs.allConnectionStatus[gameIndex] === CONN_OBSERVER) {
     // Remove an observer without shifting indices
-    ggs.allParticipantGuid[gameIndex]  = '';
-    ggs.allParticipantNames[gameIndex] = '';
-    ggs.allConnectionID[gameIndex]     = '';
-    ggs.allConnectionStatus[gameIndex] = CONN_UNUSED;
-    ggs.allSticks[gameIndex]           = 0;
-    ggs.allPasoUsed[gameIndex]         = false;
+    clearGameSlot(ggs, gameIndex);
     console.log(`server.js: observer ${playerName} left lobby: ${lobbyId}, CONN marked UNUSED`);
   } else if (!ggs.bGameInProgress) {
     // no game in progress, shift indices
-    for (let cc=gameIndex; cc < MAX_CONNECTIONS - 1; cc++) {
-      ggs.allParticipantGuid[cc]  = ggs.allParticipantGuid[cc+1];
-      ggs.allParticipantNames[cc] = ggs.allParticipantNames[cc+1];
-      ggs.allConnectionID[cc]     = ggs.allConnectionID[cc+1];
-      ggs.allConnectionStatus[cc] = ggs.allConnectionStatus[cc+1];
-      ggs.allSticks[cc]           = ggs.allSticks[cc+1];
-      ggs.allPasoUsed[cc]         = ggs.allPasoUsed[cc+1];
-    }
-    ggs.allParticipantGuid[MAX_CONNECTIONS - 1]  = '';
-    ggs.allParticipantNames[MAX_CONNECTIONS - 1] = '';
-    ggs.allConnectionID[MAX_CONNECTIONS - 1]     = '';
-    ggs.allConnectionStatus[MAX_CONNECTIONS - 1] = CONN_UNUSED;
-    ggs.allSticks[MAX_CONNECTIONS - 1]           = 0;
-    ggs.allPasoUsed[MAX_CONNECTIONS - 1]         = false;
+    shiftGameSlotsLeft(ggs, gameIndex);
     console.log(`server.js: ${playerName} left lobby: ${lobbyId}, shifted CONN indices`);
   }
-  
+  */
+  if (ggs.allConnectionStatus[gameIndex] === CONN_OBSERVER) {
+    // observer, always shift indices
+    shiftGameSlotsLeft(ggs, gameIndex);
+  } else if (!ggs.bGameInProgress) {
+    // no game in progress, shift indices
+    shiftGameSlotsLeft(ggs, gameIndex);
+  }
+  console.log(`server.js: ${playerName} left lobby: ${lobbyId}, shifted CONN indices`);
+
   io.to(lobbyId).emit('lobbyData', lobby);
   io.emit('lobbiesList', getLobbiesList());
   io.to(lobbyId).emit('gameStateUpdate', lobby.game);
@@ -1320,23 +1338,26 @@ CHATGPT code that breaks things.  Do we need it?
 
       let bCountDown = true;
       if (gameIndex !== -1) {
-        ggs.allConnectionID[gameIndex] = '';
         let status = ggs.allConnectionStatus[gameIndex];
-        // do we countdown?
-        if (ggs.bGameInProgress) {
-          // game in progress: YES
-          if (status === CONN_PLAYER_IN)  bCountDown = true;
-          if (status === CONN_PLAYER_OUT) bCountDown = false;
-          if (status === CONN_OBSERVER)   bCountDown = false;
+        if (status === CONN_OBSERVER) {
+          shiftGameSlotsLeft(ggs, gameIndex);
+          bCountDown = false;
+        } else {
+          ggs.allConnectionID[gameIndex] = '';
+          // do we countdown?
+          if (ggs.bGameInProgress) {
+            // game in progress: YES
+            if (status === CONN_PLAYER_IN)  bCountDown = true;
+            if (status === CONN_PLAYER_OUT) bCountDown = false;
+          }
+          if (!ggs.bGameInProgress) {
+            // game in progress: NO
+            if (status === CONN_PLAYER_IN)  bCountDown = false;
+            if (status === CONN_PLAYER_OUT) bCountDown = false;
+          }
+          // now flip statuses to disconnected
+          ggs.allConnectionStatus[gameIndex] = disconnectStatus(status);
         }
-        if (!ggs.bGameInProgress) {
-          // game in progress: NO
-          if (status === CONN_PLAYER_IN)  bCountDown = false;
-          if (status === CONN_PLAYER_OUT) bCountDown = false;
-          if (status === CONN_OBSERVER)   bCountDown = false;
-        }
-        // now flip statuses to disconnected
-        ggs.allConnectionStatus[gameIndex] = disconnectStatus(status);
       }
 
       io.to(lobbyId).emit('lobbyData', lobby);
@@ -1370,6 +1391,7 @@ CHATGPT code that breaks things.  Do we need it?
   });
 
 });
+
 //**************************************************************
 //**************************************************************
 //  end of socket.on
