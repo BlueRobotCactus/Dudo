@@ -479,7 +479,7 @@ function LandingPage({ playerName, setPlayerName }) {
                 <button
                   className="dropdown-item"
                   onClick={onOptAdmin}
-                  disabled={!authChecked}
+                  /* disabled={!authChecked} */
                 >
                   Admin
                 </button>

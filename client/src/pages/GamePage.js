@@ -1124,7 +1124,7 @@ useEffect(() => {
   prevReconnect.current = { socket, socketId, connected, lobbyId, myName };
 
   //************************************************************
-  // function handle Reconnect
+  // function handleReconnect
   //************************************************************
   function handleReconnect() {
    
@@ -1173,6 +1173,9 @@ useEffect(() => {
       console.log("handleRECONNECT: not rejoining lobby, 'lobbyID' and/or 'nameFromStorage' not valid. ", lobbyId, nameFromStorage);
     }
   }
+  //************************************************************
+  // end of function handleReconnect
+  //************************************************************
 
   if (!socket || !connected) {
     console.log("Gamepage: useEffect: RECONNECT: socket not ready yet");

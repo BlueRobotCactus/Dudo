@@ -12,7 +12,8 @@ import { Server } from 'socket.io';
 import cors from 'cors';
 import { v4 as uuidv4 } from 'uuid';
 import fs from 'fs';
-import { getPool } from './db.js';
+//import { getPool } from './db.js';    goes away with CloudSQL
+import { playersRef } from './firestoreDB.js';  // replaces the above
 import bcrypt from 'bcrypt';
 import session from 'express-session';
 
@@ -162,6 +163,8 @@ io.on('connection', (socket) => {
 
   //----------------------------------------
   function shiftGameSlotsLeft(ggs, index) {
+    console.trace("shiftGameSlotsLeft called");
+    
     if (index < 0) return;
 
     for (let cc=index; cc < MAX_CONNECTIONS - 1; cc++) {
@@ -1414,7 +1417,7 @@ app.get('/api/lobbies', (req, res) => {
 // ------------------------------
 app.post('/api/auth/login', async (req, res) => {
   try {
-    const pool = getPool();
+    //const pool = getPool();
 
     const username = (req.body.username || '').trim();
     const password = (req.body.password || '').trim();
@@ -1426,12 +1429,21 @@ app.post('/api/auth/login', async (req, res) => {
       });
     }
 
+/*    
     const [rows] = await pool.query(
       'SELECT id, guid, username, password_hash, created_at FROM players WHERE username = ?',
       [username]
     );
 
     const player = rows[0];
+*/
+    const snap = await playersRef
+      .where('username', '==', username)
+      .limit(1)
+      .get();
+
+    const player = snap.empty ? null : snap.docs[0].data();
+
     const DUMMY_PASSWORD_HASH = '$2b$10$C6UzMDM.H6dfI/f/IKcEeOq7V0dKqzE6p5nK3X1i7tGZV5pJ8Q2W6';
     if (!player) {
       // fake comparison to equalize timing
@@ -1456,7 +1468,8 @@ app.post('/api/auth/login', async (req, res) => {
 
     // remember the browser session
     req.session.player = {
-      id: player.id,
+//      id: player.id,
+      id: player.guid,
       guid: player.guid,
       username: player.username,
     };
@@ -1464,7 +1477,8 @@ app.post('/api/auth/login', async (req, res) => {
     res.json({
       ok: true,
       player: {
-        id: player.id,
+        //id: player.id,
+        id: player.guid,
         guid: player.guid,
         username: player.username,
         created_at: player.created_at,
@@ -1484,6 +1498,32 @@ app.post('/api/auth/login', async (req, res) => {
 // ------------------------------
 app.get('/api/players', async (req, res) => {
   try {
+    const snap = await playersRef
+      .orderBy('username')
+      .get();
+
+    const players = snap.docs.map((doc) => {
+      const data = doc.data();
+
+      return {
+        id: data.guid || doc.id,
+        guid: data.guid || doc.id,
+        username: data.username,
+        created_at: data.created_at?.toDate
+          ? data.created_at.toDate().toISOString()
+          : data.created_at,
+      };
+    });
+
+    res.json({ ok: true, players });
+  } catch (err) {
+    console.error('Players query failed:', err);
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+/*
+app.get('/api/players', async (req, res) => {
+  try {
     const pool = getPool();
     const [rows] = await pool.query(
       'SELECT id, guid, username, created_at FROM players'
@@ -1494,10 +1534,61 @@ app.get('/api/players', async (req, res) => {
     res.status(500).json({ ok: false, error: err.message });
   }
 });
+*/
 
 // ------------------------------
 // PLAYERS POST: add player
 // ------------------------------
+app.post('/api/players', async (req, res) => {
+  try {
+    const username = (req.body.username || '').trim();
+    const password = (req.body.password || '').trim();
+
+    if (!username || !password) {
+      return res.status(400).json({
+        ok: false,
+        error: 'Username and password are required',
+      });
+    }
+
+    const existing = await playersRef
+      .where('username', '==', username)
+      .limit(1)
+      .get();
+
+    if (!existing.empty) {
+      return res.status(400).json({
+        ok: false,
+        error: 'Username already exists',
+      });
+    }
+
+    const guid = uuidv4();
+    const passwordHash = await bcrypt.hash(password, 10);
+    const createdAt = new Date();
+
+    await playersRef.doc(guid).set({
+      guid,
+      username,
+      password_hash: passwordHash,
+      created_at: createdAt,
+    });
+
+    res.json({
+      ok: true,
+      player: {
+        id: guid,
+        guid,
+        username,
+        created_at: createdAt.toISOString(),
+      },
+    });
+  } catch (err) {
+    console.error('Add player failed:', err);
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+/*
 app.post('/api/players', async (req, res) => {
   try {
     const pool = getPool();
@@ -1541,10 +1632,37 @@ app.post('/api/players', async (req, res) => {
     res.status(500).json({ ok: false, error: err.message });
   }
 });
+*/
 
 // ------------------------------
 // PLAYERS DELETE: delete a player
 // ------------------------------
+app.delete('/api/players/:id', async (req, res) => {
+  try {
+    const playerId = req.params.id;
+
+    const docRef = playersRef.doc(playerId);
+    const doc = await docRef.get();
+
+    if (!doc.exists) {
+      return res.status(404).json({
+        ok: false,
+        error: 'Player not found',
+      });
+    }
+
+    await docRef.delete();
+
+    res.json({
+      ok: true,
+      deletedId: playerId,
+    });
+  } catch (err) {
+    console.error('Delete player failed:', err);
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+/*
 app.delete('/api/players/:id', async (req, res) => {
   try {
     const pool = getPool();
@@ -1564,11 +1682,49 @@ app.delete('/api/players/:id', async (req, res) => {
     console.error('Delete player failed:', err);
     res.status(500).json({ ok: false, error: err.message });
   }
-});
+})*/;
 
 // ------------------------------
 // PLAYERS PUT: reset password
 // ------------------------------
+app.put('/api/players/:id/password', async (req, res) => {
+  try {
+    const playerId = req.params.id;
+    const { password } = req.body;
+
+    if (!password || !password.trim()) {
+      return res.status(400).json({
+        ok: false,
+        error: 'Password is required',
+      });
+    }
+
+    const docRef = playersRef.doc(playerId);
+    const doc = await docRef.get();
+
+    if (!doc.exists) {
+      return res.status(404).json({
+        ok: false,
+        error: 'Player not found',
+      });
+    }
+
+    const passwordHash = await bcrypt.hash(password.trim(), 10);
+
+    await docRef.update({
+      password_hash: passwordHash,
+    });
+
+    res.json({
+      ok: true,
+      updatedId: playerId,
+    });
+  } catch (err) {
+    console.error('Reset password failed:', err);
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+/*
 app.put('/api/players/:id/password', async (req, res) => {
   try {
     const pool = getPool();
@@ -1605,7 +1761,7 @@ app.put('/api/players/:id/password', async (req, res) => {
     res.status(500).json({ ok: false, error: err.message });
   }
 });
-
+*/
 // ------------------------------
 // AUTH GET: current logged-in player
 // ------------------------------

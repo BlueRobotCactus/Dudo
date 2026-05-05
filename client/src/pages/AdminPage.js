@@ -39,6 +39,7 @@ export default function AdminPage() {
   const loadPlayers = async () => {
     try {
       const res = await fetch('/api/players');
+      if (!res.ok) { throw new Error('Network error'); }
       const data = await res.json();
 
       if (data.ok) {
@@ -58,20 +59,21 @@ export default function AdminPage() {
   //-----------------------------------
   // delete a player
   //-----------------------------------
-  const handleDelete = async (id, username) => {
+  const handleDelete = async (guid, username) => {
     const ok = window.confirm(`Delete player "${username}"?`);
     if (!ok) return;
 
     try {
-      const res = await fetch(`/api/players/${id}`, {
+      const res = await fetch(`/api/players/${guid}`, {
         method: 'DELETE',
       });
 
       const data = await res.json();
 
       if (data.ok) {
-        setPlayers(prev => prev.filter(p => p.id !== id));
+        setPlayers(prev => prev.filter(p => p.guid !== guid));
         setStatusMsg(`Deleted player "${username}"`);
+        setTimeout(() => setStatusMsg(''), 3000);
       } else {
         alert(`Delete failed: ${data.error}`);
       }
@@ -120,7 +122,7 @@ export default function AdminPage() {
   //-----------------------------------
   // reset a password
   //-----------------------------------
-  const handleResetPassword = async (id, username) => {
+  const handleResetPassword = async (guid, username) => {
     const newPassword = window.prompt(`Enter new password for "${username}"`);
 
     if (newPassword === null) return; // user cancelled
@@ -131,7 +133,7 @@ export default function AdminPage() {
     }
 
     try {
-      const res = await fetch(`/api/players/${id}/password`, {
+      const res = await fetch(`/api/players/${guid}/password`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -145,6 +147,7 @@ export default function AdminPage() {
 
       if (data.ok) {
         setStatusMsg(`Password reset for "${username}"`);
+        setTimeout(() => setStatusMsg(''), 3000);
       } else {
         alert(`Reset password failed: ${data.error}`);
       }
@@ -187,7 +190,7 @@ export default function AdminPage() {
 
       <h2>Add Player</h2>
 
-      <form onSubmit={handleAddPlayer}>
+      <form onSubmit={handleAddPlayer} autoComplete="off">
 
         <div className="admin-form-row">
           <label className="admin-form-label">Username:</label>
@@ -196,6 +199,7 @@ export default function AdminPage() {
             type="text"
             value={newUsername}
             maxLength={30}
+            autoComplete="off"
             onChange={(e) => setNewUsername(e.target.value)}
           />
         </div>
@@ -206,6 +210,7 @@ export default function AdminPage() {
             className="admin-input"
             type="password"
             value={newPassword}
+            autoComplete="new-password"
             onChange={(e) => setNewPassword(e.target.value)}
           />
         </div>
@@ -227,7 +232,6 @@ export default function AdminPage() {
         <table className="admin-table">
           <thead>
             <tr>
-              <th>ID</th>
               <th>Username</th>
               <th>When created</th>
               <th>Actions</th>
@@ -236,14 +240,13 @@ export default function AdminPage() {
 
           <tbody>
             {players.map((p) => (
-              <tr key={p.id}>
-                <td>{p.id}</td>
+              <tr key={p.guid}>
                 <td>{p.username}</td>
-                <td>{formatDateTimeLocal(p.created_at)}</td>
+                <td>{p.created_at ? formatDateTimeLocal(p.created_at) : ''}</td>
                 <td>
                   <button
                     className="btn btn-primary btn-sm me-2"
-                    onClick={() => handleResetPassword(p.id, p.username)}
+                    onClick={() => handleResetPassword(p.guid, p.username)}
                   >
                     Reset Password
                   </button>
@@ -255,7 +258,7 @@ export default function AdminPage() {
                   </button>
                   <button
                     className="btn btn-danger btn-sm"
-                    onClick={() => handleDelete(p.id, p.username)}
+                    onClick={() => handleDelete(p.guid, p.username)}
                   >
                     Delete
                   </button>
