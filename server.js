@@ -101,6 +101,7 @@ io.on('connection', (socket) => {
   }
   function findGameIndexByGuid(ggs, guid) {
     const index = ggs.allParticipantGuid.indexOf(guid);
+    if (index === -1) { return -1; }
     if (ggs.allConnectionStatus[index] === CONN_PLAYER_TIMED_OUT) {
       return -1;
     } else {
@@ -159,6 +160,13 @@ io.on('connection', (socket) => {
     ggs.allConnectionStatus[index] = CONN_UNUSED;
     ggs.allSticks[index]           = 0;
     ggs.allPasoUsed[index]         = false;
+
+		ggs.inOutMustSay[index]        = false;
+		ggs.inOutDidSay[index]         = false;
+		ggs.doubtMustLiftCup[index]    = false;
+		ggs.doubtDidLiftCup[index]     = false;
+		ggs.nextRoundMustSay[index]    = false;
+		ggs.nextRoundDidSay[index]     = false;
   }
 
   //----------------------------------------
@@ -167,6 +175,7 @@ io.on('connection', (socket) => {
     
     if (index < 0) return;
 
+    // take care of arrays
     for (let cc=index; cc < MAX_CONNECTIONS - 1; cc++) {
       ggs.allParticipantGuid[cc]  = ggs.allParticipantGuid[cc+1];
       ggs.allParticipantNames[cc] = ggs.allParticipantNames[cc+1];
@@ -174,12 +183,27 @@ io.on('connection', (socket) => {
       ggs.allConnectionStatus[cc] = ggs.allConnectionStatus[cc+1];
       ggs.allSticks[cc]           = ggs.allSticks[cc+1];
       ggs.allPasoUsed[cc]         = ggs.allPasoUsed[cc+1];
+
+      ggs.inOutMustSay[cc]        = ggs.inOutMustSay[cc+1];
+      ggs.inOutDidSay[cc]         = ggs.inOutDidSay[cc+1];
+      ggs.doubtMustLiftCup[cc]    = ggs.doubtMustLiftCup[cc+1];
+      ggs.doubtDidLiftCup[cc]     = ggs.doubtDidLiftCup[cc+1];
+      ggs.nextRoundMustSay[cc]    = ggs.nextRoundMustSay[cc+1];
+      ggs.nextRoundDidSay[cc]     = ggs.nextRoundDidSay[cc+1];
     }
     clearGameSlot(ggs, MAX_CONNECTIONS - 1);
+
+    // adjust whosTurn, whosTurnPrev
+    if (ggs.whosTurn >= index) {
+      ggs.whosTurn--;
+    }
+    if (ggs.whosTurnPrev >= index) {
+      ggs.whosTurnPrev--;
+    }
   }
 
   //----------------------------------------
-  function FromActiremovePlayerveGame(ggs, index) {
+  function removeActivePlayerFromGame(ggs, index) {
     if (index < 0) return;
 
     // mark them out
@@ -255,7 +279,7 @@ io.on('connection', (socket) => {
 
     const originalStarter = ggs.curRound?.startingPlayerIndex ?? ggs.whosTurn;
 
-    removePlayerFromActiveGame(ggs, gameIndex);
+    removeActivePlayerFromGame(ggs, gameIndex);
 
     // need at least 2 players still in
     if (ggs.GetNumberPlayersStillIn() <= 1) {
@@ -418,6 +442,10 @@ io.on('connection', (socket) => {
     };
     console.log("JUST CREATED LOBBY OBJECT");
 
+    // Store persistent player/lobby identity on this socket
+    socket.data.lobbyId = lobbyId;
+    socket.data.playerGuid = authedPlayer.guid;
+
     // log the start date/time
     const now = new Date();
     lobbies[lobbyId].lobbySession.startDate = GetDate(now);
@@ -458,6 +486,10 @@ io.on('connection', (socket) => {
 
     if (lobby) {
       const ggs = lobby.game;
+
+      // Store persistent player/lobby identity on this socket
+      socket.data.lobbyId = lobbyId;
+      socket.data.playerGuid = authedPlayer.guid;
 
       // First try to find this authenticated user in the game by guid
       const gameIndex = findGameIndexByGuid(ggs, authedPlayer.guid);
@@ -879,6 +911,11 @@ io.on('connection', (socket) => {
     }
 
     const ggs = lobby.game;
+
+    // Store persistent player/lobby identity on this socket
+    socket.data.lobbyId = lobbyId;
+    socket.data.playerGuid = authedPlayer.guid;
+
 /*
 CHATGPT code that breaks things.  Do we need it?
 //------------------------------------------------------------------- BEGIN
@@ -1324,53 +1361,125 @@ CHATGPT code that breaks things.  Do we need it?
   socket.on('disconnect', () => {
     console.log('server.js: Client disconnected:', socket.id);
 
-    // Find any lobby that this player was in
-    for (const lobbyId in lobbies) {
-      const lobby = lobbies[lobbyId];
-      const playerIndex = lobby.players.findIndex((p) => p.socketId === socket.id);
+    // Get lobby ID and player GUID stored on this socket.
+    const lobbyId = socket.data.lobbyId;
+    const playerGuid = socket.data.playerGuid;
 
-      if (playerIndex === -1) continue;
+    if (!lobbyId || !playerGuid) {
+      console.log(
+        'disconnect: socket has no stored lobby/player identity:',
+        socket.id
+      );
+      return;
+    }
 
-      const removedPlayer = lobby.players[playerIndex];
+    const lobby = lobbies[lobbyId];
 
-      // remove only from live socket list in lobby.players
+    if (!lobby) {
+      console.log('disconnect: lobby no longer exists:', lobbyId);
+      return;
+    }
+
+    const ggs = lobby.game;
+    const gameIndex = findGameIndexByGuid(ggs, playerGuid);
+
+    if (gameIndex === -1) {
+      console.log(
+        'disconnect: player GUID is not in game:',
+        playerGuid
+      );
+      return;
+    }
+
+    /*
+    * Do not let an obsolete socket disconnect a player whose
+    * newer socket is already connected.
+    */
+    const currentSocketId = ggs.allConnectionID[gameIndex];
+
+    if (currentSocketId && currentSocketId !== socket.id) {
+      console.log(
+        'disconnect: ignoring stale socket:',
+        socket.id,
+        'current socket is:',
+        currentSocketId
+      );
+      return;
+    }
+
+    const playerIndex = lobby.players.findIndex(
+      (p) => p.guid === playerGuid
+    );
+
+    let removedPlayer;
+
+    if (playerIndex !== -1) {
+      removedPlayer = lobby.players[playerIndex];
       lobby.players.splice(playerIndex, 1);
+    } else {
+      /*
+      * The game arrays still identify the player, so construct
+      * the information needed by the countdown.
+      */
+      removedPlayer = {
+        guid: playerGuid,
+        socketId: socket.id,
+        displayName: ggs.allParticipantNames[gameIndex],
+        username: ''
+      };
+    }
 
-      const ggs = lobby.game;
-      const gameIndex = findGameIndexByGuid(ggs, removedPlayer.guid);
+    let bCountDown = false;
+    const status = ggs.allConnectionStatus[gameIndex];
 
-      let bCountDown = true;
-      if (gameIndex !== -1) {
-        let status = ggs.allConnectionStatus[gameIndex];
-        if (status === CONN_OBSERVER) {
-          shiftGameSlotsLeft(ggs, gameIndex);
-          bCountDown = false;
-        } else {
-          ggs.allConnectionID[gameIndex] = '';
-          // do we countdown?
-          if (ggs.bGameInProgress) {
-            // game in progress: YES
-            if (status === CONN_PLAYER_IN)  bCountDown = true;
-            if (status === CONN_PLAYER_OUT) bCountDown = false;
-          }
-          if (!ggs.bGameInProgress) {
-            // game in progress: NO
-            if (status === CONN_PLAYER_IN)  bCountDown = false;
-            if (status === CONN_PLAYER_OUT) bCountDown = false;
-          }
-          // now flip statuses to disconnected
-          ggs.allConnectionStatus[gameIndex] = disconnectStatus(status);
-        }
+    if (status === CONN_OBSERVER || status === CONN_PLAYER_OUT) {
+      shiftGameSlotsLeft(ggs, gameIndex);
+    } else {
+      ggs.allConnectionID[gameIndex] = '';
+
+      if (
+        ggs.bGameInProgress &&
+        status === CONN_PLAYER_IN
+      ) {
+        bCountDown = true;
       }
 
-      io.to(lobbyId).emit('lobbyData', lobby);
-      io.emit('lobbiesList', getLobbiesList());
-      io.to(lobbyId).emit('gameStateUpdate', ggs);
+      ggs.allConnectionStatus[gameIndex] =
+        disconnectStatus(status);
+    }
 
-      if (bCountDown) {
-        startDisconnectCountdown(lobbyId, removedPlayer);
+
+    /* old code
+    if (status === CONN_OBSERVER) {
+      shiftGameSlotsLeft(ggs, gameIndex);
+    } else {
+      ggs.allConnectionID[gameIndex] = '';
+
+      // Only an active player during a game gets the countdown.
+      if (
+        ggs.bGameInProgress &&
+        status === CONN_PLAYER_IN
+      ) {
+        bCountDown = true;
       }
-      break;
+
+      ggs.allConnectionStatus[gameIndex] =
+        disconnectStatus(status);
+    }
+*/
+
+
+
+
+
+
+
+    io.to(lobbyId).emit('lobbyData', lobby);
+    io.emit('lobbiesList', getLobbiesList());
+    io.to(lobbyId).emit('gameStateUpdate', ggs);
+
+    if (bCountDown) {
+      startDisconnectCountdown(lobbyId, removedPlayer);
     }
   });
 

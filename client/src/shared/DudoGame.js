@@ -94,7 +94,6 @@ export class DudoGame {
 
 	whosTurn;                
 	whosTurnPrev;            
-	whosTurnNext;            
 	
 	// for building possible bids list
 	parsedHowMany;
