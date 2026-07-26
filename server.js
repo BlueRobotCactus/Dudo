@@ -3,7 +3,7 @@
 import { LobbySession, DudoGame, DudoRound, DudoBid } from './client/src/shared/DudoGame.js';
 
 import { MAX_CONNECTIONS, CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYER_TIMED_OUT,
-  CONN_PLAYER_IN_DISCONN, CONN_PLAYER_OUT_DISCONN } from './client/src/shared/DudoGame.js';
+  CONN_PLAYER_IN_DISCONN, CONN_PLAYER_OUT_DISCONN, CONN_OBSERVER_DISCONN } from './client/src/shared/DudoGame.js';
 
 import express from 'express';
 import path from 'path';
@@ -102,20 +102,24 @@ io.on('connection', (socket) => {
   function findGameIndexByGuid(ggs, guid) {
     const index = ggs.allParticipantGuid.indexOf(guid);
     if (index === -1) { return -1; }
-    if (ggs.allConnectionStatus[index] === CONN_PLAYER_TIMED_OUT) {
-      return -1;
-    } else {
-      return index;
-    } 
+    const status = ggs.allConnectionStatus[index];
+    if (status === CONN_UNUSED ||
+        status === CONN_PLAYER_TIMED_OUT) {
+        return -1;
+    }
+
+    return index;
   }
   function disconnectStatus (status) {
     if (status === CONN_PLAYER_IN)  return CONN_PLAYER_IN_DISCONN;
     if (status === CONN_PLAYER_OUT) return CONN_PLAYER_OUT_DISCONN;
+    if (status === CONN_OBSERVER)   return CONN_OBSERVER_DISCONN;
     return status;
   }
   function reconnectStatus(status) {
     if (status === CONN_PLAYER_IN_DISCONN)  return CONN_PLAYER_IN;
     if (status === CONN_PLAYER_OUT_DISCONN) return CONN_PLAYER_OUT;
+    if (status === CONN_OBSERVER_DISCONN)   return CONN_OBSERVER; 
     return status;
   }
   function turnPauseON(ggs, name, seconds) {
@@ -396,6 +400,73 @@ io.on('connection', (socket) => {
       intervalId,
       timeoutAt: Date.now() + (COUNTDOWN_SECONDS * 1000)
     };
+  }
+
+  const SILENT_REMOVAL_SECONDS = 5;
+
+  function startSilentRemovalTimer(
+      lobbyId,
+      playerGuid,
+      expectedDisconnectedStatus
+  ) {
+      setTimeout(() => {
+          const lobby = lobbies[lobbyId];
+
+          if (!lobby || !lobby.game) {
+              return;
+          }
+
+          const ggs = lobby.game;
+
+          const gameIndex =
+              findGameIndexByGuid(ggs, playerGuid);
+
+          /*
+          * The participant may already have been removed.
+          */
+          if (gameIndex === -1) {
+              return;
+          }
+
+          /*
+          * A successful reconnect assigns a new socket ID.
+          */
+          if (ggs.allConnectionID[gameIndex]) {
+              return;
+          }
+
+          /*
+          * Make sure this is still the same disconnected
+          * participant for whom this timer was started.
+          */
+          if (
+              ggs.allConnectionStatus[gameIndex] !==
+              expectedDisconnectedStatus
+          ) {
+              return;
+          }
+
+          /*
+          * The participant did not reconnect within the
+          * silent period. Remove the slot.
+          */
+          shiftGameSlotsLeft(ggs, gameIndex);
+
+          /*
+          * Use the same events and payloads that you already
+          * emit after changing lobby/game membership.
+          */
+          io.to(lobbyId).emit(
+              'gameStateUpdate',
+              ggs.AssignGameState()
+          );
+
+          io.emit(
+              'lobbiesList',
+              getLobbiesList()
+          );
+
+      }, SILENT_REMOVAL_SECONDS * 1000);
   }
 
   //---------------------------------------
@@ -963,9 +1034,10 @@ CHATGPT code that breaks things.  Do we need it?
     // DudoGame object
     //-------------------------------------------------
     const gameIndex = findGameIndexByGuid(ggs, authedPlayer.guid);
+    let oldStatus = CONN_UNUSED;
 
     if (gameIndex === -1) {
-      console.log("server.js: 'rejoinLobby' guid not found in game; restoring player slot");
+      console.log("server.js: 'rejoinLobby' guid not found in game; creating new slot");
 
       let ptr = -1;
       for (let i = 0; i < MAX_CONNECTIONS; i++) {
@@ -983,27 +1055,38 @@ CHATGPT code that breaks things.  Do we need it?
       ggs.allParticipantGuid[ptr] = authedPlayer.guid;
       ggs.allParticipantNames[ptr] = playerName;
       ggs.allConnectionID[ptr] = socket.id;
+
+      // A participant whose old slot was already removed
+      // is treated as a new participant.       
       ggs.allConnectionStatus[ptr] = ggs.bGameInProgress ? CONN_OBSERVER : CONN_PLAYER_IN;
     } else {
-      console.log("server.js: 'rejoinLobby' resetting DudoGame for ", playerName);
+      console.log("server.js: 'rejoinLobby' restoring DudoGame slot for", playerName);
+
+      // save the disconnected status before restoring it
+      oldStatus = ggs.allConnectionStatus[gameIndex];
 
       ggs.allParticipantGuid[gameIndex] = authedPlayer.guid;
       ggs.allParticipantNames[gameIndex] = playerName;
       ggs.allConnectionID[gameIndex] = socket.id;
-      ggs.allConnectionStatus[gameIndex] = reconnectStatus(ggs.allConnectionStatus[gameIndex]);
+      ggs.allConnectionStatus[gameIndex] = reconnectStatus(oldStatus);
     }
+
+    // These apply whether the participant was restored or assigned a new slot
+    socket.data.lobbyId = lobbyId;
+    socket.data.playerGuid = authedPlayer.guid;
+    socket.join(lobbyId);
 
     if (authedPlayer.guid === lobby.hostGuid) {
       lobby.hostSocketId = socket.id;
     }
-    clearDisconnectTimer(lobbyId, authedPlayer.guid);
 
-    socket.join(lobbyId);
-    io.to(lobbyId).emit('disconnectCountdownEnded', { playerName, reason: 'reconnected' });
-
-    turnPauseOFF (ggs);
+    if (oldStatus === CONN_PLAYER_IN_DISCONN) {
+      clearDisconnectTimer(lobbyId, authedPlayer.guid);
+      io.to(lobbyId).emit('disconnectCountdownEnded', { playerName, reason: 'reconnected' });
+      turnPauseOFF (ggs);
+    }
+   
     io.to(lobbyId).emit('gameStateUpdate', ggs);
-
     io.to(lobbyId).emit('lobbyData', lobby);
     io.emit('lobbiesList', getLobbiesList());
 
@@ -1391,10 +1474,8 @@ CHATGPT code that breaks things.  Do we need it?
       return;
     }
 
-    /*
-    * Do not let an obsolete socket disconnect a player whose
-    * newer socket is already connected.
-    */
+    // Do not let an obsolete socket disconnect a player whose
+    // newer socket is already connected.
     const currentSocketId = ggs.allConnectionID[gameIndex];
 
     if (currentSocketId && currentSocketId !== socket.id) {
@@ -1417,10 +1498,8 @@ CHATGPT code that breaks things.  Do we need it?
       removedPlayer = lobby.players[playerIndex];
       lobby.players.splice(playerIndex, 1);
     } else {
-      /*
-      * The game arrays still identify the player, so construct
-      * the information needed by the countdown.
-      */
+      // The game arrays still identify the player, so construct
+      // the information needed by the countdown.
       removedPlayer = {
         guid: playerGuid,
         socketId: socket.id,
@@ -1429,6 +1508,40 @@ CHATGPT code that breaks things.  Do we need it?
       };
     }
 
+    let bCountDown = false;
+    const status = ggs.allConnectionStatus[gameIndex];
+
+    if (
+      status === CONN_OBSERVER ||
+      status === CONN_PLAYER_OUT
+    ) {
+      // Keep the slot temporarily so a refresh or brief
+      // connection loss can restore the same role.
+      ggs.allConnectionID[gameIndex] = '';
+      const disconnectedStatus = disconnectStatus(status);
+      ggs.allConnectionStatus[gameIndex] = disconnectedStatus;
+
+      startSilentRemovalTimer(
+        lobbyId,
+        playerGuid,
+        disconnectedStatus
+      );
+
+    } else {
+      ggs.allConnectionID[gameIndex] = '';
+
+      if (
+        ggs.bGameInProgress &&
+        status === CONN_PLAYER_IN
+      ) {
+        bCountDown = true;
+      }
+
+      ggs.allConnectionStatus[gameIndex] =
+        disconnectStatus(status);
+    }
+
+    /* more old code
     let bCountDown = false;
     const status = ggs.allConnectionStatus[gameIndex];
 
@@ -1447,7 +1560,7 @@ CHATGPT code that breaks things.  Do we need it?
       ggs.allConnectionStatus[gameIndex] =
         disconnectStatus(status);
     }
-
+    */
 
     /* old code
     if (status === CONN_OBSERVER) {
@@ -1468,18 +1581,32 @@ CHATGPT code that breaks things.  Do we need it?
     }
 */
 
-
-
-
-
-
-
     io.to(lobbyId).emit('lobbyData', lobby);
     io.emit('lobbiesList', getLobbiesList());
     io.to(lobbyId).emit('gameStateUpdate', ggs);
 
+    // delay start of countdown to allow refreshes and internet drops/reconnects to reconnect by themselves
     if (bCountDown) {
-      startDisconnectCountdown(lobbyId, removedPlayer);
+      setTimeout(() => {
+        const lobbyNow = lobbies[lobbyId];
+        if (!lobbyNow) return;
+
+        const gameNow = lobbyNow.game;
+        const indexNow = findGameIndexByGuid(
+          gameNow,
+          removedPlayer.guid
+        );
+
+        if (indexNow === -1) return;
+
+        // If the player has already reconnected, their socket ID
+        // will have been restored. Do not start the countdown.
+        if (gameNow.allConnectionID[indexNow]) {
+          return;
+        }
+
+        startDisconnectCountdown(lobbyId, removedPlayer);
+      }, 3000);
     }
   });
 
@@ -1577,7 +1704,6 @@ app.post('/api/auth/login', async (req, res) => {
 
     // remember the browser session
     req.session.player = {
-//      id: player.id,
       id: player.guid,
       guid: player.guid,
       username: player.username,
@@ -1586,7 +1712,6 @@ app.post('/api/auth/login', async (req, res) => {
     res.json({
       ok: true,
       player: {
-        //id: player.id,
         id: player.guid,
         guid: player.guid,
         username: player.username,
@@ -1630,20 +1755,6 @@ app.get('/api/players', async (req, res) => {
     res.status(500).json({ ok: false, error: err.message });
   }
 });
-/*
-app.get('/api/players', async (req, res) => {
-  try {
-    const pool = getPool();
-    const [rows] = await pool.query(
-      'SELECT id, guid, username, created_at FROM players'
-    );
-    res.json({ ok: true, players: rows });
-  } catch (err) {
-    console.error('Players query failed:', err);
-    res.status(500).json({ ok: false, error: err.message });
-  }
-});
-*/
 
 // ------------------------------
 // PLAYERS POST: add player

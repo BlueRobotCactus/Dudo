@@ -708,12 +708,14 @@ function LandingPage({ playerName, setPlayerName }) {
               <button
                 className="btn btn-primary"
                 onClick={() => onJoinLobby(selectedLobby.id, false)}
-                disabled={!connected || selectedLobbyGameInProgress}
+                /*----
+                disabled={!connected || selectedLobbyGameInProgress} 
                 title={
                   selectedLobbyGameInProgress
                     ? 'Cannot join as player once the game has started.'
                     : ''
-                }
+                } 
+                ----*/
               >
                 Join as player
               </button>
