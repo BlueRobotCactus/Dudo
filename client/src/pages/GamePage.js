@@ -24,7 +24,7 @@ import { SetGameParametersDlg } from '../Dialogs.js';
 import { BidDlg } from '../Dialogs.js';
 
 import { MAX_CONNECTIONS, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER } from '../shared/DudoGame.js';
-import { STICKS_BLINK_TIME, SHOWN_DICE_BLINK_TIME, SHAKE_CUPS_TIME } from '../shared/DudoGame.js';
+import { STICKS_BLINK_TIME, SHOWN_DICE_BLINK_TIME, SHAKE_CUPS_TIME, GAME_PHASE, GetGamePhaseName } from '../shared/DudoGame.js';
 
   //************************************************************
   // GamePage function
@@ -507,35 +507,6 @@ console.log(
   };
 
   //************************************************************
-  // Click: Host set game parameters
-  // (obsolete)
-  //************************************************************
-  /*
-  const handleGameSettings = () => {
-    if (connected) {
-
-      setRow2NumSticks (ggc.maxSticks);
-      setRow2PasoAllowed (ggc.bPasoAllowed);
-      setRow2PalofijoAllowed (ggc.bPaloFijoAllowed);
-
-      socket.emit('setGameParms', lobbyId);
-      console.log ('GamePage: emiting "setGameParms"');
-    }
-  };
-  const handleSaveSettings = () => {
-    if (connected) {
-      socket.emit('saveGameParms', lobbyId, row2NumSticks, row2PasoAllowed, row2PalofijoAllowed);
-      console.log ('GamePage: emiting "SaveGameParms"');
-    }
-  }
-  const handleCancelSettings = () => {
-    if (connected) {
-      socket.emit('cancelGameParms', lobbyId);
-      console.log ('GamePage: emiting "cancelGameParms"');
-    }
-  }
-*/
-  //************************************************************
   // Click: In or out?
   //************************************************************
   const handleYesImIn = () => {
@@ -927,16 +898,6 @@ console.log(
       } else {
           s3 = "It is NOT there.";
       }
-
-/*
-      if (ggc.curRound.doubtPasoWasThere) {
-          s3 = ggc.allParticipantNames[ggc.curRound.whoGotDoubted] + " has the PASO.";
-      } else {
-          s3 = ggc.allParticipantNames[ggc.curRound.whoGotDoubted] + " does not have the PASO.";
-      }
-*/
-
-
     } else {
       // non-PASO
       s2 = ggc.allParticipantNames[ggc.curRound.whoGotDoubted] + "'s bid was " + ggc.curRound.doubtedText;
@@ -954,9 +915,6 @@ console.log(
     if (ggc.curRound.doubtLoserOut) {
       s4 += ", and is OUT.";
     }
-//    if (!ggc.curRound.doubtLoserPaloFijo && !ggc.curRound.doubtLoserOut) {
-//      s4 += ".";
-//    }
     setDoubtWhoGotStick(s4);
 
     let msg = s1 + "\n" + s2 + s3 + "\n" + s4; 
@@ -1024,32 +982,6 @@ console.log(
   };
 
   //************************************************************
-  // functions handle Yes, No from ConfirmBidDlg
-  // (obsolete)
-  //************************************************************
-  /*
-  const handleConfirmBidYes = () => {
-    setShowConfirmBidDlg(false);
-
-    // Now send the bid to the server
-    if (connected) {
-      socket?.emit('bid', {
-        lobbyId,
-        bidText: thisBid,
-        bidShowShake: myShowShakeRef.current,
-        index: myIndex,
-        name: myName,
-      });
-    }
-  };
-
-  const handleConfirmBidNo = () => {
-    setShowConfirmBidDlg(false);
-    setThisBid('');
-    PrepareBidUI();
-  };
-  */
-  //************************************************************
   // useEffect:  LISTENERS ON [socket, connected]
   //             turn on listeners 
   //************************************************************
@@ -1115,31 +1047,7 @@ console.log(
       window.visualViewport?.removeEventListener('resize', updateLayout);
     };
   }, []);
-/*
-//************************************************************
-// useEffect:  REQUEST LOBBY DATA [lobbyId]
-//             Request from server with callback
-//************************************************************
-useEffect(() => {
-  console.log("GamePage: useEffect: REQUEST LOBBY DATA: entering");
 
-  if (connected) {
-    socket?.emit('getLobbyData', lobbyId, (lobby) => {
-      console.log ("GamePage.js: REQUEST LOBBY DATA: connected");
-      setLobby(lobby);
-      setGameState(lobby.game);
-      setLobbyPlayers(lobby.players);
-  
-      ggc.AssignGameState(lobby.game);
-
-      const stringSocketId = String(socketId);
-      const index = ggc.allConnectionID.indexOf(stringSocketId);
-      setMyIndex(index);
-      setMyName (ggc.allParticipantNames[index]);
-    });
-  }
-}, [lobbyId]);
-*/
 //*************************************************************
 // useEffect:  RECONNECT [socket, socketId]
 //*************************************************************
@@ -1223,38 +1131,6 @@ useEffect(() => {
       });   // rejoinLobby
     });     // getJoinPermission
   }         // handleReconnect
-
-  /*
-        socket.emit('rejoinLobby', { lobbyId, playerName: nameFromStorage }, (serverLobbyData) => {
-          console.log("handleRECONNECT: callback received lobby/game data:", serverLobbyData);
-  
-          // Reconstruct your client-side state
-          setLobbyHost(serverLobbyData.host);
-
-console.log('DEBUG line 1154, setLobbyHost to', serverLobbyData.host);
-          
-          setGameState(serverLobbyData.game);
-          setLobbyPlayers(serverLobbyData.players);
-          setLobby({
-            id: lobbyId,
-            host: serverLobbyData.host,
-            players: serverLobbyData.players,
-            game: serverLobbyData.game,
-          });
-
-          ggc.AssignGameState(serverLobbyData.game);
-  
-          const whosTurnSocketId = ggc.allConnectionID[ggc.whosTurn];
-          const stringSocketId = String(socketId);
-          setIsMyTurn(whosTurnSocketId === stringSocketId);
-          setWhosTurnName(ggc.allParticipantNames[ggc.whosTurn]);
-  
-          const index = ggc.allConnectionID.indexOf(stringSocketId);
-          setMyIndex(index);
-          setMyName(ggc.allParticipantNames[index]);
-        });
-  }
-*/
 
   //************************************************************
   // end of function handleReconnect
@@ -1346,13 +1222,8 @@ useEffect(() => {
     }
   }
 
-//  if (ggc.bDoubtInProgress) {
-    // DrawDoubtInProgress();
   if (ggc.bDoubtInProgress) {
-//    if (!ggc.doubtMustLiftCup[myIndex] || 
-//        !ggc.doubtDidLiftCup[myIndex]) {
       PrepareLiftCupDlg();
-//    }
   }
   
   if (ggc.bShowDoubtResult && 
@@ -1367,10 +1238,6 @@ useEffect(() => {
     setShowLiftCupDlg (false);
     PrepareShowDoubtDlg();
   }
-
-  //if (ggc.bShowDoubtResult) {
-    //DrawDoubtResult();
-  //}
 
   //****************************************************************
   // Set up coordinates of player boxes 
@@ -1525,52 +1392,6 @@ useEffect(() => {
   }
   
   //************************************************************
-  //  function Draw InOrOut (obsolete)
-  //************************************************************
-  /*
-  function DrawInOrOut() {
-    let msg = "Starting a new game\n\n";
-    msg += `Number of sticks: ${ggc.maxSticks}\n`;
-    if (ggc.maxSticks === 1) msg += ' (one and done)';
-    msg += ggc.bPasoAllowed ? "Paso allowed: Yes\n" : "Paso allowed: No\n";
-    msg += ggc.bPaloFijoAllowed ? "Palofijo: Yes\n" : "Palofijo: No\n";
-    msg += "\nAre you in?";
-    
-    // who has not yet said in or out
-    let ss = "\n\nWaiting to hear from:";
-    for (let cc = 0; cc < MAX_CONNECTIONS; cc++) {
-      if (ggc.inOutMustSay[cc]) {
-        ss += "\n" + ggc.allParticipantNames[cc];
-        if (ggc.inOutDidSay[cc]) {
-          if (ggc.allConnectionStatus[cc] === CONN_PLAYER_IN) {
-            ss += " - IN";
-          }
-          if (ggc.allConnectionStatus[cc] === CONN_OBSERVER) {
-            ss += " - OUT";
-          }
-        }
-      }
-    }
-    msg += ss;
-    setYesNoMessage(msg);
-    setYesNoTitle("Start game");
-    setYesText("Yes, I'm in");
-    setNoText("No, I'll watch");
-    setYesShowButton(true);
-    setNoShowButton(true);
-    setXShowButton(false);
-    setOnYesHandler(() => () => {
-      setShowYesNoDlg(false);
-      socket.emit('inOrOut', { lobbyId, index: myIndex, status: CONN_PLAYER_IN })
-    });
-    setOnNoHandler(() => () => {
-      setShowYesNoDlg(false);
-      socket.emit('inOrOut', { lobbyId, index: myIndex, status: CONN_OBSERVER })
-    });
-    setShowYesNoDlg(true);
-  }
-*/
-  //************************************************************
   //  function Draw and process the bid
   //************************************************************
   function DrawProcessBid() {
@@ -1583,18 +1404,6 @@ useEffect(() => {
       console.log('Gamepage.js: delaying bid, SomebodyGotStick');
       delay += STICKS_BLINK_TIME;
     }
-/*    
-    // last bid show/shake?
-    if (ggc.bGameInProgress && ggc.curRound.numBids > 0) {
-      const lastBid = ggc.curRound?.Bids[ggc.curRound?.numBids - 1];
-      if (!lastBid.didUIShake) {
-        if (lastBid.bShowShake) {
-          console.log('Gamepage.js: delaying bid, lastBid.bShowShake');
-          delay += (SHOWN_DICE_BLINK_TIME + SHAKE_CUPS_TIME);
-        }
-      } 
-    }
-*/
     // apply delay, if any
     if (delay > 0) {
       setTimeout(() => {
@@ -1674,97 +1483,6 @@ useEffect(() => {
   }
 
   //************************************************************
-  //  function Draw Doubt in Progress
-  //  (obsolete)
-  //************************************************************
-  /*
-  function DrawDoubtInProgress () {
-    // prepare strings to say what happened
-    let s1 = "";  // who doubted whom
-    let s2 = "";  // what the bid was
-    let s3 = '';  // who has not yet lifted the cup
-    s1 = ggc.allParticipantNames[ggc.curRound.whoDoubted];
-    s1 += " doubted ";
-    s1 += ggc.allParticipantNames[ggc.curRound.whoGotDoubted];
-    setRow2DoubtWho(s1);
-
-    if (ggc.curRound.doubtWasPaso) {
-      // PASO
-      s2 = ggc.allParticipantNames[ggc.curRound.whoGotDoubted] + " bid PASO";
-    } else {
-      // non-PASO
-      s2 = ggc.allParticipantNames[ggc.curRound.whoGotDoubted] + "'s bid was " + ggc.curRound.doubtedText;
-
-      s2 += "\n(" + ggc.curRound.doubtShowing + " showing, looking for " + ggc.curRound.doubtLookingFor + ")\n";
-    }
-    setRow2DoubtBid(s2);
-
-    // who has not yet lifted their cup
-    s3 = "Waiting to see dice from:";
-    for (let cc = 0; cc < MAX_CONNECTIONS; cc++) {
-      if (ggc.doubtMustLiftCup[cc]) {
-        if (!ggc.doubtDidLiftCup[cc]) {
-          s3 += "\n" + ggc.allParticipantNames[cc];
-        }
-      }
-    }
-    setRow2DoubtResult('');
-    setRow2DoubtStick('');
-    setRow2DoubtWin('');
-    setIsMyTurn(false);
-  }
-*/
-  //************************************************************
-  //  function Draw Doubt Result
-  //  obsolete?
-  //************************************************************
-  /*
-  function DrawDoubtResult() {
-    // prepare strings to say what happened
-    let s1 = "";  // who doubted whom
-    let s2 = "";  // what the bid was
-    let s3 = "";  // result of doubt
-    let s4 = "";  // who got the stick
-    let s5 = "";  // who got won the game (if anyone)
-    s1 = ggc.allParticipantNames[ggc.curRound.whoDoubted];
-    s1 += " doubted ";
-    s1 += ggc.allParticipantNames[ggc.curRound.whoGotDoubted];
-    setRow2DoubtWho(s1);
-
-    if (ggc.curRound.doubtWasPaso) {
-      // PASO
-      s2 = ggc.allParticipantNames[ggc.curRound.whoGotDoubted] + " bid PASO";
-      if (ggc.curRound.doubtPasoWasThere) {
-          s3 = ggc.allParticipantNames[ggc.curRound.whoGotDoubted] + " has the PASO";
-      } else {
-          s3 = ggc.allParticipantNames[ggc.curRound.whoGotDoubted] + " does not have the PASO";
-      }
-    } else {
-      // non-PASO
-      s2 = ggc.allParticipantNames[ggc.curRound.whoGotDoubted] + "'s bid was " + ggc.curRound.doubtedText;
-
-      s3 = (ggc.curRound.doubtCount === 1 ? "There is " : "There are ") + ggc.curRound.doubtCount;
-    }
-    setRow2DoubtBid(s2);
-    setRow2DoubtResult(s3);
-
-    s4 = ggc.allParticipantNames[ggc.curRound.doubtLoser] + " got the stick";
-    if (ggc.curRound.doubtLoserOut) {
-      s4 += ", and is OUT";
-    }
-    setRow2DoubtStick(s4);
-
-    let msg = s1 + "\n" + s2 + "\n" + s3 + "\n" + s4; 
-
-    if (ggc.bWinnerGame) {
-      s5 = ggc.allParticipantNames[ggc.whoWonGame] + " WINS THE GAME!!"
-      msg += "\n\n" + s5;
-      setRow2DoubtWin(s5);
-    }
-    setIsMyTurn(false);
-  }
-*/
-  //************************************************************
   //************************************************************
   //  Render 
   //************************************************************
@@ -1773,7 +1491,25 @@ useEffect(() => {
 
   return (
     <>
+        {/* Show game phase for DEBUGGING */} 
         <div
+          style={{
+            position: 'fixed',
+            top: '5px',
+            left: '5px',
+            zIndex: 99999,
+            fontSize: '14px',
+            fontFamily: 'monospace',
+            color: 'black',
+            backgroundColor: 'yellow',
+            padding: '2px 6px',
+            border: '1px solid black'
+          }}
+        >
+          Phase: {GetGamePhaseName(gameState?.gamePhase)}
+        </div>
+        
+         <div
           className="d-flex flex-column"
           style={{ height: '100vh', overflow: 'hidden', margin: `${UIMargin}`}}
         >
@@ -2196,24 +1932,6 @@ useEffect(() => {
     )
   }
 
-  /*----------------------------------------------
-          BID
-  -----------------------------------------------*/
-  /*
-  function BidPanel({ show, onClose }) {
-    return (
-      <div className={`bid-panel ${show ? 'open' : ''}`}>
-        <div className="p-3 border-bottom d-flex justify-content-between align-items-center">
-          <h5 className="mb-0">Your Turn to Bid</h5>
-          <button className="btn btn-sm btn-outline-secondary" onClick={onClose}>×</button>
-        </div>
-        <div className="p-3">
-          <RenderBid />
-        </div>
-      </div>
-    );
-  }
-*/
   function RenderBid () {
     return (
       //----- MY TURN -----//

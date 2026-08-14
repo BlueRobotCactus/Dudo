@@ -75,26 +75,6 @@ function LandingPage({ playerName, setPlayerName }) {
     socket.connect();
   };
 
-  /*
-  const refreshSocketSession = () => {
-    if (!socket) return;
-
-    try {
-      console.log('LandingPage: refreshing socket session');
-
-      // disconnect old unauthenticated socket
-      if (socket.connected) {
-        socket.disconnect();
-      }
-
-      // reconnect so Socket.IO middleware re-reads session cookie
-      socket.connect();
-    } catch (err) {
-      console.error('LandingPage: socket refresh failed:', err);
-    }
-  };
-*/
-
   //************************************************************
   // useEffect: check whether already logged in
   //************************************************************
@@ -431,53 +411,6 @@ function LandingPage({ playerName, setPlayerName }) {
     );
   }
 
-/*
-  function handleLobbySelected(lobbyId) {
-    socket.emit(
-      'getJoinPermission', { lobbyId }, permission => {
-        if (permission?.error) {
-          setError(permission.error);
-          return;
-        }
-
-        if (permission.joinMode === 'resume') {
-          socket.emit('rejoinLobby', { lobbyId }, handleJoinResponse);
-          return;
-        }
-
-        if (permission.joinMode === 'observer') {
-          socket.emit('joinLobby', { lobbyId, joinAsObserver: true }, handleJoinResponse);
-          return;
-        }
-
-        // Only a genuinely new participant before a game starts sees the player/observer choice.
-        setSelectedLobby(lobbyId);
-        setJoinPermission(permission);
-        setShowJoinChoiceDlg(true);
-      }
-    );
-  }
-*/
-
-/*
-  //************************************************************
-  // On Join Lobby click
-  //************************************************************
-  // *** ADDED ***
-  // open dialog instead of joining immediately
-  const onJoinLobbyClick = (lobby) => {
-    if (!connected || !socket) return;
-
-    if (!loggedIn || !playerName) {
-      showMessage('Join Lobby', 'Please sign in first.');
-      return;
-    }
-
-    setSelectedLobby(lobby);
-    setShowJoinChoiceDlg(true);
-  };
-
-  */
   //************************************************************
   // Close JoinChoiceDlg
   //************************************************************

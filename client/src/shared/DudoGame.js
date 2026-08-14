@@ -19,6 +19,26 @@ const STICKS_BLINK_TIME = 2000;
 const SHOWN_DICE_BLINK_TIME = 4000;
 const SHAKE_CUPS_TIME = 2000;	
 
+const GAME_PHASE = {
+  WAITING_TO_START: 0,
+  ASKING_IN_OUT: 1,
+  CHOOSING_DIRECTION: 2,
+  BIDDING: 3,
+  DOUBT_LIFT_CUPS: 4,
+  DOUBT_SHOW_RESULT: 5,
+  BETWEEN_ROUNDS: 6,
+  GAME_OVER: 7
+};
+
+//****************************************************************
+// For DEBUGGING
+//****************************************************************
+function GetGamePhaseName(phase) {
+    return Object.keys(GAME_PHASE).find(
+        key => GAME_PHASE[key] === phase
+    ) || `UNKNOWN (${phase})`;
+}
+
 //****************************************************************
 // LobbySession class
 //****************************************************************
@@ -74,6 +94,9 @@ export class DudoGame {
 	diceHilite = [][];
 	BidMatrix = [][];   
 */
+
+// new GAME_PHASE to eventually replace bools
+	gamePhase;
 
 	firstRound;
 	bSettingGameParms;
@@ -150,6 +173,8 @@ export class DudoGame {
 		for (let i = 0; i < 5 * MAX_PLAYERS; i++) {
 			this.BidMatrix[i] = new Array(6).fill(false);
 		}
+
+		this.gamePhase = GAME_PHASE.WAITING_TO_START;
 
 		this.bSettingGameParms = false;
 		this.bGameInProgress = false;
@@ -234,6 +259,8 @@ export class DudoGame {
 		this.bPaloFijoAllowed = true;
 		this.bPaloFijoRound =  false;
 		this.firstRound = true;
+
+		this.gamePhase = GAME_PHASE.WAITING_TO_START;
 
 		this.bSettingGameParms = false;
 		this.bGameInProgress = false;
@@ -1331,4 +1358,5 @@ export {
 	CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYER_TIMED_OUT,
   CONN_PLAYER_IN_DISCONN, CONN_PLAYER_OUT_DISCONN, CONN_OBSERVER_DISCONN,
 	STICKS_BLINK_TIME, SHOWN_DICE_BLINK_TIME, SHAKE_CUPS_TIME,
+	GAME_PHASE, GetGamePhaseName,
 };

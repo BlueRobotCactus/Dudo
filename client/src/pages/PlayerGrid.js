@@ -85,36 +85,6 @@ export function PlayerGrid({ lobbyId, ggc, myIndex, cc }) {
     setBBlinkSticks(false); // clear the edge-trigger
   }, [bBlinkSticks, blinkSticksPlayer]);   // include both
 
-  //************************************************************
-  // function handleBlinkSticks
-  //************************************************************
-  /*
-  const handleBlinkSticks = React.useCallback((playercc) => {
-    setBBlinkSticks(true);
-    setBlinkSticksPlayer(playercc);
-  }, [cc, myIndex]);
-*/
-
-  //************************************************************
-  // useEffect:  LISTENERS ON [socket, handleBlinkSticks]
-  //             turn on listeners 
-  //************************************************************
-  /*
-  useEffect(() => {
-    if (!socket) {
-      console.log("PlayerGrid: useEffect: LISTENERS ON: socket not ready yet");
-      return;
-    }
-    console.log("PlayerGrid: useEffect: LISTENERS ON: socket ready");
-
-    socket.on('blinkSticks', handleBlinkSticks);
-
-    return () => {
-      socket.off('blinkSticks', handleBlinkSticks);
-    };
-  }, [socket, handleBlinkSticks]);
-*/
-
   //*****************************************************************
   // useEffect:  END OF ROUND
   //             [ggc.bGameInProgress, ggc.curRound.numBids, ggc.firstRound]

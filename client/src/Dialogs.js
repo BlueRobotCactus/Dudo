@@ -220,8 +220,6 @@ export function DirectionDlg({
   );
 }
 
-// begin &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
-
 export function BidDlg({ 
   open, 
   onHide, 
@@ -302,20 +300,20 @@ export function BidDlg({
     open && (
       <div
         className={`floating-dialog border border-primary rounded-3 bg-white shadow ${minimized ? 'minimized' : ''}`}
-style={{
-  position: 'fixed',
-  top: '10vh',
-  left: '50%',
-  transform: 'translateX(-50%)',
-  zIndex: 2000,
-  width: '80vw',
-  maxWidth: '600px',
-  height: minimized ? 'auto' : 'fit-content',
-  overflow: 'hidden',
-  borderRadius: '0.5rem',
-  padding: 0,
-  whiteSpace: 'nowrap',
-}}
+        style={{
+          position: 'fixed',
+          top: '10vh',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          zIndex: 2000,
+          width: '80vw',
+          maxWidth: '600px',
+          height: minimized ? 'auto' : 'fit-content',
+          overflow: 'hidden',
+          borderRadius: '0.5rem',
+          padding: 0,
+          whiteSpace: 'nowrap',
+        }}
       >
         <div
           className="bg-primary text-white py-2 px-3 d-flex justify-content-between align-items-center"
@@ -424,8 +422,6 @@ style={{
   );
 }
 
-// end &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
-
 //************************************************************
 // OkDlg (reuseable)
 //************************************************************
@@ -472,7 +468,6 @@ export function OkDlg({
     </Modal>
   );
 }
-
 
 //************************************************************
 // YesNoDlg (reuseable)

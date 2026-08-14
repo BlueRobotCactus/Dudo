@@ -3,7 +3,7 @@
 import { LobbySession, DudoGame, DudoRound, DudoBid } from './client/src/shared/DudoGame.js';
 
 import { MAX_CONNECTIONS, CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYER_TIMED_OUT,
-  CONN_PLAYER_IN_DISCONN, CONN_PLAYER_OUT_DISCONN, CONN_OBSERVER_DISCONN } from './client/src/shared/DudoGame.js';
+  CONN_PLAYER_IN_DISCONN, CONN_PLAYER_OUT_DISCONN, CONN_OBSERVER_DISCONN, GAME_PHASE } from './client/src/shared/DudoGame.js';
 
 import express from 'express';
 import path from 'path';
@@ -336,18 +336,6 @@ io.on('connection', (socket) => {
     }
 
     // Game is in progress 
-
-/*    
-    // Observers: simply mark back to observer/out-of-room state
-    if (ggs.allConnectionStatus[gameIndex] === CONN_OBSERVER_DISCONN) {
-      ggs.allConnectionStatus[gameIndex] = CONN_OBSERVER;
-      ggs.allConnectionID[gameIndex] = '';
-      io.to(lobbyId).emit('disconnectCountdownEnded', { playerName, reason: 'timed_out' });
-      turnPauseOFF (ggs);
-      io.to(lobbyId).emit('gameStateUpdate', ggs);
-      return;
-    }
-*/
     const hadAnyBid =
       ggs.bRoundInProgress &&
       ggs.curRound &&
@@ -669,8 +657,6 @@ io.on('connection', (socket) => {
       // First try to find this authenticated user in the game by guid
       const gameIndex = findGameIndexByGuid(ggs, authedPlayer.guid);
 
-//------------------------------------------------------------------- BEGIN
-
       // ============================================================
       // Prevent same authenticated player from joining twice
       // in two different browsers/tabs at the same time.
@@ -703,8 +689,6 @@ io.on('connection', (socket) => {
           return;
         }
       }
-
-//------------------------------------------------------------------- END
 
       if (gameIndex === -1) {
         // truly new player
@@ -911,6 +895,7 @@ io.on('connection', (socket) => {
     ggs.getInOutMustSay();
     
     ggs.bAskInOut = true;
+    ggs.gamePhase = GAME_PHASE.ASKING_IN_OUT;
     io.to(lobbyId).emit('gameStateUpdate', lobby.game);
   });
 
@@ -934,34 +919,10 @@ io.on('connection', (socket) => {
     }
     
     ggs.bAskInOut = false;
+    ggs.gamePhase = GAME_PHASE.WAITING_TO_START;
     io.to(lobbyId).emit('gameStateUpdate', lobby.game);
   });
 
-  //************************************************************
-  // socket.on
-  // START GAME (obsolete)
-  //************************************************************
-  /*
-  socket.on('startGame', (lobbyId) => {
-    const lobby = lobbies[lobbyId];
-    const ggs = lobby.game;
-    if (!lobby) return;
-
-    // for debugging:  show what sockets are actually in the room
-    //io.in(lobbyId).fetchSockets().then(sockets => console.log(`Lobby ${lobbyId} has ${sockets.length} sockets:`, sockets.map(s => s.id)));
-
-    // hear back to see who's in or out
-    for (let cc=0; cc<MAX_CONNECTIONS; cc++) {
-      ggs.inOutMustSay[cc] = false;
-      ggs.inOutDidSay[cc] = false;
-    }
-    ggs.getInOutMustSay();
-    
-    ggs.bAskInOut = true;
-    io.to(lobbyId).emit('gameStateUpdate', lobby.game);
-
-  });
-*/
   //************************************************************
   // socket.on
   // LEAVE LOBBY
@@ -1018,17 +979,6 @@ io.on('connection', (socket) => {
     
   const ggs = lobby.game;
 
-  /*
-  if (ggs.allConnectionStatus[gameIndex] === CONN_OBSERVER) {
-    // Remove an observer without shifting indices
-    clearGameSlot(ggs, gameIndex);
-    console.log(`server.js: observer ${playerName} left lobby: ${lobbyId}, CONN marked UNUSED`);
-  } else if (!ggs.bGameInProgress) {
-    // no game in progress, shift indices
-    shiftGameSlotsLeft(ggs, gameIndex);
-    console.log(`server.js: ${playerName} left lobby: ${lobbyId}, shifted CONN indices`);
-  }
-  */
   if (ggs.allConnectionStatus[gameIndex] === CONN_OBSERVER) {
     // observer, always shift indices
     shiftGameSlotsLeft(ggs, gameIndex);
@@ -1043,34 +993,7 @@ io.on('connection', (socket) => {
   io.to(lobbyId).emit('gameStateUpdate', lobby.game);
   console.log("server.js: 'leaveLobby': emitting 'gameStateUpdate'");
 
-  /*
-    // If the removed player was the host
-    if (removedPlayer.guid === lobby.hostGuid) {
-      // Reassign host the earliest joined player if players remain
-      if (lobby.players.length > 0) {
-        const newHost = lobby.players[0];
-        lobby.host = newHost.name;
-        lobby.hostSocketId = newHost.id;
-        console.log(`Host left. Reassigning host to: ${newHost.name} (Socket: ${newHost.id}) for lobby: ${lobbyId}`);
-
-        // Notify the lobby
-        io.to(lobbyId).emit('lobbyData', lobby);
-      } else {
-        // No players left, remove entire lobby
-        console.log(`Host left and no players remain. Removing lobby: ${lobbyId}`);
-        delete lobbies[lobbyId];
-      }
-    } else {
-      // Non-host left
-      console.log(`${playerName} left lobby: ${lobbyId}`);
-      io.to(lobbyId).emit('lobbyData', lobby);
-    }
-
-    io.emit('lobbiesList', getLobbiesList());
-    io.to(lobbyId).emit('gameStateUpdate', lobby.game);
-    console.log("server.js: 'leaveLobby': emitting 'gameStateUpdate'");
-*/
-  });
+});
 
   //************************************************************
   // socket.on
@@ -1208,115 +1131,6 @@ io.on('connection', (socket) => {
     });
   });
 
-
-  /*
-  socket.on('rejoinLobby', ({ lobbyId, playerName, id }, callback) => {
-    const authedPlayer = getAuthedPlayer(socket);
-    if (!authedPlayer) {
-      callback?.({ error: 'Not authenticated' });
-      return;
-    }
-
-    const lobby = lobbies[lobbyId];
-    if (!lobby) {
-      callback?.({ error: 'Lobby not found' });
-      return;
-    }
-
-    const ggs = lobby.game;
-
-    // Store persistent player/lobby identity on this socket
-    socket.data.lobbyId = lobbyId;
-    socket.data.playerGuid = authedPlayer.guid;
-
-    //-------------------------------------------------
-    // lobby object
-    //-------------------------------------------------
-    const lobbyIdx = lobby.players.findIndex(p => p.guid === authedPlayer.guid);
-    if (lobbyIdx === -1) {
-      lobby.players.push({
-        guid: authedPlayer.guid,
-        socketId: socket.id,
-        username: authedPlayer.username,
-        displayName: playerName
-      });
-      console.log("server.js: 'rejoinLobby' adding a player " + playerName);
-    } else {
-      lobby.players[lobbyIdx].socketId = socket.id;
-      lobby.players[lobbyIdx].displayName = playerName;
-      console.log("server.js: 'rejoinLobby' swapping old id -> new id for index " + lobbyIdx);
-    }
-
-    //-------------------------------------------------
-    // DudoGame object
-    //-------------------------------------------------
-    const gameIndex = findGameIndexByGuid(ggs, authedPlayer.guid);
-    let oldStatus = CONN_UNUSED;
-
-    if (gameIndex === -1) {
-      console.log("server.js: 'rejoinLobby' guid not found in game; creating new slot");
-
-      let ptr = -1;
-      for (let i = 0; i < MAX_CONNECTIONS; i++) {
-        if (ggs.allConnectionStatus[i] === CONN_UNUSED) {
-          ptr = i;
-          break;
-        }
-      }
-
-      if (ptr === -1) {
-        callback?.({ error: 'Lobby is full' });
-        return;
-      }
-
-      ggs.allParticipantGuid[ptr] = authedPlayer.guid;
-      ggs.allParticipantNames[ptr] = playerName;
-      ggs.allConnectionID[ptr] = socket.id;
-
-      // A participant whose old slot was already removed
-      // is treated as a new participant.       
-      ggs.allConnectionStatus[ptr] = ggs.bGameInProgress ? CONN_OBSERVER : CONN_PLAYER_IN;
-    } else {
-      console.log("server.js: 'rejoinLobby' restoring DudoGame slot for", playerName);
-
-      // save the disconnected status before restoring it
-      oldStatus = ggs.allConnectionStatus[gameIndex];
-
-      ggs.allParticipantGuid[gameIndex] = authedPlayer.guid;
-      ggs.allParticipantNames[gameIndex] = playerName;
-      ggs.allConnectionID[gameIndex] = socket.id;
-      ggs.allConnectionStatus[gameIndex] = reconnectStatus(oldStatus);
-    }
-
-    // These apply whether the participant was restored or assigned a new slot
-    socket.data.lobbyId = lobbyId;
-    socket.data.playerGuid = authedPlayer.guid;
-    socket.join(lobbyId);
-
-    if (authedPlayer.guid === lobby.hostGuid) {
-      lobby.hostSocketId = socket.id;
-    }
-
-    if (oldStatus === CONN_PLAYER_IN_DISCONN) {
-      clearDisconnectTimer(lobbyId, authedPlayer.guid);
-      io.to(lobbyId).emit('disconnectCountdownEnded', { playerName, reason: 'reconnected' });
-      turnPauseOFF (ggs);
-    }
-   
-    io.to(lobbyId).emit('gameStateUpdate', ggs);
-    io.to(lobbyId).emit('lobbyData', lobby);
-    io.emit('lobbiesList', getLobbiesList());
-
-    if (callback) {
-      callback({
-        host: lobby.host,
-        players: lobby.players,
-        game: lobby.game
-      });
-    }
-  });
-*/
-
   //************************************************************
   // socket.on
   // UI SHAKING/ROLLING
@@ -1355,6 +1169,7 @@ io.on('connection', (socket) => {
 
     ggs.bDirectionInProgress = false;
     ggs.curRound.whichDirection = direction;
+    ggs.gamePhase = GAME_PHASE.BIDDING;
     io.to(lobbyId).emit('gameStateUpdate', lobby.game);
     console.log("server.js: socket.on('direction'): emitting 'gameStateUpdate'");
   });
@@ -1485,6 +1300,7 @@ io.on('connection', (socket) => {
     if (bidText === "DOUBT") {
       // process doubt
       lobby.game.bDoubtInProgress = true;
+      ggs.gamePhase = GAME_PHASE.DOUBT_LIFT_CUPS;
 
       ggs.getDoubtResult();
       ggs.getMustLiftCupList();
@@ -1540,6 +1356,7 @@ io.on('connection', (socket) => {
     if (allLifted) {
       ggs.bDoubtInProgress = false;
       ggs.bShowDoubtResult = true;
+      ggs.gamePhase = GAME_PHASE.DOUBT_SHOW_RESULT;
     }
     io.to(lobbyId).emit('gameStateUpdate', lobby.game);
    
@@ -1587,6 +1404,7 @@ io.on('connection', (socket) => {
       //-----------------------------------
       // the game is over
       //-----------------------------------
+        ggs.gamePhase = GAME_PHASE.WAITING_TO_START;
         ggs.GetOrderOfFinish();
 
         // log the end date/time
@@ -1600,6 +1418,7 @@ io.on('connection', (socket) => {
 
         ggs.PrepareNextGame();
       } else {
+        ggs.gamePhase = GAME_PHASE.BETWEEN_ROUNDS;
         StartRound(lobby.game);
       }
     }
@@ -1640,16 +1459,21 @@ io.on('connection', (socket) => {
 
     if (okToGo) {
       ggs.bAskInOut = false;
-      // need 2 or more players
-      if (ggs.GetNumberPlayersStillIn() > 1) {
+      // what phase are we in?
+      // depends how many players said they're in
+      let players = ggs.GetNumberPlayersStillIn();
+      if (players < 2) { ggs.gamePhase = GAME_PHASE.WAITING_TO_START; }
+      if (players === 2) { ggs.gamePhase = GAME_PHASE.BIDDING; }
+      if (players > 2) { ggs.gamePhase = GAME_PHASE.CHOOSING_DIRECTION };
+
+      // start the game with at least 2 players
+      if (players > 1) {
         ggs.bRoundInProgress = true;  //&&& need this?
         ggs.whosTurn = 0; //&&& need this?
 
         lobby.game.bGameInProgress = true;
         io.emit('lobbiesList', getLobbiesList());
         StartGame(ggs);
-      } else {
-        // anything? &&&
       }
     }
     io.to(lobbyId).emit('gameStateUpdate', lobby.game);
@@ -1748,46 +1572,6 @@ io.on('connection', (socket) => {
       ggs.allConnectionStatus[gameIndex] = disconnectStatus(status);
     }
 
-    /* more old code
-    let bCountDown = false;
-    const status = ggs.allConnectionStatus[gameIndex];
-
-    if (status === CONN_OBSERVER || status === CONN_PLAYER_OUT) {
-      shiftGameSlotsLeft(ggs, gameIndex);
-    } else {
-      ggs.allConnectionID[gameIndex] = '';
-
-      if (
-        ggs.bGameInProgress &&
-        status === CONN_PLAYER_IN
-      ) {
-        bCountDown = true;
-      }
-
-      ggs.allConnectionStatus[gameIndex] =
-        disconnectStatus(status);
-    }
-    */
-
-    /* old code
-    if (status === CONN_OBSERVER) {
-      shiftGameSlotsLeft(ggs, gameIndex);
-    } else {
-      ggs.allConnectionID[gameIndex] = '';
-
-      // Only an active player during a game gets the countdown.
-      if (
-        ggs.bGameInProgress &&
-        status === CONN_PLAYER_IN
-      ) {
-        bCountDown = true;
-      }
-
-      ggs.allConnectionStatus[gameIndex] =
-        disconnectStatus(status);
-    }
-*/
-
     io.to(lobbyId).emit('lobbyData', lobby);
     io.emit('lobbiesList', getLobbiesList());
     io.to(lobbyId).emit('gameStateUpdate', ggs);
@@ -1872,14 +1656,6 @@ app.post('/api/auth/login', async (req, res) => {
       });
     }
 
-/*    
-    const [rows] = await pool.query(
-      'SELECT id, guid, username, password_hash, created_at FROM players WHERE username = ?',
-      [username]
-    );
-
-    const player = rows[0];
-*/
     const snap = await playersRef
       .where('username', '==', username)
       .limit(1)
@@ -2015,51 +1791,6 @@ app.post('/api/players', async (req, res) => {
     res.status(500).json({ ok: false, error: err.message });
   }
 });
-/*
-app.post('/api/players', async (req, res) => {
-  try {
-    const pool = getPool();
-
-    const username = (req.body.username || '').trim();
-    const password = (req.body.password || '').trim();
-    
-    if (!username || !password) {
-      return res.status(400).json({
-        ok: false,
-        error: 'Username and password are required',
-      });
-    }
-
-    const guid = uuidv4();
-    const passwordHash = await bcrypt.hash(password, 10);
-
-    const [result] = await pool.query(
-      'INSERT INTO players (guid, username, password_hash) VALUES (?, ?, ?)',
-      [guid, username, passwordHash]
-    );
-
-    res.json({
-      ok: true,
-      player: {
-        id: result.insertId,
-        guid,
-        username,
-      },
-    });
-  } catch (err) {
-    console.error('Add player failed:', err);
-
-    if (err.code === 'ER_DUP_ENTRY') {
-      return res.status(400).json({
-        ok: false,
-        error: 'Username already exists',
-      });
-    }
-
-    res.status(500).json({ ok: false, error: err.message });
-  }
-});
-*/
 
 // ------------------------------
 // PLAYERS DELETE: delete a player
@@ -2089,27 +1820,6 @@ app.delete('/api/players/:id', async (req, res) => {
     res.status(500).json({ ok: false, error: err.message });
   }
 });
-/*
-app.delete('/api/players/:id', async (req, res) => {
-  try {
-    const pool = getPool();
-    const playerId = req.params.id;
-
-    const [result] = await pool.query(
-      'DELETE FROM players WHERE id = ?',
-      [playerId]
-    );
-
-    if (result.affectedRows === 0) {
-      return res.status(404).json({ ok: false, error: 'Player not found' });
-    }
-
-    res.json({ ok: true, deletedId: playerId });
-  } catch (err) {
-    console.error('Delete player failed:', err);
-    res.status(500).json({ ok: false, error: err.message });
-  }
-})*/;
 
 // ------------------------------
 // PLAYERS PUT: reset password
@@ -2151,44 +1861,7 @@ app.put('/api/players/:id/password', async (req, res) => {
     res.status(500).json({ ok: false, error: err.message });
   }
 });
-/*
-app.put('/api/players/:id/password', async (req, res) => {
-  try {
-    const pool = getPool();
-    const playerId = req.params.id;
-    const { password } = req.body;
 
-    if (!password || !password.trim()) {
-      return res.status(400).json({
-        ok: false,
-        error: 'Password is required',
-      });
-    }
-
-    const passwordHash = await bcrypt.hash(password, 10);
-
-    const [result] = await pool.query(
-      'UPDATE players SET password_hash = ? WHERE id = ?',
-      [passwordHash, playerId]
-    );
-
-    if (result.affectedRows === 0) {
-      return res.status(404).json({
-        ok: false,
-        error: 'Player not found',
-      });
-    }
-
-    res.json({
-      ok: true,
-      updatedId: playerId,
-    });
-  } catch (err) {
-    console.error('Reset password failed:', err);
-    res.status(500).json({ ok: false, error: err.message });
-  }
-});
-*/
 // ------------------------------
 // AUTH GET: current logged-in player
 // ------------------------------
@@ -2309,9 +1982,11 @@ function StartRound (ggs) {
     if (ggs.GetNumberPlayersStillIn() > 2) {
       ggs.bDirectionInProgress = true;
       ggs.curRound.whichDirection = undefined;
+      ggs.gamePhase = GAME_PHASE.CHOOSING_DIRECTION;
     } else {
       ggs.bDirectionInProgress = false;
       ggs.curRound.whichDirection = 0;
+      ggs.gamePhase = GAME_PHASE.WAITING_TO_START;
     }
 
     ggs.doubtDidLiftCup = Array(MAX_CONNECTIONS).fill(false);  // &&& need this?
@@ -2359,12 +2034,6 @@ function StartRound (ggs) {
     //------------------------------------------------------------
 		ggs.curRound.Bids.length = 0; // reset bids
     ggs.curRound.numBids = 0;
-/* &&&		
-    ggs.numBids = 0;
-    for (let i = 0; i < ggs.maxBids; i++) {
-        ggs.allBids[i].InitDudoBid();
-    }
-*/
     for (let i = 0; i < MAX_CONNECTIONS; i++) {
         ggs.allPasoUsed[i] = false;
     }
@@ -2416,7 +2085,6 @@ function PostRound(ggs, lobbyId) {
     if (ggs.firstRound) {
         ggs.firstRound = false;
     }
-
 }
 
 //****************************************************************
