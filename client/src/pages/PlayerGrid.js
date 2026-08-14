@@ -4,7 +4,7 @@ import './PlayerGrid.css';
 import { SocketContext } from '../SocketContext.js';
 import { ImageRefsContext } from '../ImageRefsContext.js';
 import { DudoGame, DudoRound } from '../shared/DudoGame.js';
-import { MAX_CONNECTIONS, CONN_PLAYER_IN, CONN_PLAYER_OUT } from '../shared/DudoGame.js';
+import { MAX_CONNECTIONS, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_PLAYER_IN_DISCONN, CONN_PLAYER_OUT_DISCONN } from '../shared/DudoGame.js';
 import { STICKS_BLINK_TIME, SHOWN_DICE_BLINK_TIME, SHAKE_CUPS_TIME } from '../shared/DudoGame.js';
 
 //************************************************************
@@ -14,7 +14,7 @@ import { STICKS_BLINK_TIME, SHOWN_DICE_BLINK_TIME, SHAKE_CUPS_TIME } from '../sh
 //************************************************************
 export function PlayerGrid({ lobbyId, ggc, myIndex, cc }) {
 
-  console.log ("ENTERING PlayerGrid, myIndex=", myIndex, " cc=", cc);
+  console.log ("ENTERING PlayerGrid, myIndex=", myIndex, " cc=", cc, "name=", ggc.allParticipantNames[cc]);
 
   const gridRef = useRef();
   const [cupShaking, setCupShaking] = useState(false);
@@ -228,7 +228,8 @@ export function PlayerGrid({ lobbyId, ggc, myIndex, cc }) {
 
   // fill in the values
   if (ggc.bGameInProgress) {
-    if (ggc.allConnectionStatus[cc] == CONN_PLAYER_IN) {
+    if (ggc.allConnectionStatus[cc] == CONN_PLAYER_IN ||
+        ggc.allConnectionStatus[cc] == CONN_PLAYER_IN_DISCONN) {
       let x, y, w, h;
       for (let i = 0; i < 5; i++) {
         const value = ggc.dice[cc][i];
@@ -270,7 +271,12 @@ export function PlayerGrid({ lobbyId, ggc, myIndex, cc }) {
   const softGreen = 'rgb(204,255,204)';
 
   // default color
-  let bgColor = (ggc.allConnectionStatus[cc] === CONN_PLAYER_OUT ? 'gray' : 'white');
+  let bgColor =
+    (ggc.allConnectionStatus[cc] === CONN_PLAYER_OUT ||
+     ggc.allConnectionStatus[cc] === CONN_PLAYER_OUT_DISCONN) 
+     ? 'gray'
+     : 'white';
+
   let lineColor = 'lightgray';
 
   // Palo fijo?

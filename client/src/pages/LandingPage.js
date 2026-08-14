@@ -20,6 +20,10 @@ function LandingPage({ playerName, setPlayerName }) {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [authBusy, setAuthBusy] = useState(false);
+  const [joinPermission, setJoinPermission] = useState(null);
+          // join mode {choose, observer, resume, already_connected}
+          // if resume, {player, player_out, observer}
+  const [socketSessionReady, setSocketSessionReady] = useState(true);
 
   // OkDlg
   const [showOkDlg, setShowOkDlg] = useState(false);
@@ -52,6 +56,29 @@ function LandingPage({ playerName, setPlayerName }) {
   const refreshSocketSession = () => {
     if (!socket) return;
 
+    console.log('LandingPage: refreshing socket session');
+
+    setSocketSessionReady(false);
+
+    const handleConnected = () => {
+      console.log('LandingPage: refreshed socket ready:', socket.id);
+      setSocketSessionReady(true);
+      socket.off('connect', handleConnected);
+    };
+
+    socket.on('connect', handleConnected);
+
+    if (socket.connected) {
+      socket.disconnect();
+    }
+
+    socket.connect();
+  };
+
+  /*
+  const refreshSocketSession = () => {
+    if (!socket) return;
+
     try {
       console.log('LandingPage: refreshing socket session');
 
@@ -66,6 +93,7 @@ function LandingPage({ playerName, setPlayerName }) {
       console.error('LandingPage: socket refresh failed:', err);
     }
   };
+*/
 
   //************************************************************
   // useEffect: check whether already logged in
@@ -322,7 +350,7 @@ function LandingPage({ playerName, setPlayerName }) {
   // Create lobby
   //************************************************************
   const onCreateLobby = () => {
-    if (!connected || !socket) return;
+    if (!connected || !socket || !socket.connected || !socketSessionReady ) { return; }
 
     if (!loggedIn || !playerName) {
       showMessage('Create Lobby', 'Please sign in first.');
@@ -342,6 +370,97 @@ function LandingPage({ playerName, setPlayerName }) {
   };
 
   //************************************************************
+  // Handle Lobby Selected 
+  //************************************************************
+  function handleLobbySelected(lobby) {
+    if (!connected || !socket || !socket.connected || !socketSessionReady ) { return; }
+
+    if (!loggedIn || !playerName) {
+      showMessage('Join Lobby', 'Please sign in first.');
+      return;
+    }
+
+    const lobbyId = lobby.id;
+
+    socket.emit('getJoinPermission', { lobbyId }, (permission) => {
+        if (!permission || permission.error) {
+          showMessage('Join Lobby', permission?.error || 'Unable to join lobby.');
+          return;
+        }
+
+        // already connected to this lobby
+        if (permission.joinMode === 'already_connected') {
+          showMessage('Join Lobby', 'You are already connected to this lobby from another browser or tab.');
+          return;
+        }
+
+        // Existing disconnected participant: restore the previous server-side role automatically.
+        if (permission.joinMode === 'resume') {
+          socket.emit('rejoinLobby', { lobbyId, playerName }, (lobbyData) => {
+              if (!lobbyData || lobbyData.error) {
+                showMessage('Join Lobby', lobbyData?.error || 'Unable to rejoin lobby.');
+                return;
+              }
+
+              //***const isObserver = permission.role === 'observer';
+
+              navigate(`/game/${lobbyId}`, {
+                state: {
+                  isHost: false,
+                  hostName: lobbyData.host,
+                  playerName
+                }
+              });
+            }
+          );
+
+          return;
+        }
+
+        // New participant while game is in progress: automatically join as observer.
+        if (permission.joinMode === 'observer') {
+          onJoinLobby(lobbyId, true);
+          return;
+        }
+
+        // New participant with no game in progress: show player/observer choice dialog.
+        setSelectedLobby(lobby);
+        setJoinPermission(permission);
+        setShowJoinChoiceDlg(true);
+      }
+    );
+  }
+
+/*
+  function handleLobbySelected(lobbyId) {
+    socket.emit(
+      'getJoinPermission', { lobbyId }, permission => {
+        if (permission?.error) {
+          setError(permission.error);
+          return;
+        }
+
+        if (permission.joinMode === 'resume') {
+          socket.emit('rejoinLobby', { lobbyId }, handleJoinResponse);
+          return;
+        }
+
+        if (permission.joinMode === 'observer') {
+          socket.emit('joinLobby', { lobbyId, joinAsObserver: true }, handleJoinResponse);
+          return;
+        }
+
+        // Only a genuinely new participant before a game starts sees the player/observer choice.
+        setSelectedLobby(lobbyId);
+        setJoinPermission(permission);
+        setShowJoinChoiceDlg(true);
+      }
+    );
+  }
+*/
+
+/*
+  //************************************************************
   // On Join Lobby click
   //************************************************************
   // *** ADDED ***
@@ -358,6 +477,7 @@ function LandingPage({ playerName, setPlayerName }) {
     setShowJoinChoiceDlg(true);
   };
 
+  */
   //************************************************************
   // Close JoinChoiceDlg
   //************************************************************
@@ -374,7 +494,7 @@ function LandingPage({ playerName, setPlayerName }) {
   // joinLobby now accepts observer/player mode
 
   const onJoinLobby = (lobbyId, joinAsObserver = false) => {
-    if (!connected || !socket) return;
+    if (!connected || !socket || !socket.connected || !socketSessionReady ) { return; }
 
     if (!loggedIn || !playerName) {
       showMessage('Join Lobby', 'Please sign in first.');
@@ -390,7 +510,7 @@ function LandingPage({ playerName, setPlayerName }) {
       closeJoinChoiceDlg();
 
       navigate(`/game/${lobbyId}`, {
-        state: { isHost: false, hostName: lobbyData.host, playerName, isObserver: joinAsObserver },
+        state: { isHost: false, hostName: lobbyData.host, playerName },
       });
     });
   };
@@ -615,7 +735,7 @@ function LandingPage({ playerName, setPlayerName }) {
               <button
                 className="btn btn-primary"
                 onClick={onCreateLobby}
-                disabled={!connected}
+                disabled={!connected || !socketSessionReady}
               >
                 Create Lobby
               </button>
@@ -630,8 +750,8 @@ function LandingPage({ playerName, setPlayerName }) {
                   &nbsp;
                   <button
                     className="btn btn-primary btn-sm"
-                    onClick={() => onJoinLobbyClick(lobby)}
-                    disabled={!connected}
+                    onClick={() => handleLobbySelected(lobby)}
+                    disabled={!connected || !socketSessionReady}
                   >
                     Join
                   </button>

@@ -7,9 +7,10 @@ Make sure docker engine is running
 Then run the corresponding .bat files in the root directory
 
 cmd /c build
-cmd /c runlocal
-cmd /c runlocalsql
-cmd /c runsqlproxy
+cmd /c runlocal             obsolete
+cmd /c runlocalsql          obsolete
+cmd /c runsqlproxy          obsolete
+cmd /c runlocalfirestore
 cmd /c tag
 cmd /c push
 cmd /c deploy
@@ -61,6 +62,9 @@ git push origin main
 
 to throw away changes since last push:
 git reset --hard HEAD
+
+to go back two commits:
+git reset --soft HEAD~2
 
 to revert to a previous version (commit)
 NOTE:  keep the .git file

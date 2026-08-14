@@ -203,7 +203,8 @@ import { STICKS_BLINK_TIME, SHOWN_DICE_BLINK_TIME, SHAKE_CUPS_TIME } from '../sh
     const reversedBids = useRef([]);
     const observersRef = useRef([]);
     const leaveLobbyTimerRef = useRef(null);
-
+    const myGuidRef = useRef(''); 
+    
     // Refs debugging
     const prevReconnect = useRef(null);
     const prevDraw = useRef(null);
@@ -245,9 +246,10 @@ import { STICKS_BLINK_TIME, SHOWN_DICE_BLINK_TIME, SHAKE_CUPS_TIME } from '../sh
     //           track changes in checkbox
     //************************************************************
     useEffect(() => {
-			if (ggc.allConnectionID.length === 0) { 
+			if (ggc.allConnectionID.length === 0 ||myIndex < 0) { 
 				return;
 			}
+
       console.log("GamePage: useEffect: CHECKBOX");
       const result = CanShowShake(selectedBid);
       setCanShowShake(result);
@@ -301,6 +303,25 @@ import { STICKS_BLINK_TIME, SHOWN_DICE_BLINK_TIME, SHAKE_CUPS_TIME } from '../sh
           setLobbyPlayers(data.players);
           setLobbyHost(data.host);
           setGameState(data.game || {});
+
+          // Initialize our local DudoGame immediately.
+          ggc.AssignGameState(data.game || {});
+
+          // Save this authenticated player's permanent GUID.
+          myGuidRef.current = data.myGuid;
+
+          // Find ourselves in the game using the GUID
+          const index = ggc.allParticipantGuid.indexOf(myGuidRef.current);
+          setMyIndex(index);
+
+          if (index >= 0) {
+            setMyName(ggc.allParticipantNames[index] || '');
+            setIsMyTurn(index === ggc.whosTurn);
+          } else {
+            setMyName('');
+            setIsMyTurn(false);
+          }
+          setWhosTurnName(ggc.allParticipantNames[ggc.whosTurn] || '' );
         } else {
           navigate('/'); // lobby doesn't exist
         }
@@ -329,22 +350,34 @@ import { STICKS_BLINK_TIME, SHOWN_DICE_BLINK_TIME, SHAKE_CUPS_TIME } from '../sh
     console.log("GamePage: entering function: handleGameStateUpdate");
 
     // close down any dialogs
+    // no, don't, otherwise they'll get nuked when another player refreshes
     //setShowConfirmBidDlg (false);
-    setShowOkDlg (false);
-    setShowYesNoDlg (false);
-    setShowLiftCupDlg (false);
-    setShowShowDoubtDlg (false);
-    setShowBidHistoryDlg (false);
-    setShowObserversDlg (false);
-    setShowGameSettingsDlg (false);
+    //setShowOkDlg (false);
+    //setShowYesNoDlg (false);
+    //setShowLiftCupDlg (false);
+    //setShowShowDoubtDlg (false);
+    //setShowBidHistoryDlg (false);
+    //setShowObserversDlg (false);
+    //setShowGameSettingsDlg (false);
 
     setGameState(data);
     ggc.AssignGameState(data);
     validateGameState(ggc);
 
-    // What is my index and my name?
-    const index = ggc.allConnectionID.indexOf(String(socketId));
+
+console.log(
+  "GAME STATE UPDATE DEBUG:",
+  "my socketId =", socketId,
+  "allConnectionID =", ggc.allConnectionID,
+  "allParticipantNames =", ggc.allParticipantNames,
+  "allConnectionStatus =", ggc.allConnectionStatus,
+  "allParticipantGuid = ", ggc.allParticipantGuid,
+);
+
+     // What is my index and my name?
+    const index = ggc.allParticipantGuid.indexOf(myGuidRef.current);
     setMyIndex(index);
+
     if (index >= 0) {
       setMyName(ggc.allParticipantNames[index] || '');
       setIsMyTurn(index === ggc.whosTurn);
@@ -1133,17 +1166,73 @@ useEffect(() => {
     // get the name from storage, in case this was a browser tab refresh
     let nameFromStorage = sessionStorage.getItem('playerName');
 
-    // this won't get updated until the next render (React behavior)
-    // so use 'nameFromStorage' for the rest of this routine
-    setMyName(nameFromStorage);   
+    if (!lobbyId || !nameFromStorage) {
+      console.log('handleRECONNECT: missing lobbyId/playerName');
+      return;
+    }
+    if (!connected) {
+      console.log('handleRECONNECT: socket not connected');
+      return;
+    }
 
-    if (lobbyId && nameFromStorage) {
-      if (connected) {
+    // Ask the server whether this participant actually needs to be restored.
+    socket.emit('getJoinPermission', { lobbyId }, (permission) => {
+      if (!permission || permission.error) {
+        console.log('handleRECONNECT: permission error:', permission?.error);
+        return;
+      }
+
+      // Normal navigation into GamePage: participant is already connected. Do nothing.
+      if (permission.joinMode !== 'resume') {
+        console.log('handleRECONNECT: no rejoin needed:', permission.joinMode);
+        return;
+      }
+
+      // Genuine disconnected participant.
+      socket.emit('rejoinLobby', {lobbyId, playerName: nameFromStorage}, (serverLobbyData) => {
+        console.log('handleRECONNECT: callback received:', serverLobbyData);
+        if (!serverLobbyData || serverLobbyData.error) {
+          console.log('handleRECONNECT: rejoin failed:', serverLobbyData?.error);
+          return;
+        }
+        setLobbyHost(serverLobbyData.host);
+        setGameState(serverLobbyData.game);
+        setLobbyPlayers(serverLobbyData.players);
+
+        setLobby({
+          id: lobbyId,
+          host: serverLobbyData.host,
+          players: serverLobbyData.players,
+          game: serverLobbyData.game
+        });
+
+        ggc.AssignGameState(serverLobbyData.game);
+
+        myGuidRef.current = serverLobbyData.myGuid;
+        const index = ggc.allParticipantGuid.indexOf(myGuidRef.current);
+
+        setMyIndex(index);
+        if (index >= 0) {
+          setMyName(ggc.allParticipantNames[index]);
+          setIsMyTurn(index === ggc.whosTurn);
+        } else {
+          setMyName('');
+          setIsMyTurn(false);
+        }
+        setWhosTurnName(ggc.allParticipantNames[ggc.whosTurn] || '');
+      });   // rejoinLobby
+    });     // getJoinPermission
+  }         // handleReconnect
+
+  /*
         socket.emit('rejoinLobby', { lobbyId, playerName: nameFromStorage }, (serverLobbyData) => {
           console.log("handleRECONNECT: callback received lobby/game data:", serverLobbyData);
   
           // Reconstruct your client-side state
           setLobbyHost(serverLobbyData.host);
+
+console.log('DEBUG line 1154, setLobbyHost to', serverLobbyData.host);
+          
           setGameState(serverLobbyData.game);
           setLobbyPlayers(serverLobbyData.players);
           setLobby({
@@ -1164,15 +1253,9 @@ useEffect(() => {
           setMyIndex(index);
           setMyName(ggc.allParticipantNames[index]);
         });
-      }
-      else {
-        console.log("handleRECONNECT: not rejoining lobby, 'connected' not valid. ", connected);
-      }
-    }
-    else {
-      console.log("handleRECONNECT: not rejoining lobby, 'lobbyID' and/or 'nameFromStorage' not valid. ", lobbyId, nameFromStorage);
-    }
   }
+*/
+
   //************************************************************
   // end of function handleReconnect
   //************************************************************
@@ -1583,9 +1666,9 @@ useEffect(() => {
     if (ggc.GetNumberPlayersStillIn() < 2) {
       setRow2CurrentBid(`Waiting for 2 or more players in the lobby to start a game...`);
     } else {
-      setRow2CurrentBid(myName === lobby.host ? 
+      setRow2CurrentBid(myName === lobbyHost ? 
                         'Waiting for YOU to start the game...' :
-                        `Waiting for ${lobby.host} to start the game...`);
+                        `Waiting for ${lobbyHost} to start the game...`);
     }
     setRow2BidToWhom('');
   }

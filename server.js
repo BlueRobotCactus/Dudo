@@ -107,9 +107,81 @@ io.on('connection', (socket) => {
         status === CONN_PLAYER_TIMED_OUT) {
         return -1;
     }
-
     return index;
   }
+  function getJoinPermission(ggs, playerGuid) {
+    const gameIndex = findGameIndexByGuid(ggs, playerGuid);
+
+    // Existing participant: preserve their current role.
+    if (gameIndex !== -1) {
+      const status =
+        ggs.allConnectionStatus[gameIndex];
+
+      switch (status) {
+        case CONN_PLAYER_IN:
+          return {
+            joinMode: 'already_connected',
+            role: 'player',
+            gameIndex
+          };
+
+        case CONN_PLAYER_IN_DISCONN:
+          return {
+            joinMode: 'resume',
+            role: 'player',
+            gameIndex
+          };
+
+        case CONN_PLAYER_OUT:
+          return {
+            joinMode: 'already_connected',
+            role: 'player_out',
+            gameIndex
+          };
+
+        case CONN_PLAYER_OUT_DISCONN:
+          return {
+            joinMode: 'resume',
+            role: 'player_out',
+            gameIndex
+          };
+
+        case CONN_OBSERVER:
+          return {
+            joinMode: 'already_connected',
+            role: 'observer',
+            gameIndex
+          };
+
+          case CONN_OBSERVER_DISCONN:
+          return {
+            joinMode: 'resume',
+            role: 'observer',
+            gameIndex
+          };
+
+        default:
+          break;
+      }
+    }
+
+    // A new participant may only observe during a game.
+    if (ggs.bGameInProgress) {
+      return {
+        joinMode: 'observer',
+        role: 'observer',
+        gameIndex: -1
+      };
+    }
+
+    // Before the game begins, a new participant may choose.
+    return {
+      joinMode: 'choose',
+      role: null,
+      gameIndex: -1
+    };
+  }
+
   function disconnectStatus (status) {
     if (status === CONN_PLAYER_IN)  return CONN_PLAYER_IN_DISCONN;
     if (status === CONN_PLAYER_OUT) return CONN_PLAYER_OUT_DISCONN;
@@ -418,27 +490,19 @@ io.on('connection', (socket) => {
 
           const ggs = lobby.game;
 
-          const gameIndex =
-              findGameIndexByGuid(ggs, playerGuid);
+          const gameIndex = findGameIndexByGuid(ggs, playerGuid);
 
-          /*
-          * The participant may already have been removed.
-          */
+          //The participant may already have been removed.
           if (gameIndex === -1) {
               return;
           }
 
-          /*
-          * A successful reconnect assigns a new socket ID.
-          */
+          // A successful reconnect assigns a new socket ID.
           if (ggs.allConnectionID[gameIndex]) {
               return;
           }
 
-          /*
-          * Make sure this is still the same disconnected
-          * participant for whom this timer was started.
-          */
+          // Make sure this is still the same disconnected participant for whom this timer was started.
           if (
               ggs.allConnectionStatus[gameIndex] !==
               expectedDisconnectedStatus
@@ -446,25 +510,13 @@ io.on('connection', (socket) => {
               return;
           }
 
-          /*
-          * The participant did not reconnect within the
-          * silent period. Remove the slot.
-          */
+          // The participant did not reconnect within the silent period. Remove the slot.
           shiftGameSlotsLeft(ggs, gameIndex);
 
-          /*
-          * Use the same events and payloads that you already
-          * emit after changing lobby/game membership.
-          */
-          io.to(lobbyId).emit(
-              'gameStateUpdate',
-              ggs.AssignGameState()
-          );
-
-          io.emit(
-              'lobbiesList',
-              getLobbiesList()
-          );
+          // Use the same events and payloads that you already emit after changing lobby/game membership.
+          io.to(lobbyId).emit('lobbyData', lobby);
+          io.to(lobbyId).emit('gameStateUpdate', ggs);
+          io.emit('lobbiesList', getLobbiesList());
 
       }, SILENT_REMOVAL_SECONDS * 1000);
   }
@@ -543,6 +595,33 @@ io.on('connection', (socket) => {
 
   //************************************************************
   // socket.on
+  // GET JOIN PERMISSION
+  //************************************************************
+  socket.on(
+    'getJoinPermission',
+    async ({ lobbyId }, callback) => {
+      const authedPlayer = socket.request.session?.player;
+
+      if (!authedPlayer) {
+        callback?.({ error: 'You must be signed in' });
+        return;
+      }
+
+      const lobby = lobbies[lobbyId];
+
+      if (!lobby) {
+        callback?.({ error: 'Lobby not found' });
+        return;
+      }
+
+      const permission = getJoinPermission(lobby.game, authedPlayer.guid);
+
+      callback?.(permission);
+    }
+  );
+
+  //************************************************************
+  // socket.on
   // JOIN LOBBY
   //************************************************************
   socket.on('joinLobby', (data, callback) => {
@@ -557,6 +636,31 @@ io.on('connection', (socket) => {
 
     if (lobby) {
       const ggs = lobby.game;
+
+      // Enforce the server's join rules
+      const permission = getJoinPermission(ggs, authedPlayer.guid);
+
+      // Existing participant must use rejoinLobby so that their
+      // previous role is restored by the server.
+      if (permission.joinMode === 'resume') {
+        callback?.({
+          error: 'Existing participant must rejoin their previous role.',
+          mustRejoin: true,
+          role: permission.role
+        });
+        return;
+      }
+
+      // A genuinely new participant during a game may only observe.
+      if (permission.joinMode === 'observer' && !joinAsObserver) {
+        callback?.({
+          error: 'A game is already in progress. You may only join as an observer.'
+        });
+        return;
+      }
+
+      // permission.joinMode === 'choose'
+      // Either player or observer is allowed, so continue normally.
 
       // Store persistent player/lobby identity on this socket
       socket.data.lobbyId = lobbyId;
@@ -682,6 +786,7 @@ io.on('connection', (socket) => {
   //************************************************************
   // socket.on
   // GET LOBBY DATA
+  // NOTE:  also sends back the GUID of this player
   //************************************************************
   socket.on('getLobbyData', (lobbyId, callback) => {
     const authedPlayer = getAuthedPlayer(socket);
@@ -692,7 +797,10 @@ io.on('connection', (socket) => {
 
     const lobby = lobbies[lobbyId];
     if (lobby) {
-      callback(lobby);
+      callback({
+        ...lobby,
+        myGuid: authedPlayer.guid
+      });
     } else {
       callback({ error: 'Lobby not found' });
     }
@@ -968,6 +1076,140 @@ io.on('connection', (socket) => {
   // socket.on
   // REJOIN LOBBY (after re-connect)
   //************************************************************
+  socket.on('rejoinLobby', ({ lobbyId, playerName }, callback) => {
+    const authedPlayer = getAuthedPlayer(socket);
+
+    if (!authedPlayer) {
+      callback?.({ error: 'Not authenticated' });
+      return;
+    }
+
+    const lobby = lobbies[lobbyId];
+
+    if (!lobby) {
+      callback?.({ error: 'Lobby not found' });
+      return;
+    }
+
+    const ggs = lobby.game;
+
+    //-------------------------------------------------
+    // Find existing reconnectable game slot
+    //-------------------------------------------------
+    const gameIndex = findGameIndexByGuid(ggs, authedPlayer.guid);
+
+    if (gameIndex === -1) {
+      callback?.({
+        error: 'No reconnectable participant was found in this lobby.'
+      });
+      return;
+    }
+
+    const oldStatus = ggs.allConnectionStatus[gameIndex];
+
+    // Only disconnected states may use rejoinLobby.
+    const isReconnectable =
+      oldStatus === CONN_PLAYER_IN_DISCONN ||
+      oldStatus === CONN_PLAYER_OUT_DISCONN ||
+      oldStatus === CONN_OBSERVER_DISCONN;
+
+    if (!isReconnectable) {
+      callback?.({
+        error: 'This participant is not currently disconnected.'
+      });
+      return;
+    }
+
+    //-------------------------------------------------
+    // Prevent stale/duplicate reconnect
+    //-------------------------------------------------
+    const existingSocketId = ggs.allConnectionID[gameIndex];
+
+    if (existingSocketId && existingSocketId !== socket.id) {
+      callback?.({
+        error: 'You are already connected to this lobby from another browser or tab.'
+      });
+      return;
+    }
+
+    //-------------------------------------------------
+    // Update lobby.players
+    //-------------------------------------------------
+    const lobbyIdx = lobby.players.findIndex(p => p.guid === authedPlayer.guid);
+
+    if (lobbyIdx === -1) {
+      lobby.players.push({
+        guid: authedPlayer.guid,
+        socketId: socket.id,
+        username: authedPlayer.username,
+        displayName: playerName
+      });
+      console.log("server.js: 'rejoinLobby' adding player back to lobby.players:", playerName);
+    } else {
+      lobby.players[lobbyIdx].socketId = socket.id;
+      lobby.players[lobbyIdx].displayName = playerName;
+      console.log("server.js: 'rejoinLobby' replacing socket id for:", playerName);
+    }
+
+    //-------------------------------------------------
+    // Restore DudoGame slot
+    //-------------------------------------------------
+    ggs.allParticipantGuid[gameIndex] = authedPlayer.guid;
+    ggs.allParticipantNames[gameIndex] = playerName;
+    ggs.allConnectionID[gameIndex] = socket.id;
+    ggs.allConnectionStatus[gameIndex] = reconnectStatus(oldStatus);
+
+    //-------------------------------------------------
+    // Store identity on socket
+    //-------------------------------------------------
+    socket.data.lobbyId = lobbyId;
+    socket.data.playerGuid = authedPlayer.guid;
+
+    socket.join(lobbyId);
+
+    //-------------------------------------------------
+    // Host reconnect
+    //-------------------------------------------------
+    if (authedPlayer.guid === lobby.hostGuid) {
+      lobby.hostSocketId = socket.id;
+    }
+
+    //-------------------------------------------------
+    // Only an active PLAYER_IN reconnect cancels
+    // the visible countdown and game pause
+    //-------------------------------------------------
+    if (
+      oldStatus === CONN_PLAYER_IN_DISCONN
+    ) {
+      clearDisconnectTimer(lobbyId, authedPlayer.guid);
+
+      io.to(lobbyId).emit('disconnectCountdownEnded',
+        {
+          playerName,
+          reason: 'reconnected'
+        }
+      );
+
+      turnPauseOFF(ggs);
+    }
+
+    //-------------------------------------------------
+    // Broadcast restored state
+    //-------------------------------------------------
+    io.to(lobbyId).emit('gameStateUpdate', ggs);
+    io.to(lobbyId).emit('lobbyData', lobby);
+    io.emit('lobbiesList', getLobbiesList());
+
+    callback?.({
+      host: lobby.host,
+      players: lobby.players,
+      game: lobby.game,
+      myGuid: authedPlayer.guid
+    });
+  });
+
+
+  /*
   socket.on('rejoinLobby', ({ lobbyId, playerName, id }, callback) => {
     const authedPlayer = getAuthedPlayer(socket);
     if (!authedPlayer) {
@@ -986,31 +1228,6 @@ io.on('connection', (socket) => {
     // Store persistent player/lobby identity on this socket
     socket.data.lobbyId = lobbyId;
     socket.data.playerGuid = authedPlayer.guid;
-
-/*
-CHATGPT code that breaks things.  Do we need it?
-//------------------------------------------------------------------- BEGIN
-    // Find player in game
-    const gameIndex = findGameIndexByGuid(ggs, authedPlayer.guid);
-
-    // BLOCK invalid rejoin
-    if (gameIndex !== -1) {
-      const status = ggs.allConnectionStatus[gameIndex];
-
-      const isDisconnected =
-        status === CONN_PLAYER_IN_DISCONN ||
-        status === CONN_PLAYER_OUT_DISCONN ||
-        status === CONN_OBSERVER_DISCONN;
-
-      if (!isDisconnected) {
-        callback?.({ error: 'You are already connected to this lobby from another browser or tab.' });
-        return;
-      }
-    }
-
-    // NOW safe to update lobby.players
-//------------------------------------------------------------------- END
-*/
 
     //-------------------------------------------------
     // lobby object
@@ -1098,6 +1315,7 @@ CHATGPT code that breaks things.  Do we need it?
       });
     }
   });
+*/
 
   //************************************************************
   // socket.on
@@ -1479,24 +1697,20 @@ CHATGPT code that breaks things.  Do we need it?
     const currentSocketId = ggs.allConnectionID[gameIndex];
 
     if (currentSocketId && currentSocketId !== socket.id) {
-      console.log(
-        'disconnect: ignoring stale socket:',
-        socket.id,
-        'current socket is:',
-        currentSocketId
-      );
+      console.log('disconnect: ignoring stale socket:', socket.id, 'current socket is:', currentSocketId);
       return;
     }
 
-    const playerIndex = lobby.players.findIndex(
-      (p) => p.guid === playerGuid
-    );
+    const playerIndex = lobby.players.findIndex((p) => p.guid === playerGuid);
 
     let removedPlayer;
 
     if (playerIndex !== -1) {
       removedPlayer = lobby.players[playerIndex];
-      lobby.players.splice(playerIndex, 1);
+      // Temporary disconnect: keep player in lobby.
+      // Only clear the obsolete socket ID.
+      lobby.players[playerIndex].socketId = '';
+      // (old) lobby.players.splice(playerIndex, 1);
     } else {
       // The game arrays still identify the player, so construct
       // the information needed by the countdown.
@@ -1511,10 +1725,7 @@ CHATGPT code that breaks things.  Do we need it?
     let bCountDown = false;
     const status = ggs.allConnectionStatus[gameIndex];
 
-    if (
-      status === CONN_OBSERVER ||
-      status === CONN_PLAYER_OUT
-    ) {
+    if (status === CONN_OBSERVER || status === CONN_PLAYER_OUT) {
       // Keep the slot temporarily so a refresh or brief
       // connection loss can restore the same role.
       ggs.allConnectionID[gameIndex] = '';
@@ -1530,15 +1741,11 @@ CHATGPT code that breaks things.  Do we need it?
     } else {
       ggs.allConnectionID[gameIndex] = '';
 
-      if (
-        ggs.bGameInProgress &&
-        status === CONN_PLAYER_IN
-      ) {
+      if (ggs.bGameInProgress && status === CONN_PLAYER_IN) {
         bCountDown = true;
       }
 
-      ggs.allConnectionStatus[gameIndex] =
-        disconnectStatus(status);
+      ggs.allConnectionStatus[gameIndex] = disconnectStatus(status);
     }
 
     /* more old code

@@ -5,7 +5,9 @@ import { ImageRefsContext } from '../ImageRefsContext.js';
 import PlayerGrid from './PlayerGrid';
 import PlayerCard from './PlayerCard.js';
 
-import { MAX_CONNECTIONS, CONN_PLAYER_IN, CONN_PLAYER_OUT } from '../shared/DudoGame.js';
+import { MAX_CONNECTIONS, CONN_PLAYER_IN, CONN_PLAYER_OUT, 
+         CONN_PLAYER_IN_DISCONN, CONN_PLAYER_OUT_DISCONN } 
+         from '../shared/DudoGame.js';
 
 //************************************************************
 // TableGrid (PlayerCards placed within it)
@@ -52,12 +54,14 @@ export function TableGrid({lobbyId, ggc, myIndex, backgroundColor}) {
     // the normal thing (not debugging)
     let cc = myIndex;
     for (let i = 0; i < MAX_CONNECTIONS; i++) {
-      if (ggc.allConnectionStatus[cc] === CONN_PLAYER_IN ||
-          ggc.allConnectionStatus[cc] === CONN_PLAYER_OUT) {
-        ccList.push(cc);
-      }
+    if (ggc.allConnectionStatus[cc] === CONN_PLAYER_IN ||
+        ggc.allConnectionStatus[cc] === CONN_PLAYER_OUT ||
+        ggc.allConnectionStatus[cc] === CONN_PLAYER_IN_DISCONN ||
+        ggc.allConnectionStatus[cc] === CONN_PLAYER_OUT_DISCONN) {
+      ccList.push(cc);
+    }      
       cc++;
-      if (cc == MAX_CONNECTIONS) {
+      if (cc == MAX_CONNECTIONS) { 
         cc = 0;
       }
     }
