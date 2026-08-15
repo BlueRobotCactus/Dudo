@@ -895,7 +895,7 @@ io.on('connection', (socket) => {
     ggs.getInOutMustSay();
     
     ggs.bAskInOut = true;
-    ggs.gamePhase = GAME_PHASE.ASKING_IN_OUT;
+    ggs.setGamePhase(GAME_PHASE.ASKING_IN_OUT);
     io.to(lobbyId).emit('gameStateUpdate', lobby.game);
   });
 
@@ -919,7 +919,7 @@ io.on('connection', (socket) => {
     }
     
     ggs.bAskInOut = false;
-    ggs.gamePhase = GAME_PHASE.WAITING_TO_START;
+    ggs.setGamePhase(GAME_PHASE.WAITING_TO_START);
     io.to(lobbyId).emit('gameStateUpdate', lobby.game);
   });
 
@@ -1169,7 +1169,7 @@ io.on('connection', (socket) => {
 
     ggs.bDirectionInProgress = false;
     ggs.curRound.whichDirection = direction;
-    ggs.gamePhase = GAME_PHASE.BIDDING;
+    ggs.setGamePhase(GAME_PHASE.BIDDING);
     io.to(lobbyId).emit('gameStateUpdate', lobby.game);
     console.log("server.js: socket.on('direction'): emitting 'gameStateUpdate'");
   });
@@ -1300,7 +1300,7 @@ io.on('connection', (socket) => {
     if (bidText === "DOUBT") {
       // process doubt
       lobby.game.bDoubtInProgress = true;
-      ggs.gamePhase = GAME_PHASE.DOUBT_LIFT_CUPS;
+      ggs.setGamePhase(GAME_PHASE.DOUBT_LIFT_CUPS);
 
       ggs.getDoubtResult();
       ggs.getMustLiftCupList();
@@ -1356,7 +1356,7 @@ io.on('connection', (socket) => {
     if (allLifted) {
       ggs.bDoubtInProgress = false;
       ggs.bShowDoubtResult = true;
-      ggs.gamePhase = GAME_PHASE.DOUBT_SHOW_RESULT;
+      ggs.setGamePhase(GAME_PHASE.DOUBT_SHOW_RESULT);
     }
     io.to(lobbyId).emit('gameStateUpdate', lobby.game);
    
@@ -1404,7 +1404,7 @@ io.on('connection', (socket) => {
       //-----------------------------------
       // the game is over
       //-----------------------------------
-        ggs.gamePhase = GAME_PHASE.WAITING_TO_START;
+        ggs.setGamePhase( GAME_PHASE.WAITING_TO_START);
         ggs.GetOrderOfFinish();
 
         // log the end date/time
@@ -1418,7 +1418,7 @@ io.on('connection', (socket) => {
 
         ggs.PrepareNextGame();
       } else {
-        ggs.gamePhase = GAME_PHASE.BETWEEN_ROUNDS;
+        ggs.setGamePhase(GAME_PHASE.BETWEEN_ROUNDS);
         StartRound(lobby.game);
       }
     }
@@ -1462,9 +1462,9 @@ io.on('connection', (socket) => {
       // what phase are we in?
       // depends how many players said they're in
       let players = ggs.GetNumberPlayersStillIn();
-      if (players < 2) { ggs.gamePhase = GAME_PHASE.WAITING_TO_START; }
-      if (players === 2) { ggs.gamePhase = GAME_PHASE.BIDDING; }
-      if (players > 2) { ggs.gamePhase = GAME_PHASE.CHOOSING_DIRECTION };
+      if (players < 2)   { ggs.setGamePhase(GAME_PHASE.WAITING_TO_START); }
+      if (players === 2) { ggs.setGamePhase(GAME_PHASE.BIDDING); }
+      if (players > 2)   { ggs.setGamePhase(GAME_PHASE.CHOOSING_DIRECTION); };
 
       // start the game with at least 2 players
       if (players > 1) {
@@ -1982,11 +1982,11 @@ function StartRound (ggs) {
     if (ggs.GetNumberPlayersStillIn() > 2) {
       ggs.bDirectionInProgress = true;
       ggs.curRound.whichDirection = undefined;
-      ggs.gamePhase = GAME_PHASE.CHOOSING_DIRECTION;
+      ggs.setGamePhase(GAME_PHASE.CHOOSING_DIRECTION);
     } else {
       ggs.bDirectionInProgress = false;
       ggs.curRound.whichDirection = 0;
-      ggs.gamePhase = GAME_PHASE.WAITING_TO_START;
+      ggs.setGamePhase(GAME_PHASE.BIDDING);
     }
 
     ggs.doubtDidLiftCup = Array(MAX_CONNECTIONS).fill(false);  // &&& need this?

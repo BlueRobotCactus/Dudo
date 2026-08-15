@@ -364,17 +364,16 @@ import { STICKS_BLINK_TIME, SHOWN_DICE_BLINK_TIME, SHAKE_CUPS_TIME, GAME_PHASE, 
     ggc.AssignGameState(data);
     validateGameState(ggc);
 
+    // selectively close down dialogs
+    if (data.gamePhase === GAME_PHASE.WAITING_TO_START) {
+      setShowShowDoubtDlg(false);
+    }    
+    if (data.gamePhase === GAME_PHASE.CHOOSING_DIRECTION || data.gamePhase === GAME_PHASE.BIDDING) {
+      setShowLiftCupDlg (false);
+      setShowShowDoubtDlg(false);
+    }    
 
-console.log(
-  "GAME STATE UPDATE DEBUG:",
-  "my socketId =", socketId,
-  "allConnectionID =", ggc.allConnectionID,
-  "allParticipantNames =", ggc.allParticipantNames,
-  "allConnectionStatus =", ggc.allConnectionStatus,
-  "allParticipantGuid = ", ggc.allParticipantGuid,
-);
-
-     // What is my index and my name?
+    // What is my index and my name?
     const index = ggc.allParticipantGuid.indexOf(myGuidRef.current);
     setMyIndex(index);
 
@@ -1507,8 +1506,9 @@ useEffect(() => {
           }}
         >
           Phase: {GetGamePhaseName(gameState?.gamePhase)}
+          , Game in progress: {ggc.GAME_IN_PROGRESS ? 'YES' : 'NO'} 
         </div>
-        
+
          <div
           className="d-flex flex-column"
           style={{ height: '100vh', overflow: 'hidden', margin: `${UIMargin}`}}

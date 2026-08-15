@@ -27,7 +27,6 @@ const GAME_PHASE = {
   DOUBT_LIFT_CUPS: 4,
   DOUBT_SHOW_RESULT: 5,
   BETWEEN_ROUNDS: 6,
-  GAME_OVER: 7
 };
 
 //****************************************************************
@@ -87,16 +86,15 @@ export class DudoGame {
 	bPaloFijoAllowed;
 	bPaloFijoRound;
 
-/*
-	these java definitions are now defined in the construtor
-	dice = [][];                
-	diceHidden = [][];      
-	diceHilite = [][];
-	BidMatrix = [][];   
-*/
+	// these java definitions are now defined in the construtor
+	//dice = [][];                
+	//diceHidden = [][];      
+	//diceHilite = [][];
+	//BidMatrix = [][];   
 
 // new GAME_PHASE to eventually replace bools
 	gamePhase;
+	GAME_IN_PROGRESS
 
 	firstRound;
 	bSettingGameParms;
@@ -174,7 +172,7 @@ export class DudoGame {
 			this.BidMatrix[i] = new Array(6).fill(false);
 		}
 
-		this.gamePhase = GAME_PHASE.WAITING_TO_START;
+		this.setGamePhase(GAME_PHASE.WAITING_TO_START);
 
 		this.bSettingGameParms = false;
 		this.bGameInProgress = false;
@@ -260,7 +258,7 @@ export class DudoGame {
 		this.bPaloFijoRound =  false;
 		this.firstRound = true;
 
-		this.gamePhase = GAME_PHASE.WAITING_TO_START;
+		this.setGamePhase(GAME_PHASE.WAITING_TO_START);
 
 		this.bSettingGameParms = false;
 		this.bGameInProgress = false;
@@ -312,6 +310,27 @@ export class DudoGame {
 	}
 
 	//************************************************************
+	// set the game phase parameters
+	//************************************************************
+
+	setGamePhase(phase) {
+		this.gamePhase = phase;
+
+		if (
+			phase === GAME_PHASE.ASKING_IN_OUT ||
+			phase === GAME_PHASE.CHOOSING_DIRECTION ||
+			phase === GAME_PHASE.BIDDING ||
+			phase === GAME_PHASE.DOUBT_LIFT_CUPS ||
+			phase === GAME_PHASE.DOUBT_SHOW_RESULT ||
+			phase === GAME_PHASE.BETWEEN_ROUNDS
+		) {
+			this.GAME_IN_PROGRESS = true;
+		} else {
+			this.GAME_IN_PROGRESS = false;
+		}
+	}
+
+	//************************************************************
 	// figure out who goes next
 	//************************************************************
 	getWhosTurnNext () {
@@ -325,23 +344,6 @@ export class DudoGame {
 	//************************************************************
 	// get player to the left
 	//************************************************************
-	/*
-	getPlayerToLeft (cc) {
-		while (true) {
-			if (cc === 0) {
-				cc = cc + 1;
-			} else if (cc === MAX_CONNECTIONS - 1) {
-				cc = 0;
-			} else {
-				cc = cc + 1;
-			}                
-			if (this.allConnectionStatus[cc] === CONN_PLAYER_IN) {
-				break;
-			}
-		}
-		return cc;
-	}
-	*/
 	getPlayerToLeft(cc) {
 		for (let i = 0; i < MAX_CONNECTIONS; i++) {
 			cc = (cc + 1) % MAX_CONNECTIONS;
@@ -357,23 +359,6 @@ export class DudoGame {
 	//************************************************************
 	// get player to the right
 	//************************************************************
-	/*
-	getPlayerToRight (cc) {
-		while (true) {
-			if (cc === 0) {
-				cc = MAX_CONNECTIONS - 1;
-			} else if (cc === MAX_CONNECTIONS - 1) {
-				cc = cc - 1;
-			} else {
-				cc = cc - 1;
-			}                
-			if (this.allConnectionStatus[cc] === CONN_PLAYER_IN) {
-				break;
-			}
-		}
-		return cc;
-	}
-*/
 	getPlayerToRight(cc) {
 		for (let i = 0; i < MAX_CONNECTIONS; i++) {
 			cc = (cc - 1 + MAX_CONNECTIONS) % MAX_CONNECTIONS;
