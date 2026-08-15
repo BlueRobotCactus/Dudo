@@ -5,7 +5,7 @@ import { SocketContext } from '../SocketContext.js';
 import { ImageRefsContext } from '../ImageRefsContext.js';
 import { DudoGame, DudoRound } from '../shared/DudoGame.js';
 import { MAX_CONNECTIONS, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_PLAYER_IN_DISCONN, CONN_PLAYER_OUT_DISCONN } from '../shared/DudoGame.js';
-import { STICKS_BLINK_TIME, SHOWN_DICE_BLINK_TIME, SHAKE_CUPS_TIME } from '../shared/DudoGame.js';
+import { STICKS_BLINK_TIME, SHOWN_DICE_BLINK_TIME, SHAKE_CUPS_TIME, GAME_PHASE } from '../shared/DudoGame.js';
 
 //************************************************************
 // PlayerGrid (placed inside TableGrid)
@@ -87,7 +87,7 @@ export function PlayerGrid({ lobbyId, ggc, myIndex, cc }) {
 
   //*****************************************************************
   // useEffect:  END OF ROUND
-  //             [ggc.bGameInProgress, ggc.curRound.numBids, ggc.firstRound]
+  //             [ggc.GAME_IN_PROGRESS, ggc.curRound.numBids, ggc.firstRound]
   //*****************************************************************
   useEffect(() => {
     if (bBlinkSticks) {
@@ -114,14 +114,14 @@ export function PlayerGrid({ lobbyId, ggc, myIndex, cc }) {
         }
       }
     }
-  }, [ggc.bGameInProgress, ggc.curRound?.numBids, ggc.firstRound]);
+  }, [ggc.GAME_IN_PROGRESS, ggc.curRound?.numBids, ggc.firstRound]);
 
   //*****************************************************************
   // useEffect:  THIS PLAYER SHOW/SHAKE:  blink shown dice, shake cup 
-  //             [ggc.curRound.numBids, ggc.bGameInProgress, ggc.curRound.Bids, cc]
+  //             [ggc.curRound.numBids, ggc.GAME_IN_PROGRESS, ggc.curRound.Bids, cc]
   //*****************************************************************
   useEffect(() => {
-    if (ggc.bGameInProgress && ggc.curRound.numBids > 0) {
+    if (ggc.GAME_IN_PROGRESS && ggc.curRound?.numBids > 0) {
       const lastBid = ggc.curRound?.Bids[ggc.curRound?.numBids - 1];
 
       if (lastBid.didUIShake) { return; }
@@ -139,7 +139,7 @@ export function PlayerGrid({ lobbyId, ggc, myIndex, cc }) {
         }, SHOWN_DICE_BLINK_TIME);
       }
     }
-  }, [ggc.curRound?.numBids, ggc.bGameInProgress, ggc.curRound?.Bids, cc]);
+  }, [ggc.curRound?.numBids, ggc.GAME_IN_PROGRESS, ggc.curRound?.Bids, cc]);
 
   //--------------------------------------------------------
   // bail out if images are not ready
@@ -153,9 +153,9 @@ export function PlayerGrid({ lobbyId, ggc, myIndex, cc }) {
   //--------------------------------------------------------
   let cupImageToShow;
 
-  if (ggc.allConnectionStatus[cc] == CONN_PLAYER_OUT || !ggc.bGameInProgress) {
+  if (ggc.allConnectionStatus[cc] == CONN_PLAYER_OUT || !ggc.GAME_IN_PROGRESS) {
     cupImageToShow = cupUpImageRef.current;
-  } else if ((ggc.bDoubtInProgress || ggc.bShowDoubtResult) && ggc.doubtDidLiftCup[cc]) {
+  } else if ((ggc.gamePhase === GAME_PHASE.DOUBT_LIFT_CUPS || ggc.gamePhase === GAME_PHASE.DOUBT_SHOW_RESULT) && ggc.doubtDidLiftCup[cc]) {
     cupImageToShow = cupUpImageRef.current;
   } else {
     cupImageToShow = cupDownImageRef.current;
@@ -197,7 +197,7 @@ export function PlayerGrid({ lobbyId, ggc, myIndex, cc }) {
   }
 
   // fill in the values
-  if (ggc.bGameInProgress) {
+  if (ggc.GAME_IN_PROGRESS) {
     if (ggc.allConnectionStatus[cc] == CONN_PLAYER_IN ||
         ggc.allConnectionStatus[cc] == CONN_PLAYER_IN_DISCONN) {
       let x, y, w, h;
@@ -213,7 +213,7 @@ export function PlayerGrid({ lobbyId, ggc, myIndex, cc }) {
             }
           } else {
             // other player
-            if ((ggc.bDoubtInProgress || ggc.bShowDoubtResult) && ggc.doubtDidLiftCup[cc]) {
+            if ((ggc.gamePhase === GAME_PHASE.DOUBT_LIFT_CUPS || ggc.gamePhase === GAME_PHASE.DOUBT_SHOW_RESULT) && ggc.doubtDidLiftCup[cc]) {
               // cup lifted, show dice
               diceImageTopList[cc][i] = diceImagesRef.current[value];
               if (ggc.bDiceHilite[cc][i]) {
@@ -265,7 +265,7 @@ export function PlayerGrid({ lobbyId, ggc, myIndex, cc }) {
   }
 
   // lift cup dlg
-  if (ggc.bDoubtInProgress && !ggc.bShowDoubtResult) {
+  if (ggc.gamePhase === GAME_PHASE.DOUBT_LIFT_CUPS && !ggc.gamePhase === GAME_PHASE.DOUBT_SHOW_RESULT) {
     if (ggc.doubtMustLiftCup[cc] && !ggc.doubtDidLiftCup[cc]) {
       bgColor = softGreen;
     }
@@ -275,7 +275,7 @@ export function PlayerGrid({ lobbyId, ggc, myIndex, cc }) {
   }
 
   // show doubt dlg
-  if (ggc.bShowDoubtResult) {
+  if (ggc.gamePhase === GAME_PHASE.DOUBT_SHOW_RESULT) {
     if (ggc.nextRoundMustSay[cc] && !ggc.nextRoundDidSay[cc]) {
       bgColor = softGreen;
     }
@@ -317,7 +317,7 @@ export function PlayerGrid({ lobbyId, ggc, myIndex, cc }) {
   //--------------------------------------------------------
   let diceBlinkList = Array(5).fill(false);
   if (ggc.curRound !== null) {
-    if (ggc.bGameInProgress && ggc.curRound.numBids > 0) {
+    if (ggc.GAME_IN_PROGRESS && ggc.curRound.numBids > 0) {
       const lastBid = ggc.curRound.Bids[ggc.curRound.numBids - 1];
       if (lastBid.playerIndex === cc && lastBid.bShowShake) {
         for (let i = 0; i < 5; i++) {
@@ -401,7 +401,7 @@ export function PlayerGrid({ lobbyId, ggc, myIndex, cc }) {
   //********************************************************
   function handleClick() {
     // bail out if nothing to show
-    if (!ggc.bGameInProgress || ggc.curRound === null) {
+    if (!ggc.GAME_IN_PROGRESS || ggc.curRound === null) {
       setBubbleText('');
       setBubbleLines(1);
       setShowBubble(false);
@@ -502,7 +502,7 @@ export function PlayerGrid({ lobbyId, ggc, myIndex, cc }) {
             gridColumn: '1 / span 7',
             padding: '0.25rem',
             boxSizing: 'border-box',
-            border: ggc.bGameInProgress && cc === ggc.whosTurn ? '3px solid red' : '1px solid black',
+            border: ggc.GAME_IN_PROGRESS && cc === ggc.whosTurn ? '3px solid red' : '1px solid black',
             zIndex: 3,
           }}
         />

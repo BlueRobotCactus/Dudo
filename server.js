@@ -166,7 +166,7 @@ io.on('connection', (socket) => {
     }
 
     // A new participant may only observe during a game.
-    if (ggs.bGameInProgress) {
+    if (ggs.GAME_IN_PROGRESS) {
       return {
         joinMode: 'observer',
         role: 'observer',
@@ -326,7 +326,7 @@ io.on('connection', (socket) => {
     clearDisconnectTimer(lobbyId, guid);
 
     // If game not in progress, just leave them disconnected/out of lobby state
-    if (!ggs.bGameInProgress) {
+    if (!ggs.GAME_IN_PROGRESS) {
       io.to(lobbyId).emit('disconnectCountdownEnded', { playerName, reason: 'timed_out' });
       io.to(lobbyId).emit('lobbyData', lobby);
       io.emit('lobbiesList', getLobbiesList());
@@ -337,7 +337,6 @@ io.on('connection', (socket) => {
 
     // Game is in progress 
     const hadAnyBid =
-      ggs.bRoundInProgress &&
       ggs.curRound &&
       ggs.curRound.numBids > 0;
 
@@ -347,10 +346,7 @@ io.on('connection', (socket) => {
 
     // need at least 2 players still in
     if (ggs.GetNumberPlayersStillIn() <= 1) {
-      ggs.bRoundInProgress = false;
-      ggs.bDoubtInProgress = false;
-      ggs.bShowDoubtResult = false;
-      ggs.bGameInProgress = false;
+      ggs.GAME_IN_PROGRESS = false;
       io.to(lobbyId).emit('disconnectCountdownEnded', { playerName, reason: 'timed_out' });
       turnPauseOFF (ggs);
       io.to(lobbyId).emit('gameStateUpdate', ggs);
@@ -359,10 +355,6 @@ io.on('connection', (socket) => {
 
     if (hadAnyBid) {
       // discard current round and restart it
-      ggs.bDoubtInProgress = false;
-      ggs.bShowDoubtResult = false;
-      ggs.bDirectionInProgress = false;
-
       // keep same starting player for restarted round
       ggs.firstRound = false;
       ggs.whosTurn = originalStarter;
@@ -717,7 +709,7 @@ io.on('connection', (socket) => {
         ggs.allParticipantGuid[ptr] = authedPlayer.guid;
         ggs.allParticipantNames[ptr] = playerName;
         ggs.allConnectionID[ptr] = socket.id;
-        //&&&ggs.allConnectionStatus[ptr] = ggs.bGameInProgress ? CONN_OBSERVER : CONN_PLAYER_IN;
+        //&&&ggs.allConnectionStatus[ptr] = ggs.GAME_IN_PROGRESS ? CONN_OBSERVER : CONN_PLAYER_IN;
         ggs.allConnectionStatus[ptr] = joinAsObserver ? CONN_OBSERVER : CONN_PLAYER_IN;
       } else {
         // reconnect / duplicate-join by same authenticated player
@@ -894,7 +886,6 @@ io.on('connection', (socket) => {
     }
     ggs.getInOutMustSay();
     
-    ggs.bAskInOut = true;
     ggs.setGamePhase(GAME_PHASE.ASKING_IN_OUT);
     io.to(lobbyId).emit('gameStateUpdate', lobby.game);
   });
@@ -918,7 +909,6 @@ io.on('connection', (socket) => {
       ggs.inOutDidSay[cc] = false;
     }
     
-    ggs.bAskInOut = false;
     ggs.setGamePhase(GAME_PHASE.WAITING_TO_START);
     io.to(lobbyId).emit('gameStateUpdate', lobby.game);
   });
@@ -982,7 +972,7 @@ io.on('connection', (socket) => {
   if (ggs.allConnectionStatus[gameIndex] === CONN_OBSERVER) {
     // observer, always shift indices
     shiftGameSlotsLeft(ggs, gameIndex);
-  } else if (!ggs.bGameInProgress) {
+  } else if (!ggs.GAME_IN_PROGRESS) {
     // no game in progress, shift indices
     shiftGameSlotsLeft(ggs, gameIndex);
   }
@@ -1167,7 +1157,6 @@ io.on('connection', (socket) => {
     const ggs = lobby.game;
     if (ggs.bDisconnectPause) return;
 
-    ggs.bDirectionInProgress = false;
     ggs.curRound.whichDirection = direction;
     ggs.setGamePhase(GAME_PHASE.BIDDING);
     io.to(lobbyId).emit('gameStateUpdate', lobby.game);
@@ -1295,11 +1284,10 @@ io.on('connection', (socket) => {
     //-------------------------------------------------
     // keep going
     //-------------------------------------------------
-    if (!lobby || !lobby.game || !lobby.game.bRoundInProgress) return;
+    if (!lobby || !lobby.game || !lobby.game.GAME_IN_PROGRESS) return;
 
     if (bidText === "DOUBT") {
       // process doubt
-      lobby.game.bDoubtInProgress = true;
       ggs.setGamePhase(GAME_PHASE.DOUBT_LIFT_CUPS);
 
       ggs.getDoubtResult();
@@ -1354,8 +1342,6 @@ io.on('connection', (socket) => {
     }
 
     if (allLifted) {
-      ggs.bDoubtInProgress = false;
-      ggs.bShowDoubtResult = true;
       ggs.setGamePhase(GAME_PHASE.DOUBT_SHOW_RESULT);
     }
     io.to(lobbyId).emit('gameStateUpdate', lobby.game);
@@ -1395,9 +1381,6 @@ io.on('connection', (socket) => {
       //-----------------------------------
       // the round is over
       //-----------------------------------
-      lobby.game.bDoubtInProgress = false;
-      lobby.game.bShowDoubtResult = false;
-
       PostRound(lobby.game, lobbyId);
       
       if (ggs.bWinnerGame) {
@@ -1458,7 +1441,6 @@ io.on('connection', (socket) => {
     }
 
     if (okToGo) {
-      ggs.bAskInOut = false;
       // what phase are we in?
       // depends how many players said they're in
       let players = ggs.GetNumberPlayersStillIn();
@@ -1468,10 +1450,9 @@ io.on('connection', (socket) => {
 
       // start the game with at least 2 players
       if (players > 1) {
-        ggs.bRoundInProgress = true;  //&&& need this?
         ggs.whosTurn = 0; //&&& need this?
 
-        lobby.game.bGameInProgress = true;
+        lobby.game.GAME_IN_PROGRESS = true;
         io.emit('lobbiesList', getLobbiesList());
         StartGame(ggs);
       }
@@ -1565,7 +1546,7 @@ io.on('connection', (socket) => {
     } else {
       ggs.allConnectionID[gameIndex] = '';
 
-      if (ggs.bGameInProgress && status === CONN_PLAYER_IN) {
+      if (ggs.GAME_IN_PROGRESS && status === CONN_PLAYER_IN) {
         bCountDown = true;
       }
 
@@ -1924,7 +1905,7 @@ function getLobbiesList() {
     id: lobby.id,
     host: lobby.host,
     playerCount: lobby.players.length,
-    gameInProgress: lobby.game?.bGameInProgress || false,
+    gameInProgress: lobby.game?.GAME_IN_PROGRESS || false,
   }));
 }
 
@@ -1955,7 +1936,7 @@ function StartGame (ggs) {
   //&&& for debugging
   //ggs.allConnectionStatus[0] = CONN_OBSERVER;
 
-  ggs.bGameInProgress = true;
+  ggs.GAME_IN_PROGRESS = true;
 
   //------------------------------------------------------------
   // log the start date/time
@@ -1975,16 +1956,10 @@ function StartRound (ggs) {
 		ggs.curRound = new DudoRound();
 		ggs.curRound.init();
 
-    ggs.bRoundInProgress = true;
-    ggs.bDoubtInProgress = false;
-    ggs.bShowDoubtResult = false;
-
     if (ggs.GetNumberPlayersStillIn() > 2) {
-      ggs.bDirectionInProgress = true;
       ggs.curRound.whichDirection = undefined;
       ggs.setGamePhase(GAME_PHASE.CHOOSING_DIRECTION);
     } else {
-      ggs.bDirectionInProgress = false;
       ggs.curRound.whichDirection = 0;
       ggs.setGamePhase(GAME_PHASE.BIDDING);
     }

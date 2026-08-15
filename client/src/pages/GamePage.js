@@ -664,8 +664,7 @@ import { STICKS_BLINK_TIME, SHOWN_DICE_BLINK_TIME, SHAKE_CUPS_TIME, GAME_PHASE, 
       //-------------------------------------------
       // my turn
       //-------------------------------------------
-
-      if (ggc.bDirectionInProgress) {
+      if (ggc.gamePhase === GAME_PHASE.CHOOSING_DIRECTION) {
         // first bid of round
         let s = (ggc.bPaloFijoRound ? 'PALO FIJO: ' : '');
         s += "You choose the direction";
@@ -728,7 +727,7 @@ import { STICKS_BLINK_TIME, SHOWN_DICE_BLINK_TIME, SHAKE_CUPS_TIME, GAME_PHASE, 
         setRow2CurrentBid(s);
         setRow2BidToWhom('');
       }
-      if (ggc.bDirectionInProgress) {
+      if (ggc.gamePhase === GAME_PHASE.CHOOSING_DIRECTION) {
         // waiting for someone to choose the direction
         let s = (ggc.bPaloFijoRound ? 'PALO FIJO: ' : '');
         s += `Waiting for ${whosTurnName} to choose the direction...`;
@@ -1197,9 +1196,8 @@ useEffect(() => {
 
   const DEBUGGING = 0;    // 0 means no debugging
   // draw bid history
-  if (ggc.bGameInProgress) {
+  if (ggc.GAME_IN_PROGRESS && ggc.curRound) {
     DrawBidHistory();
-    //DrawBidHistoryOld();
   }
 
   // draw observer names
@@ -1207,31 +1205,30 @@ useEffect(() => {
   //DrawObserverNames (yPos);
 
   // Draw bid status
-  if (ggc.bGameInProgress) {
+  if (ggc.gamePhase === GAME_PHASE.CHOOSING_DIRECTION || ggc.gamePhase === GAME_PHASE.BIDDING) {
     DrawProcessBid();
-  } else {
+  }
+  else if (ggc.gamePhase === GAME_PHASE.WAITING_TO_START) {
     DrawWaitingToStartGame();
   }
 
   // dialogs
-  if (ggc.bAskInOut) {
+  if (ggc.gamePhase === GAME_PHASE.ASKING_IN_OUT) {
     if (ggc.inOutMustSay[myIndex] && !ggc.inOutDidSay[myIndex]) {
       PrepareInOrOutDlg();
       //DrawInOrOut();
     }
   }
-
-  if (ggc.bDoubtInProgress) {
+  if (ggc.gamePhase === GAME_PHASE.DOUBT_LIFT_CUPS) {
       PrepareLiftCupDlg();
   }
-  
-  if (ggc.bShowDoubtResult && 
+  if (ggc.gamePhase === GAME_PHASE.DOUBT_SHOW_RESULT &&
       ggc.nextRoundMustSay[myIndex] &&
       !ggc.nextRoundDidSay[myIndex]) {
     setShowLiftCupDlg (false);
     PrepareShowDoubtDlg();
   }
-  if (ggc.bShowDoubtResult && 
+  if (ggc.gamePhase === GAME_PHASE.DOUBT_SHOW_RESULT && 
      ((ggc.allConnectionStatus[myIndex] === CONN_OBSERVER)  ||
       (ggc.allConnectionStatus[myIndex] === CONN_PLAYER_OUT))) {
     setShowLiftCupDlg (false);
@@ -1533,12 +1530,15 @@ useEffect(() => {
             <div className="col">
               {/* ggc.bSettingGameParms && lobby.host === myName && RenderGameSettings() */}
 
-              {/* {ggc.bAskInOut && RenderInOut()} */}
+              {/* {ggc.gamePhase === GAME_PHASE.ASKING_IN_OUT && RenderInOut()} */}
 
               {isMyTurn && ggc.allBidUIMode[myIndex] === 0 && RenderBid()}
               {/* isMyTurn && ggc.allBidUIMode[myIndex] === 1 && RenderGridBid() */}
 
-              {!ggc.bDoubtInProgress && !ggc.bShowDoubtResult && !ggc.bAskInOut && !isMyTurn && (
+              {!ggc.gamePhase === GAME_PHASE.DOUBT_LIFT_CUPS && 
+               !ggc.gamePhase === GAME_PHASE.DOUBT_SHOW_RESULT && 
+               !ggc.gamePhase === GAME_PHASE.ASKING_IN_OUT && 
+               !isMyTurn && (
                 <div className="border border-primary rounded p-1">
                   <div className="fw-bold text-center">
                     <div>{row2CurrentBid}</div>
@@ -1547,7 +1547,8 @@ useEffect(() => {
                 </div>
               )}
 
-              {/* (ggc.bDoubtInProgress || ggc.bShowDoubtResult) && RenderDoubt() */}
+              {/* (ggc.gamePhase === GAME_PHASE.DOUBT_LIFT_CUPS || 
+                   ggc.gamePhase === GAME_PHASE.DOUBT_SHOW_RESULT) && RenderDoubt() */}
             </div>
           </div>
         </div>
@@ -1776,7 +1777,7 @@ useEffect(() => {
             <ul className="dropdown-menu" aria-labelledby="optionsMenu">
               <li><button className="dropdown-item" 
                 onClick={handleOptBidHistory}
-                disabled={!ggc.bGameInProgress || ggc.curRound.numBids < 1}
+                disabled={!ggc.GAME_IN_PROGRESS || !ggc.curRound || ggc.curRound.numBids < 1}
               >
                 Bid History</button>
               </li>
@@ -1789,21 +1790,21 @@ useEffect(() => {
 
               <li><button className="dropdown-item" 
                 onClick={handleOptGameSettings}
-                disabled={!ggc.bGameInProgress}
+                disabled={!ggc.GAME_IN_PROGRESS}
               >
                 Game Settings</button>
               </li>
 
               <li><button className="dropdown-item" 
                 onClick={handleOptBidUIDropdown}
-                disabled={!ggc.bGameInProgress}
+                disabled={!ggc.GAME_IN_PROGRESS}
               >
                 Bid UI: dropdown list</button>
               </li>
 
               <li><button className="dropdown-item" 
                 onClick={handleOptBidUIGrid}
-                disabled={!ggc.bGameInProgress}
+                disabled={!ggc.GAME_IN_PROGRESS}
               >
                 Bid UI: grid</button>
               </li>
@@ -1829,18 +1830,18 @@ useEffect(() => {
           </div>
 
           {/* Other buttons */}
-          {(!ggc.bGameInProgress && lobby.host === myName) && (
+          {(!ggc.GAME_IN_PROGRESS && lobby.host === myName) && (
             <>
             <button
               onClick={handleStartGame}
               className="btn btn-primary btn-outline-light btn-sm"
-              disabled={(ggc.GetNumberPlayersInLobby() < 2) || ggc.bSettingGameParms}
+              disabled={(ggc.GetNumberPlayersPlaying() < 2) || ggc.bSettingGameParms}
             >
               Start Game
             </button>
             <button
               onClick={handleGameSettings}
-              disabled={ggc.bAskInOut}
+              disabled={ggc.gamePhase === GAME_PHASE.ASKING_IN_OUT}
               className="btn btn-primary btn-outline-light btn-sm"
             >
               Game Settings
@@ -1854,7 +1855,7 @@ useEffect(() => {
             </>
           )}
           {(ggc.allConnectionStatus[myIndex] === CONN_OBSERVER || 
-           (!ggc.bGameInProgress && lobby.host !== myName)) && (
+           (!ggc.GAME_IN_PROGRESS && lobby.host !== myName)) && (
             <button
               onClick={handleLeaveLobby}
               className="btn btn-secondary btn-outline-light btn-sm"
@@ -2163,7 +2164,7 @@ function RenderGridBid() {
             <div className="fw-bold">{row2DoubtResult}</div>
             <div className="fw-bold">{row2DoubtStick}</div>
             <div className="fw-bold">{row2DoubtWin}</div>
-            {ggc.bDoubtInProgress && (ggc.doubtMustLiftCup[myIndex]) ? (
+            {ggc.gamePhase === GAME_PHASE.DOUBT_LIFT_CUPS && (ggc.doubtMustLiftCup[myIndex]) ? (
             <button
               className="btn btn-primary btn-sm"
               disabled = {ggc.doubtDidLiftCup[myIndex]}
@@ -2172,7 +2173,7 @@ function RenderGridBid() {
               Lift Cup
             </button>
             ) : null}
-            {ggc.bShowDoubtResult && (ggc.nextRoundMustSay[myIndex]) ? (
+            {ggc.gamePhase === GAME_PHASE.DOUBT_SHOW_RESULT && (ggc.nextRoundMustSay[myIndex]) ? (
             <button
               className="btn btn-primary btn-sm"
               disabled = {ggc.nextRoundDidSay[myIndex]}

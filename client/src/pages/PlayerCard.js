@@ -2,7 +2,7 @@
 
 import React, { useContext } from 'react';
 import { ImageRefsContext } from '../ImageRefsContext.js';
-import { CONN_PLAYER_IN, CONN_PLAYER_OUT } from '../shared/DudoGame.js';
+import { CONN_PLAYER_IN, CONN_PLAYER_OUT, GAME_PHASE } from '../shared/DudoGame.js';
 
 //************************************************************
 // TableGrid (PlayerCards placed within it)
@@ -27,9 +27,10 @@ function PlayerCard({ ggc, myIndex, cc }) {
 
   // Cup image
   let cupImage;
-  if (ggc.allConnectionStatus[cc] === CONN_PLAYER_OUT || !ggc.bGameInProgress) {
+  if (ggc.allConnectionStatus[cc] === CONN_PLAYER_OUT || !ggc.GAME_IN_PROGRESS) {
     cupImage = cupUpImageRef.current;
-  } else if ((ggc.bDoubtInProgress || ggc.bShowDoubtResult) && ggc.doubtDidLiftCup[cc]) {
+  } else if ((ggc.gamePhase === GAME_PHASE.DOUBT_LIFT_CUPS || ggc.gamePhase === GAME_PHASE.DOUBT_SHOW_RESULT) && 
+              ggc.doubtDidLiftCup[cc]) {
     cupImage = cupUpImageRef.current;
   } else {
     cupImage = cupDownImageRef.current;
@@ -41,7 +42,7 @@ function PlayerCard({ ggc, myIndex, cc }) {
   const hiliteTop = Array(5).fill(false);
   const hiliteBottom = Array(5).fill(false);
 
-  if (ggc.bGameInProgress && ggc.allConnectionStatus[cc] === CONN_PLAYER_IN) {
+  if (ggc.GAME_IN_PROGRESS && ggc.allConnectionStatus[cc] === CONN_PLAYER_IN) {
     for (let i = 0; i < 5; i++) {
       const val = ggc.dice[cc][i];
       const isHidden = ggc.bDiceHidden[cc][i];
@@ -49,7 +50,8 @@ function PlayerCard({ ggc, myIndex, cc }) {
       if (isHidden) {
         if (
           cc === myIndex ||
-          ((ggc.bDoubtInProgress || ggc.bShowDoubtResult) && ggc.doubtDidLiftCup[cc])
+          ((ggc.gamePhase === GAME_PHASE.DOUBT_LIFT_CUPS || ggc.gamePhase === GAME_PHASE.DOUBT_SHOW_RESULT) && 
+            ggc.doubtDidLiftCup[cc])
         ) {
           diceTop[i] = imgRef;
           hiliteTop[i] = !!ggc.bDiceHilite[cc][i];
@@ -64,7 +66,7 @@ function PlayerCard({ ggc, myIndex, cc }) {
   }
 
     // Turn footer
-  let isTurn = ggc.bGameInProgress && cc === ggc.whosTurn;
+  let isTurn = ggc.GAME_IN_PROGRESS && cc === ggc.whosTurn;
   let footerLabel = isTurn
     ? cc === myIndex
       ? 'Your Turn'

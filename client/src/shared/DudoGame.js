@@ -98,12 +98,6 @@ export class DudoGame {
 
 	firstRound;
 	bSettingGameParms;
-	bGameInProgress;
-	bDirectionInProgress;
-	bRoundInProgress;
-	bDoubtInProgress;
-	bShowDoubtResult;
-	bAskInOut;
 	bBlinkSticks;
 	bBlinkSticksPlayer;
 	
@@ -175,12 +169,6 @@ export class DudoGame {
 		this.setGamePhase(GAME_PHASE.WAITING_TO_START);
 
 		this.bSettingGameParms = false;
-		this.bGameInProgress = false;
-		this.bDirectionInProgress = false;
-		this.bRoundInProgress = false;
-		this.bDoubtInProgress = false;
-		this.bShowDoubtResult = false;
-		this.bAskInOut = false;
 		this.bBlinkSticks = false;
 		this.bBlinkSticksPlayer = undefined;
 
@@ -261,12 +249,6 @@ export class DudoGame {
 		this.setGamePhase(GAME_PHASE.WAITING_TO_START);
 
 		this.bSettingGameParms = false;
-		this.bGameInProgress = false;
-		this.bDirectionInProgress = false;
-		this.bRoundInProgress = false;
-		this.bDoubtInProgress = false;
-		this.bShowDoubtResult = false;
-		this.bAskInOut = false;
 		this.bBlinkSticks = false;
 		this.bBlinkSticksPlayer = undefined;
 		
@@ -1153,12 +1135,12 @@ export class DudoGame {
 		if (this.curRound.whichDirection !== undefined) {
 			return false;
 		}
-		if (this.bDirectionInProgress) {
+		if (this.gamePhase === GAME_PHASE.CHOOSING_DIRECTION) {
 			return false;
 		}
 
 		// did somebody just get a stick?
-		if (this.bGameInProgress && 
+		if (this.GAME_IN_PROGRESS && 
        this.curRound.numBids === 0 &&
        !this.firstRound &&		// probably don't need this (overkill)
        !this.Rounds[numRounds - 1].doubtLoserOut) {
@@ -1171,7 +1153,7 @@ export class DudoGame {
 	// Should all players roll? (starting round)
 	//****************************************************************
 	ShouldAllRollDice () {
-		return (this.bRoundInProgress && this.curRound.numBids === 0 ? true : false);
+			return this.GAME_IN_PROGRESS && this.curRound?.numBids === 0;
 	}
 
 	//****************************************************************
