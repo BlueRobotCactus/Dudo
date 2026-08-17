@@ -374,6 +374,15 @@ function LandingPage({ playerName, setPlayerName }) {
           return;
         }
 
+        // timed out of the current game
+        if (permission.joinMode === 'timed_out') {
+          showMessage(
+            'Join Lobby',
+            'You timed out of this game. You can rejoin when the next game begins.'
+          );
+          return;
+        }
+
         // Existing disconnected participant: restore the previous server-side role automatically.
         if (permission.joinMode === 'resume') {
           socket.emit('rejoinLobby', { lobbyId, playerName }, (lobbyData) => {

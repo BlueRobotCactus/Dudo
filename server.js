@@ -118,6 +118,21 @@ io.on('connection', (socket) => {
   // Get the join permission
   //---------------------------------------
   function getJoinPermission(ggs, playerGuid) {
+
+    // Has this player already timed out of this game?
+    const existingIndex = ggs.allParticipantGuid.indexOf(playerGuid);
+    if (
+      existingIndex !== -1 &&
+      ggs.allConnectionStatus[existingIndex] === CONN_PLAYER_TIMED_OUT &&
+      ggs.GAME_IN_PROGRESS
+    ) {
+      return {
+        joinMode: 'timed_out',
+        role: null,
+        gameIndex: existingIndex
+      };
+    }
+
     const gameIndex = findGameIndexByGuid(ggs, playerGuid);
 
     // Existing participant: preserve their current role.
@@ -687,6 +702,15 @@ io.on('connection', (socket) => {
 
       // Enforce the server's join rules
       const permission = getJoinPermission(ggs, authedPlayer.guid);
+
+      // timed-out payer cannot join now
+      if (permission.joinMode === 'timed_out') {
+        callback?.({
+          error: 'You timed out of this game. You can rejoin when the next game begins.',
+          timedOut: true
+        });
+        return;
+      }
 
       // Existing participant must use rejoinLobby so that their
       // previous role is restored by the server.
