@@ -182,6 +182,81 @@ export class DudoGame {
 		this.disconnectSecondsRemaining = 0;		
 	}
 
+	//****************************************************************
+	// Shift game slots left (delete)
+	//****************************************************************
+	shiftGameSlotsLeft(index) {
+		if (index < 0) return;
+
+		for (let cc = index; cc < MAX_CONNECTIONS - 1; cc++) {
+
+			this.allParticipantGuid[cc]  = this.allParticipantGuid[cc + 1];
+			this.allParticipantNames[cc] = this.allParticipantNames[cc + 1];
+			this.allConnectionID[cc]     = this.allConnectionID[cc + 1];
+			this.allConnectionStatus[cc] = this.allConnectionStatus[cc + 1];
+
+			this.allSticks[cc]    = this.allSticks[cc + 1];
+			this.allPasoUsed[cc]  = this.allPasoUsed[cc + 1];
+			this.allBidUIMode[cc] = this.allBidUIMode[cc + 1];
+
+			this.dice[cc]        = [...this.dice[cc + 1]];
+			this.bDiceHidden[cc] = [...this.bDiceHidden[cc + 1]];
+			this.bDiceHilite[cc] = [...this.bDiceHilite[cc + 1]];
+
+			this.inOutMustSay[cc] = this.inOutMustSay[cc + 1];
+			this.inOutDidSay[cc]  = this.inOutDidSay[cc + 1];
+
+			this.doubtMustLiftCup[cc] = this.doubtMustLiftCup[cc + 1];
+			this.doubtDidLiftCup[cc]  = this.doubtDidLiftCup[cc + 1];
+
+			this.nextRoundMustSay[cc] = this.nextRoundMustSay[cc + 1];
+			this.nextRoundDidSay[cc]  = this.nextRoundDidSay[cc + 1];
+		}
+
+		this.clearGameSlot(MAX_CONNECTIONS - 1);
+
+		if (this.whosTurn > index) {
+			this.whosTurn--;
+		} else if (this.whosTurn === index) {
+			this.whosTurn = -1;
+		}
+
+		if (this.whosTurnPrev > index) {
+			this.whosTurnPrev--;
+		} else if (this.whosTurnPrev === index) {
+			this.whosTurnPrev = -1;
+		}
+	}
+
+	//****************************************************************
+	// Clear a game slot
+	//****************************************************************
+	clearGameSlot(index) {
+		if (index < 0) return;
+
+		this.allParticipantGuid[index]  = '';
+		this.allParticipantNames[index] = '';
+		this.allConnectionID[index]     = '';
+		this.allConnectionStatus[index] = CONN_UNUSED;
+
+		this.allSticks[index]    = 0;
+		this.allPasoUsed[index]  = false;
+		this.allBidUIMode[index] = 0;
+
+		this.dice[index]        = Array(5).fill(0);
+		this.bDiceHidden[index] = Array(5).fill(false);
+		this.bDiceHilite[index] = Array(5).fill(false);
+
+		this.inOutMustSay[index] = false;
+		this.inOutDidSay[index]  = false;
+
+		this.doubtMustLiftCup[index] = false;
+		this.doubtDidLiftCup[index]  = false;
+
+		this.nextRoundMustSay[index] = false;
+		this.nextRoundDidSay[index]  = false;
+	}
+
 	//************************************************************
 	// Fill up this instance of DudoGame from
 	// the instance passed from the server
@@ -294,7 +369,6 @@ export class DudoGame {
 	//************************************************************
 	// set the game phase parameters
 	//************************************************************
-
 	setGamePhase(phase) {
 		this.gamePhase = phase;
 
@@ -335,8 +409,6 @@ export class DudoGame {
 		}
 		return -1;
 	}
-
-
 
 	//************************************************************
 	// get player to the right

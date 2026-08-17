@@ -367,6 +367,7 @@ import { STICKS_BLINK_TIME, SHOWN_DICE_BLINK_TIME, SHAKE_CUPS_TIME, GAME_PHASE, 
     // selectively close down dialogs
     if (data.gamePhase === GAME_PHASE.WAITING_TO_START) {
       setShowShowDoubtDlg(false);
+      setShowInOutDlg(false);
     }    
     if (data.gamePhase === GAME_PHASE.CHOOSING_DIRECTION || data.gamePhase === GAME_PHASE.BIDDING) {
       setShowLiftCupDlg (false);
@@ -1535,10 +1536,7 @@ useEffect(() => {
               {isMyTurn && ggc.allBidUIMode[myIndex] === 0 && RenderBid()}
               {/* isMyTurn && ggc.allBidUIMode[myIndex] === 1 && RenderGridBid() */}
 
-              {!ggc.gamePhase === GAME_PHASE.DOUBT_LIFT_CUPS && 
-               !ggc.gamePhase === GAME_PHASE.DOUBT_SHOW_RESULT && 
-               !ggc.gamePhase === GAME_PHASE.ASKING_IN_OUT && 
-               !isMyTurn && (
+              {!isMyTurn && (
                 <div className="border border-primary rounded p-1">
                   <div className="fw-bold text-center">
                     <div>{row2CurrentBid}</div>

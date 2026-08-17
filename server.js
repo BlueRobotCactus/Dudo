@@ -86,7 +86,7 @@ const disconnectTimers = {};
     }
   };
 */
-const COUNTDOWN_SECONDS = 30;
+const COUNTDOWN_SECONDS = 10;
 
 // ******************************
 // Socket.IO setup
@@ -94,11 +94,15 @@ const COUNTDOWN_SECONDS = 30;
 io.on('connection', (socket) => {
 
   //---------------------------------------
-  // helper functions
+  // Get authenticated player
   //---------------------------------------
   function getAuthedPlayer(socket) {
     return socket.request?.session?.player || null;
   }
+
+  //---------------------------------------
+  // Find participant by their GUID
+  //---------------------------------------
   function findGameIndexByGuid(ggs, guid) {
     const index = ggs.allParticipantGuid.indexOf(guid);
     if (index === -1) { return -1; }
@@ -109,6 +113,10 @@ io.on('connection', (socket) => {
     }
     return index;
   }
+
+  //---------------------------------------
+  // Get the join permission
+  //---------------------------------------
   function getJoinPermission(ggs, playerGuid) {
     const gameIndex = findGameIndexByGuid(ggs, playerGuid);
 
@@ -182,6 +190,9 @@ io.on('connection', (socket) => {
     };
   }
 
+  //---------------------------------------
+  // Miscellaneous
+  //---------------------------------------
   function disconnectStatus (status) {
     if (status === CONN_PLAYER_IN)  return CONN_PLAYER_IN_DISCONN;
     if (status === CONN_PLAYER_OUT) return CONN_PLAYER_OUT_DISCONN;
@@ -205,7 +216,6 @@ io.on('connection', (socket) => {
     ggs.disconnectSecondsRemaining = 0;
   }
   
-  //----------------------------------------
   function ensureLobbyTimerMap(lobbyId) {
     if (!disconnectTimers[lobbyId]) {
       disconnectTimers[lobbyId] = {};
@@ -213,7 +223,6 @@ io.on('connection', (socket) => {
     return disconnectTimers[lobbyId];
   }
 
-  //----------------------------------------
   function clearDisconnectTimer(lobbyId, guid) {
     const lobbyTimers = disconnectTimers[lobbyId];
     if (!lobbyTimers || !lobbyTimers[guid]) return;
@@ -226,65 +235,14 @@ io.on('connection', (socket) => {
     }
   }
 
-  //----------------------------------------
-  function clearGameSlot(ggs, index) {
-    if (index < 0) return;
-
-    ggs.allParticipantGuid[index]  = '';
-    ggs.allParticipantNames[index] = '';
-    ggs.allConnectionID[index]     = '';
-    ggs.allConnectionStatus[index] = CONN_UNUSED;
-    ggs.allSticks[index]           = 0;
-    ggs.allPasoUsed[index]         = false;
-
-		ggs.inOutMustSay[index]        = false;
-		ggs.inOutDidSay[index]         = false;
-		ggs.doubtMustLiftCup[index]    = false;
-		ggs.doubtDidLiftCup[index]     = false;
-		ggs.nextRoundMustSay[index]    = false;
-		ggs.nextRoundDidSay[index]     = false;
-  }
-
-  //----------------------------------------
-  function shiftGameSlotsLeft(ggs, index) {
-    console.trace("shiftGameSlotsLeft called");
-    
-    if (index < 0) return;
-
-    // take care of arrays
-    for (let cc=index; cc < MAX_CONNECTIONS - 1; cc++) {
-      ggs.allParticipantGuid[cc]  = ggs.allParticipantGuid[cc+1];
-      ggs.allParticipantNames[cc] = ggs.allParticipantNames[cc+1];
-      ggs.allConnectionID[cc]     = ggs.allConnectionID[cc+1];
-      ggs.allConnectionStatus[cc] = ggs.allConnectionStatus[cc+1];
-      ggs.allSticks[cc]           = ggs.allSticks[cc+1];
-      ggs.allPasoUsed[cc]         = ggs.allPasoUsed[cc+1];
-
-      ggs.inOutMustSay[cc]        = ggs.inOutMustSay[cc+1];
-      ggs.inOutDidSay[cc]         = ggs.inOutDidSay[cc+1];
-      ggs.doubtMustLiftCup[cc]    = ggs.doubtMustLiftCup[cc+1];
-      ggs.doubtDidLiftCup[cc]     = ggs.doubtDidLiftCup[cc+1];
-      ggs.nextRoundMustSay[cc]    = ggs.nextRoundMustSay[cc+1];
-      ggs.nextRoundDidSay[cc]     = ggs.nextRoundDidSay[cc+1];
-    }
-    clearGameSlot(ggs, MAX_CONNECTIONS - 1);
-
-    // adjust whosTurn, whosTurnPrev
-    if (ggs.whosTurn >= index) {
-      ggs.whosTurn--;
-    }
-    if (ggs.whosTurnPrev >= index) {
-      ggs.whosTurnPrev--;
-    }
-  }
-
-  //----------------------------------------
+  //---------------------------------------
+  // Remove active player from game
+  //---------------------------------------
   function removeActivePlayerFromGame(ggs, index) {
     if (index < 0) return;
 
     // mark them out
     ggs.allConnectionID[index] = '';
-    //ggs.allConnectionStatus[index] = CONN_PLAYER_OUT;
     ggs.allConnectionStatus[index] = CONN_PLAYER_TIMED_OUT;
     ggs.allSticks[index] = 0;
     ggs.allPasoUsed[index] = false;
@@ -306,7 +264,81 @@ io.on('connection', (socket) => {
     }
   }
 
-  //----------------------------------------
+  //---------------------------------------
+  // Remove player from lobby
+  //---------------------------------------
+  function removePlayerFromLobby(lobby, guid) {
+    const playerIndex = lobby.players.findIndex(p => p.guid === guid);
+
+    if (playerIndex !== -1) {
+      lobby.players.splice(playerIndex, 1);
+    }
+  }
+
+  //---------------------------------------
+  // Garbage collection
+  // (clean-up disconnected players)
+  //---------------------------------------
+  function GarbageCollection(lobby) {
+    if (!lobby || !lobby.game) return;
+    const ggs = lobby.game;
+
+    for (let i = MAX_CONNECTIONS - 1; i >= 0; i--) {
+      if (ggs.allConnectionStatus[i] !== CONN_PLAYER_TIMED_OUT) {
+        continue;
+      }
+
+      const guid = ggs.allParticipantGuid[i];
+
+      removePlayerFromLobby(lobby, guid);
+      ggs.shiftGameSlotsLeft(i);
+    }
+  }
+
+  //---------------------------------------
+  // Continue processing are you in/out
+  // called from:
+  //    socket.on('inOrOut',...
+  //    handleDisconnectTimeout    
+  //---------------------------------------
+  function continueAfterInOut(lobbyId, ggs) {
+    const lobby = lobbies[lobbyId];
+    if (!lobby) return;
+
+    // is that everybody we need to hear from?
+    let okToGo = true;
+    for (let i=0; i<MAX_CONNECTIONS; i++) {
+      if (ggs.inOutMustSay[i]) {
+        if (!ggs.inOutDidSay[i]) {
+          okToGo = false;
+          break;
+        }
+      }
+    }
+
+    if (okToGo) {
+      // what phase are we in?
+      // depends how many players said they're in
+      let players = ggs.GetNumberPlayersStillIn();
+      if (players < 2)   { ggs.setGamePhase(GAME_PHASE.WAITING_TO_START); }
+      if (players === 2) { ggs.setGamePhase(GAME_PHASE.BIDDING); }
+      if (players > 2)   { ggs.setGamePhase(GAME_PHASE.CHOOSING_DIRECTION); };
+
+      // start the game with at least 2 players
+      if (players > 1) {
+        ggs.whosTurn = 0; //&&& need this?
+
+        ggs.GAME_IN_PROGRESS = true;
+        io.emit('lobbiesList', getLobbiesList());
+        StartGame(ggs);
+      }
+    }
+    io.to(lobbyId).emit('gameStateUpdate', lobby.game);    
+  }
+
+  //---------------------------------------
+  // Handle disconnect timeout
+  //---------------------------------------
   function handleDisconnectTimeout(lobbyId, guid) {
     const lobby = lobbies[lobbyId];
     if (!lobby) return;
@@ -344,6 +376,41 @@ io.on('connection', (socket) => {
 
     removeActivePlayerFromGame(ggs, gameIndex);
 
+    // Not enough players left to continue the game
+    if (ggs.GetNumberPlayersStillIn() < 2) {
+
+      GarbageCollection(lobby);
+      ggs.PrepareNextGame();
+
+      io.to(lobbyId).emit('disconnectCountdownEnded', {
+        playerName,
+        reason: 'timed_out'
+      });
+
+      io.to(lobbyId).emit('lobbyData', lobby);
+      io.emit('lobbiesList', getLobbiesList());
+
+      turnPauseOFF(ggs);
+
+      io.to(lobbyId).emit('gameStateUpdate', ggs);
+
+      return;
+    }
+
+    // Phase-specific timeout handling
+    switch (ggs.gamePhase) {
+    case GAME_PHASE.ASKING_IN_OUT:
+      continueAfterInOut(lobbyId, ggs);
+      break;
+
+
+
+      default:
+        break;
+    }
+
+
+    /*
     // need at least 2 players still in
     if (ggs.GetNumberPlayersStillIn() <= 1) {
       ggs.GAME_IN_PROGRESS = false;
@@ -373,7 +440,7 @@ io.on('connection', (socket) => {
         ggs.whosTurn = ggs.getWhosTurnNext();
       }
     }
-
+*/
     io.to(lobbyId).emit('disconnectCountdownEnded', { playerName, reason: 'timed_out' });
     io.to(lobbyId).emit('lobbyData', lobby);
     io.emit('lobbiesList', getLobbiesList());
@@ -381,7 +448,9 @@ io.on('connection', (socket) => {
     io.to(lobbyId).emit('gameStateUpdate', ggs);
   }
 
-  //----------------------------------------
+  //---------------------------------------
+  // Start disconnect countdown
+  //---------------------------------------
   function startDisconnectCountdown(lobbyId, removedPlayer) {
     const lobby = lobbies[lobbyId];
     if (!lobby) return;
@@ -454,6 +523,9 @@ io.on('connection', (socket) => {
     };
   }
 
+  //---------------------------------------
+  // Set silent timer removal
+  //---------------------------------------
   const SILENT_REMOVAL_SECONDS = 5;
 
   function startSilentRemovalTimer(
@@ -491,19 +563,15 @@ io.on('connection', (socket) => {
           }
 
           // The participant did not reconnect within the silent period. Remove the slot.
-          shiftGameSlotsLeft(ggs, gameIndex);
+          removePlayerFromLobby(lobby, playerGuid);
+          ggs.shiftGameSlotsLeft(gameIndex);
 
-          // Use the same events and payloads that you already emit after changing lobby/game membership.
           io.to(lobbyId).emit('lobbyData', lobby);
           io.to(lobbyId).emit('gameStateUpdate', ggs);
           io.emit('lobbiesList', getLobbiesList());
 
       }, SILENT_REMOVAL_SECONDS * 1000);
   }
-
-  //---------------------------------------
-  // END HELPER FUNCTIONS
-  //---------------------------------------
 
   console.log('server.js: New client connected:', socket.id);
 
@@ -967,23 +1035,23 @@ io.on('connection', (socket) => {
       return;
     }
     
-  const ggs = lobby.game;
+    const ggs = lobby.game;
 
-  if (ggs.allConnectionStatus[gameIndex] === CONN_OBSERVER) {
-    // observer, always shift indices
-    shiftGameSlotsLeft(ggs, gameIndex);
-  } else if (!ggs.GAME_IN_PROGRESS) {
-    // no game in progress, shift indices
-    shiftGameSlotsLeft(ggs, gameIndex);
-  }
-  console.log(`server.js: ${playerName} left lobby: ${lobbyId}, shifted CONN indices`);
+    if (ggs.allConnectionStatus[gameIndex] === CONN_OBSERVER) {
+      // observer, always shift indices
+      ggs.shiftGameSlotsLeft(gameIndex);
+    } else if (!ggs.GAME_IN_PROGRESS) {
+      // no game in progress, shift indices
+      ggs.shiftGameSlotsLeft(gameIndex);
+    }
+    console.log(`server.js: ${playerName} left lobby: ${lobbyId}, shifted CONN indices`);
 
-  io.to(lobbyId).emit('lobbyData', lobby);
-  io.emit('lobbiesList', getLobbiesList());
-  io.to(lobbyId).emit('gameStateUpdate', lobby.game);
-  console.log("server.js: 'leaveLobby': emitting 'gameStateUpdate'");
+    io.to(lobbyId).emit('lobbyData', lobby);
+    io.emit('lobbiesList', getLobbiesList());
+    io.to(lobbyId).emit('gameStateUpdate', lobby.game);
+    console.log("server.js: 'leaveLobby': emitting 'gameStateUpdate'");
 
-});
+  });
 
   //************************************************************
   // socket.on
@@ -1399,7 +1467,14 @@ io.on('connection', (socket) => {
         const snapshot = JSON.parse(JSON.stringify(lobby.game));
         lobby.lobbySession.Games.push(snapshot);
 
+        // clean-up timed-out players
+        GarbageCollection (lobby);
+
+        // prepare clean state for another game
         ggs.PrepareNextGame();
+
+        io.to(lobbyId).emit('lobbyData', lobby);
+        io.emit('lobbiesList', getLobbiesList());        
       } else {
         ggs.setGamePhase(GAME_PHASE.BETWEEN_ROUNDS);
         StartRound(lobby.game);
@@ -1429,34 +1504,8 @@ io.on('connection', (socket) => {
     ggs.inOutDidSay[index] = true;
     ggs.allConnectionStatus[index] = status;
 
-    // is that everybody we need to hear from?
-    let okToGo = true;
-    for (let i=0; i<MAX_CONNECTIONS; i++) {
-      if (ggs.inOutMustSay[i]) {
-        if (!ggs.inOutDidSay[i]) {
-          okToGo = false;
-          break;
-        }
-      }
-    }
+    continueAfterInOut(lobbyId, ggs);
 
-    if (okToGo) {
-      // what phase are we in?
-      // depends how many players said they're in
-      let players = ggs.GetNumberPlayersStillIn();
-      if (players < 2)   { ggs.setGamePhase(GAME_PHASE.WAITING_TO_START); }
-      if (players === 2) { ggs.setGamePhase(GAME_PHASE.BIDDING); }
-      if (players > 2)   { ggs.setGamePhase(GAME_PHASE.CHOOSING_DIRECTION); };
-
-      // start the game with at least 2 players
-      if (players > 1) {
-        ggs.whosTurn = 0; //&&& need this?
-
-        lobby.game.GAME_IN_PROGRESS = true;
-        io.emit('lobbiesList', getLobbiesList());
-        StartGame(ggs);
-      }
-    }
     io.to(lobbyId).emit('gameStateUpdate', lobby.game);
   });
   
