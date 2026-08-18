@@ -86,7 +86,8 @@ const disconnectTimers = {};
     }
   };
 */
-const COUNTDOWN_SECONDS = 10;
+const COUNTDOWN_SILENT_SECONDS = 3;
+const COUNTDOWN_VISIBLE_SECONDS = 10;
 
 // ******************************
 // Socket.IO setup
@@ -474,7 +475,7 @@ io.on('connection', (socket) => {
 
     clearDisconnectTimer(lobbyId, removedPlayer.guid);
 
-    let secondsRemaining = COUNTDOWN_SECONDS;
+    let secondsRemaining = COUNTDOWN_VISIBLE_SECONDS;
 
     // turn pause ON
     const ggs = lobby.game;
@@ -534,7 +535,7 @@ io.on('connection', (socket) => {
 
     lobbyTimers[removedPlayer.guid] = {
       intervalId,
-      timeoutAt: Date.now() + (COUNTDOWN_SECONDS * 1000)
+      timeoutAt: Date.now() + (COUNTDOWN_VISIBLE_SECONDS * 1000)
     };
   }
 
@@ -1621,6 +1622,9 @@ io.on('connection', (socket) => {
 
       if (ggs.GAME_IN_PROGRESS && status === CONN_PLAYER_IN) {
         bCountDown = true;
+
+        // Freeze the game immediately during the silent reconnect period.
+        turnPauseON(ggs, removedPlayer.displayName, COUNTDOWN_SILENT_SECONDS * 1000);
       }
 
       ggs.allConnectionStatus[gameIndex] = disconnectStatus(status);
@@ -1651,7 +1655,7 @@ io.on('connection', (socket) => {
         }
 
         startDisconnectCountdown(lobbyId, removedPlayer);
-      }, 3000);
+      }, COUNTDOWN_SILENT_SECONDS * 1000);
     }
   });
 

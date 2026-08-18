@@ -1579,7 +1579,9 @@ useEffect(() => {
             style={{
               position: 'fixed',
               inset: 0,
-              backgroundColor: 'rgba(0,0,0,0.5)',
+              backgroundColor: showCountdown
+                ? 'rgba(0,0,0,0.5)'
+                : 'transparent',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -1587,20 +1589,24 @@ useEffect(() => {
               pointerEvents: 'all'
             }}
           >
-            <div
-              style={{
-                background: 'white',
-                padding: '20px 30px',
-                borderRadius: '10px',
-                fontSize: '18px',
-                textAlign: 'center',
-                fontWeight: 'bold'
-              }}
-            >
-              {countdownMessage}
-            </div>
+            {showCountdown && (
+              <div
+                style={{
+                  background: 'white',
+                  padding: '20px 30px',
+                  borderRadius: '10px',
+                  fontSize: '18px',
+                  textAlign: 'center',
+                  fontWeight: 'bold'
+                }}
+              >
+                {countdownMessage}
+              </div>
+            )}
           </div>
         )}
+
+
         {/*-------------------------------------------------------------------
           DIALOGS
         --------------------------------------------------------------------*/}
