@@ -69,7 +69,6 @@ export function PlayerGrid({ lobbyId, ggc, myIndex, cc }) {
   // when the server flips the game flag, mirror it into local state
   useEffect(() => {
     if (ggc.bBlinkSticks) {
-      console.log("DEBUG useEffect got the sticks blinking");
       setBBlinkSticks (true);
       setBlinkSticksPlayer (ggc.bBlinkSticksPlayer);
     } else {

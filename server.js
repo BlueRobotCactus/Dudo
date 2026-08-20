@@ -353,6 +353,29 @@ io.on('connection', (socket) => {
   }
 
   //---------------------------------------
+  // continue after player choosing direction
+  // times out
+  //---------------------------------------
+  function continueAfterChoosingDirection(lobbyId, ggs) {
+    const lobby = lobbies[lobbyId];
+    if (!lobby) return;
+
+    const players = ggs.GetNumberPlayersStillIn();
+
+    if (players === 2) {
+      ggs.curRound.whichDirection = 0;
+      ggs.setGamePhase(GAME_PHASE.BIDDING);
+    }
+
+    // if players > 2:
+    // stay in CHOOSING_DIRECTION.
+    // removeActivePlayerFromGame() has already moved whosTurn
+    // if the timed-out player was the chooser.
+
+    io.to(lobbyId).emit('gameStateUpdate', lobby.game);
+  }
+
+  //---------------------------------------
   // Handle disconnect timeout
   //---------------------------------------
   function handleDisconnectTimeout(lobbyId, guid) {
@@ -417,6 +440,9 @@ io.on('connection', (socket) => {
     switch (ggs.gamePhase) {
     case GAME_PHASE.ASKING_IN_OUT:
       continueAfterInOut(lobbyId, ggs);
+      break;
+    case GAME_PHASE.CHOOSING_DIRECTION:
+      continueAfterChoosingDirection(lobbyId, ggs);
       break;
 
 

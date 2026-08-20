@@ -107,12 +107,6 @@ import { STICKS_BLINK_TIME, SHOWN_DICE_BLINK_TIME, SHAKE_CUPS_TIME, GAME_PHASE, 
     const [availableHeight, setAvailableHeight] = useState(window.innerHeight);
     //const [availableWidth, setAvailableWidth] = useState(window.innerWidth);
 
-    // dialogs
-    // confirm Bid (obsolete)
-//    const [showConfirmBidDlg, setShowConfirmBidDlg] = useState(false);
-//    const [confirmPosition, setConfirmPosition] = useState({ x: 200, y: 200 });
-//    const [confirmMessage, setConfirmMessage] = useState('');
-
     // In / Out
     const [showInOutDlg, setShowInOutDlg] = useState(false);
     const [inOutSticks, setInOutSticks] = useState(false);
@@ -369,10 +363,20 @@ import { STICKS_BLINK_TIME, SHOWN_DICE_BLINK_TIME, SHAKE_CUPS_TIME, GAME_PHASE, 
       setShowShowDoubtDlg(false);
       setShowInOutDlg(false);
     }    
-    if (data.gamePhase === GAME_PHASE.CHOOSING_DIRECTION || data.gamePhase === GAME_PHASE.BIDDING) {
+    if (data.gamePhase === GAME_PHASE.CHOOSING_DIRECTION) {
       setShowLiftCupDlg (false);
       setShowShowDoubtDlg(false);
+
     }    
+    if (data.gamePhase === GAME_PHASE.BIDDING) {
+      setShowLiftCupDlg (false);
+      setShowShowDoubtDlg(false);
+      setShowDirectionDlg(false);
+    }
+    // in case somebody timed-out during Choosing Direction      
+    if (ggc.GetNumberPlayersStillIn() < 3) {
+      setShowDirectionDlg(false);
+    }
 
     // What is my index and my name?
     const index = ggc.allParticipantGuid.indexOf(myGuidRef.current);
@@ -1412,6 +1416,10 @@ useEffect(() => {
   }
 
   function DoProcessBid() {
+    if (ggc.bDisconnectPause) {
+      return;
+    }
+
     if (isMyTurn) {
       // my turn
       // populate the bid list
