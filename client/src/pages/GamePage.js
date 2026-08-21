@@ -5,6 +5,7 @@ import { ImageRefsContext } from '../ImageRefsContext.js';
 import { DudoGame } from '../shared/DudoGame.js'
 import { TableGrid } from './TableGrid.js'
 import { BidGrid } from './BidGrid.js'
+import confetti from 'canvas-confetti';
 
 import tableBackground from '../assets/table-background.png';
 import tableBackgroundFaded from '../assets/table-background-faded.png';
@@ -198,7 +199,8 @@ import { STICKS_BLINK_TIME, SHOWN_DICE_BLINK_TIME, SHAKE_CUPS_TIME, GAME_PHASE, 
     const observersRef = useRef([]);
     const leaveLobbyTimerRef = useRef(null);
     const myGuidRef = useRef(''); 
-    
+    const winnerConfettiShownRef = useRef(false);    
+
     // Refs debugging
     const prevReconnect = useRef(null);
     const prevDraw = useRef(null);
@@ -362,6 +364,7 @@ import { STICKS_BLINK_TIME, SHOWN_DICE_BLINK_TIME, SHAKE_CUPS_TIME, GAME_PHASE, 
     if (data.gamePhase === GAME_PHASE.WAITING_TO_START) {
       setShowShowDoubtDlg(false);
       setShowInOutDlg(false);
+      winnerConfettiShownRef.current = false;
     }    
     if (data.gamePhase === GAME_PHASE.CHOOSING_DIRECTION) {
       setShowLiftCupDlg (false);
@@ -441,35 +444,35 @@ import { STICKS_BLINK_TIME, SHOWN_DICE_BLINK_TIME, SHAKE_CUPS_TIME, GAME_PHASE, 
   // Click: Host starts game
   //************************************************************
   const handleStartGame = () => {
-    if (connected) {
-      setGameParametersSticks(ggc.maxSticks);
-      setGameParametersPaso(ggc.bPasoAllowed);
-      setGameParametersPalofijo(ggc.bPaloFijoAllowed);
+    if (!connected) { return; }
 
-    	setGameParametersMode("start");
-    	setShowSetGameParametersDlg(true);
+    setGameParametersSticks(ggc.maxSticks);
+    setGameParametersPaso(ggc.bPasoAllowed);
+    setGameParametersPalofijo(ggc.bPaloFijoAllowed);
 
-			setOnGameParametersSaveHandler(() => (sticks, paso, palofijo) => {
-				if (connected) {
-					setGameParametersSticks(sticks);
-					setGameParametersPaso(paso);
-					setGameParametersPalofijo(palofijo);
-					setShowSetGameParametersDlg(false);
+    setGameParametersMode("start");
+    setShowSetGameParametersDlg(true);
 
-					socket.emit('startGameWithParms', lobbyId, sticks, paso, palofijo);
-					console.log('GamePage: emitting "startGameWithParms"');
-				}
-			});
+    setOnGameParametersSaveHandler(() => (sticks, paso, palofijo) => {
+      if (connected) {
+        setGameParametersSticks(sticks);
+        setGameParametersPaso(paso);
+        setGameParametersPalofijo(palofijo);
+        setShowSetGameParametersDlg(false);
 
-			setOnGameParametersCancelHandler(() => () => {
-				if (connected) {
-					setShowSetGameParametersDlg(false);
-					socket.emit('cancelStartGame', lobbyId);
-					console.log('GamePage: emitting "cancelStartGame"');
-				}
-			});
-    }
-  };
+        socket.emit('startGameWithParms', lobbyId, sticks, paso, palofijo);
+        console.log('GamePage: emitting "startGameWithParms"');
+      }
+    });
+
+    setOnGameParametersCancelHandler(() => () => {
+      if (connected) {
+        setShowSetGameParametersDlg(false);
+        socket.emit('cancelStartGame', lobbyId);
+        console.log('GamePage: emitting "cancelStartGame"');
+      }
+    });
+  }
 
   //************************************************************
   // Click: Host set game parameters
@@ -920,13 +923,45 @@ import { STICKS_BLINK_TIME, SHOWN_DICE_BLINK_TIME, SHAKE_CUPS_TIME, GAME_PHASE, 
     }
     setDoubtWhoGotStick(s4);
 
-    let msg = s1 + "\n" + s2 + s3 + "\n" + s4; 
+    if (ggc.bWinnerGame) {
+      s5 = ggc.allParticipantNames[ggc.whoWonGame] + " WINS THE GAME!!";
 
+      // launch confetti
+      if (!winnerConfettiShownRef.current) {
+        winnerConfettiShownRef.current = true;
+/*
+        confetti({
+          particleCount: 150,
+          spread: 100,
+          origin: { y: 0.6 }
+        });
+*/
+        const CONFETTI_SECONDS = 3;
+        const duration = CONFETTI_SECONDS * 1000;
+        const end = Date.now() + duration;
+        const interval = setInterval(() => {
+          confetti({
+            particleCount: 50,
+            spread: 100,
+            origin: { y: 0.6 }
+          });
+          if (Date.now() >= end) {
+            clearInterval(interval);
+          }
+        }, 250);
+      }
+    } else {
+      s5 = '';
+      winnerConfettiShownRef.current = false;
+    }
+
+    /*
     if (ggc.bWinnerGame) {
       s5 = ggc.allParticipantNames[ggc.whoWonGame] + " WINS THE GAME!!"
     } else {
       s5 = '';
     }
+*/
     setDoubtWhoWon(s5);
   }
 

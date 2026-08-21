@@ -11,6 +11,7 @@
     "@google-cloud/firestore": "^8.5.0",
     "bcrypt": "^6.0.0",
     "bootstrap": "^5.3.6",
+    "canvas-confetti": "^1.9.4",
     "cors": "^2.8.5",
     "express": "^4.21.2",
     "express-session": "^1.19.0",
