@@ -436,8 +436,52 @@ import { STICKS_BLINK_TIME, SHOWN_DICE_BLINK_TIME, SHAKE_CUPS_TIME, GAME_PHASE, 
   // function handleGameOver
   //************************************************************
   const handleGameOver = (data) => {
-    console.log("GamePage: entering function: handleGameOver");
-    alert(data.message);
+    console.log("GamePage: entering function: handleGameOver", data);
+
+    //---------------------------------------
+    // Confetti for every game winner
+    //---------------------------------------
+    if (!winnerConfettiShownRef.current) {
+      winnerConfettiShownRef.current = true;
+      const CONFETTI_SECONDS = 3;
+      const duration = CONFETTI_SECONDS * 1000;
+      const end = Date.now() + duration;
+      const interval = setInterval(() => {
+        confetti({
+          particleCount: 50,
+          spread: 100,
+          origin: { y: 0.6 }
+        });
+        if (Date.now() >= end) {
+          clearInterval(interval);
+        }
+      }, 250);
+    }
+
+    //---------------------------------------
+    // Normal win:
+    // ShowDoubtDlg already explains everything
+    //---------------------------------------
+    if (data.reason === 'normal') {
+      return;
+    }
+
+    //---------------------------------------
+    // Timeout win:
+    // Need a separate explanation
+    //---------------------------------------
+    if (data.reason === 'timeout') {
+      setOkTitle('Game Over');
+      setOkMessage(
+        `${data.timedOutPlayerName} timed out.\n${data.winnerName} WINS THE GAME!!`
+      );
+
+      setOnOkHandler(() => () => {
+        setShowOkDlg(false);
+      });
+
+      setShowOkDlg(true);
+    }
   };
 
   //************************************************************
@@ -925,34 +969,8 @@ import { STICKS_BLINK_TIME, SHOWN_DICE_BLINK_TIME, SHAKE_CUPS_TIME, GAME_PHASE, 
 
     if (ggc.bWinnerGame) {
       s5 = ggc.allParticipantNames[ggc.whoWonGame] + " WINS THE GAME!!";
-
-      // launch confetti
-      if (!winnerConfettiShownRef.current) {
-        winnerConfettiShownRef.current = true;
-/*
-        confetti({
-          particleCount: 150,
-          spread: 100,
-          origin: { y: 0.6 }
-        });
-*/
-        const CONFETTI_SECONDS = 3;
-        const duration = CONFETTI_SECONDS * 1000;
-        const end = Date.now() + duration;
-        const interval = setInterval(() => {
-          confetti({
-            particleCount: 50,
-            spread: 100,
-            origin: { y: 0.6 }
-          });
-          if (Date.now() >= end) {
-            clearInterval(interval);
-          }
-        }, 250);
-      }
     } else {
       s5 = '';
-      winnerConfettiShownRef.current = false;
     }
 
     /*

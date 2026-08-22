@@ -1254,24 +1254,40 @@ export class DudoGame {
 	// Get order of finish for the players
 	// who came in 1st, 2nd, etc.
 	//****************************************************************
+
 	GetOrderOfFinish () {
 		this.orderOfFinish.length = 0;
 
-		// find players knocked out
+		// find players knocked out/time-out in each round
 		for (let i = 0; i < this.Rounds.length; i++) {
-			if (this.Rounds[i].doubtLoserOut) {
-				const cc = this.Rounds[i].doubtLoser;
-				const name = this.allParticipantNames[cc];
-				this.orderOfFinish.push({ cc, name });
+			const round = this.Rounds[i];
+
+			if (round.endRoundCause === ROUND_END_DOUBT) {
+				if (round.doubtLoserOut) {
+					const cc = round.doubtLoser;
+					const guid = this.allParticipantGuid[cc];
+					const name = this.allParticipantNames[cc];
+
+					this.orderOfFinish.push({ cc, guid, name });
+				}
+			} else if (round.endRoundCause === ROUND_END_TIMEOUT) {
+				if (round.timeoutPlayer !== undefined) {
+					const cc = round.timeoutPlayer;
+					const guid = this.allParticipantGuid[cc];
+					const name = this.allParticipantNames[cc];
+
+					this.orderOfFinish.push({ cc, guid, name });
+				}
 			}
 		}
 
 		// add the winner
 		const cc = this.whoWonGame;
+		const guid = this.allParticipantGuid[cc];
 		const name = this.allParticipantNames[cc];
-		this.orderOfFinish.push({ cc, name });
+		this.orderOfFinish.push({ cc, guid, name });
 
-		// reverse the order so winner is first
+		// reverse so winner is first
 		this.orderOfFinish.reverse();
 	}
 }

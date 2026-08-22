@@ -313,6 +313,23 @@ io.on('connection', (socket) => {
   }
 
   //---------------------------------------
+  // announce game over
+  // confetti and message if by time-out
+  // reason is 'normal' or 'timeout'
+  //---------------------------------------
+  function announceGameOver(lobbyId, ggs, reason, timedOutPlayerName = '') {
+    const winnerIndex = ggs.whoWonGame;
+
+    io.to(lobbyId).emit('gameOver', {
+      winnerIndex,
+      winnerGuid: ggs.allParticipantGuid[winnerIndex],
+      winnerName: ggs.allParticipantNames[winnerIndex],
+      reason,
+      timedOutPlayerName
+    });
+}
+
+  //---------------------------------------
   // Continue after ASKING_IN_OUT
   // called from:
   //    socket.on('inOrOut',...
@@ -444,8 +461,54 @@ io.on('connection', (socket) => {
 
     removeActivePlayerFromGame(ggs, gameIndex);
 
-    // Not enough players left to continue the game
+    //---------------------------------------
+    // Only one player left
+    //---------------------------------------
     if (ggs.GetNumberPlayersStillIn() < 2) {
+
+      switch (ggs.gamePhase) {
+      case GAME_PHASE.ASKING_IN_OUT:
+        // nothing special to do
+        break;
+      case GAME_PHASE.CHOOSING_DIRECTION:
+        // nothing special to do
+        break;
+      case GAME_PHASE.BIDDING:
+        if (ggs.curRound) {
+          // Preserve the aborted round
+          ggs.curRound.endRoundCause = ROUND_END_TIMEOUT;
+          ggs.curRound.timeoutPlayer = gameIndex;
+          ggs.Rounds.push(ggs.curRound);
+
+          if (ggs.firstRound) {
+            ggs.firstRound = false;
+          }
+          // remaining player is the winner
+          const winnerIndex = ggs.GetIndexFirstPlayerStillIn();
+          ggs.bWinnerGame = true;
+          ggs.whoWonGame = winnerIndex;          
+        }
+
+        // Finish game bookkeeping
+        ggs.GetOrderOfFinish();
+
+        const now = new Date();
+        ggs.endDate = GetDate(now);
+        ggs.endTime = GetTime(now);
+
+        const snapshot = JSON.parse(JSON.stringify(ggs));
+        lobby.lobbySession.Games.push(snapshot);
+        announceGameOver(lobbyId, ggs,'timeout', playerName);
+        break;
+      case GAME_PHASE.DOUBT_LIFT_CUPS:
+        break;
+      case GAME_PHASE.DOUBT_SHOW_RESULT:
+        break;
+      case GAME_PHASE.BETWEEN_ROUNDS:
+        break;
+      default:
+        break;
+      }
 
       GarbageCollection(lobby);
       ggs.PrepareNextGame();
@@ -465,7 +528,9 @@ io.on('connection', (socket) => {
       return;
     }
 
-    // Phase-specific timeout handling
+    //---------------------------------------
+    // yes enough players to continue the game
+    //---------------------------------------
     switch (ggs.gamePhase) {
     case GAME_PHASE.ASKING_IN_OUT:
       continueAfterInOut(lobbyId, ggs);
@@ -486,37 +551,7 @@ io.on('connection', (socket) => {
       break;
     }
 
-    /*
-    // need at least 2 players still in
-    if (ggs.GetNumberPlayersStillIn() <= 1) {
-      ggs.GAME_IN_PROGRESS = false;
-      io.to(lobbyId).emit('disconnectCountdownEnded', { playerName, reason: 'timed_out' });
-      turnPauseOFF (ggs);
-      io.to(lobbyId).emit('gameStateUpdate', ggs);
-      return;
-    }
-
-    if (hadAnyBid) {
-      // discard current round and restart it
-      // keep same starting player for restarted round
-      ggs.firstRound = false;
-      ggs.whosTurn = originalStarter;
-
-      // if starter was the disconnected player, advance to next live player
-      if (ggs.whosTurn === gameIndex ||
-          ggs.allConnectionStatus[ggs.whosTurn] !== CONN_PLAYER_IN) {
-        ggs.whosTurn = ggs.getWhosTurnNext();
-      }
-
-      StartRound(ggs);
-    } else {
-      // no bid yet: player is simply out, game goes on
-      if (ggs.whosTurn === gameIndex ||
-          ggs.allConnectionStatus[ggs.whosTurn] !== CONN_PLAYER_IN) {
-        ggs.whosTurn = ggs.getWhosTurnNext();
-      }
-    }
-*/
+    // finish up
     io.to(lobbyId).emit('disconnectCountdownEnded', { playerName, reason: 'timed_out' });
     io.to(lobbyId).emit('lobbyData', lobby);
     io.emit('lobbiesList', getLobbiesList());
@@ -1551,6 +1586,9 @@ io.on('connection', (socket) => {
         // save this game
         const snapshot = JSON.parse(JSON.stringify(lobby.game));
         lobby.lobbySession.Games.push(snapshot);
+
+        // confetti signal
+        announceGameOver(lobbyId, ggs, 'normal');
 
         // clean-up timed-out players
         GarbageCollection (lobby);
