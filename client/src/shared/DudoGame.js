@@ -12,6 +12,9 @@ const CONN_PLAYER_OUT_DISCONN = 5;
 const CONN_OBSERVER_DISCONN = 6;
 const CONN_PLAYER_TIMED_OUT = 99;
 
+const ROUND_END_DOUBT = 1;
+const ROUND_END_TIMEOUT = 2;
+
 const MAX_PLAYERS = 8;
 
 // UI constants (milliseconds)
@@ -1284,7 +1287,9 @@ export class DudoRound {
 
 	whichDirection = undefined;          // 1 = left (clockwise); 2 = right (counter-clockwise)
 	startingPlayerIndex = -1;
-	endRoundCause = undefined;					// 1 = doubt; 2 = disconnect/time-out
+
+	endRoundCause = undefined;					// ROUND_END_DOUBT or ROUND_END_TIMEOUT
+	timeoutPlayer = undefined;					// if ROUND_END_TIMEOUT
 
 	doubtedText = undefined;
 	whoDoubted = undefined; 
@@ -1309,6 +1314,7 @@ export class DudoRound {
 		this.whichDirection = undefined;
 		this.startingPlayerIndex = -1;
 		this.endRoundCause = undefined;
+		this.timeoutPlayer = undefined;
 
 		this.doubtedText = undefined;
 		this.whoDoubted = undefined;              
@@ -1398,4 +1404,5 @@ export {
   CONN_PLAYER_IN_DISCONN, CONN_PLAYER_OUT_DISCONN, CONN_OBSERVER_DISCONN,
 	STICKS_BLINK_TIME, SHOWN_DICE_BLINK_TIME, SHAKE_CUPS_TIME,
 	GAME_PHASE, GetGamePhaseName,
+	ROUND_END_DOUBT, ROUND_END_TIMEOUT,
 };

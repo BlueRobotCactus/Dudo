@@ -3,7 +3,8 @@
 import { LobbySession, DudoGame, DudoRound, DudoBid } from './client/src/shared/DudoGame.js';
 
 import { MAX_CONNECTIONS, CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYER_TIMED_OUT,
-  CONN_PLAYER_IN_DISCONN, CONN_PLAYER_OUT_DISCONN, CONN_OBSERVER_DISCONN, GAME_PHASE } from './client/src/shared/DudoGame.js';
+         CONN_PLAYER_IN_DISCONN, CONN_PLAYER_OUT_DISCONN, CONN_OBSERVER_DISCONN, GAME_PHASE,
+         ROUND_END_DOUBT, ROUND_END_TIMEOUT } from './client/src/shared/DudoGame.js';
 
 import express from 'express';
 import path from 'path';
@@ -312,7 +313,7 @@ io.on('connection', (socket) => {
   }
 
   //---------------------------------------
-  // Continue processing are you in/out
+  // Continue after ASKING_IN_OUT
   // called from:
   //    socket.on('inOrOut',...
   //    handleDisconnectTimeout    
@@ -353,8 +354,9 @@ io.on('connection', (socket) => {
   }
 
   //---------------------------------------
-  // continue after player choosing direction
-  // times out
+  // continue after CHOOSING_DIRECTION
+  // called from:
+  // handleDisconnectTimeout
   //---------------------------------------
   function continueAfterChoosingDirection(lobbyId, ggs) {
     const lobby = lobbies[lobbyId];
@@ -373,6 +375,33 @@ io.on('connection', (socket) => {
     // if the timed-out player was the chooser.
 
     io.to(lobbyId).emit('gameStateUpdate', lobby.game);
+  }
+
+  //---------------------------------------
+  // Continue after BIDDING timeout
+  // called from:
+  //    handleDisconnectTimeout
+  //---------------------------------------
+  function continueAfterBiddingTimeout(lobbyId, ggs, timedOutIndex) {
+    const lobby = lobbies[lobbyId];
+    if (!lobby) return;
+
+    // Record why this round ended.
+    ggs.curRound.endRoundCause = ROUND_END_TIMEOUT;
+    ggs.curRound.timeoutPlayer = timedOutIndex;
+
+    // Preserve the aborted round in round history.
+    ggs.Rounds.push(ggs.curRound);
+
+    // This was a real round, even though it was aborted.
+    if (ggs.firstRound) {
+      ggs.firstRound = false;
+    }
+
+    // Start a completely fresh round with the surviving players.
+    StartRound(ggs);
+
+    io.to(lobbyId).emit('gameStateUpdate', ggs);
   }
 
   //---------------------------------------
@@ -444,13 +473,18 @@ io.on('connection', (socket) => {
     case GAME_PHASE.CHOOSING_DIRECTION:
       continueAfterChoosingDirection(lobbyId, ggs);
       break;
-
-
-
-      default:
-        break;
+    case GAME_PHASE.BIDDING:
+      continueAfterBiddingTimeout(lobbyId, ggs, gameIndex);
+      break;
+    case GAME_PHASE.DOUBT_LIFT_CUPS:
+      break;
+    case GAME_PHASE.DOUBT_SHOW_RESULT:
+      break;
+    case GAME_PHASE.BETWEEN_ROUNDS:
+      break;
+    default:
+      break;
     }
-
 
     /*
     // need at least 2 players still in
@@ -2155,6 +2189,7 @@ function PostRound(ggs, lobbyId) {
     //------------------------------------------------------------
     // push the round  
     //------------------------------------------------------------
+    ggs.curRound.endRoundCause = ROUND_END_DOUBT;
 		ggs.Rounds.push(ggs.curRound);
 
 		//------------------------------------------------------------
