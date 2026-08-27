@@ -24,7 +24,8 @@ import { GameSettingsDlg } from '../Dialogs.js';
 import { SetGameParametersDlg } from '../Dialogs.js';
 import { BidDlg } from '../Dialogs.js';
 
-import { MAX_CONNECTIONS, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER } from '../shared/DudoGame.js';
+import { MAX_CONNECTIONS, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER,
+         CONN_PLAYER_TIMED_OUT, CONN_PLAYER_TIMED_OUT_DEFER, } from '../shared/DudoGame.js';
 import { STICKS_BLINK_TIME, SHOWN_DICE_BLINK_TIME, SHAKE_CUPS_TIME, GAME_PHASE, GetGamePhaseName } from '../shared/DudoGame.js';
 
   //************************************************************
@@ -362,8 +363,9 @@ import { STICKS_BLINK_TIME, SHOWN_DICE_BLINK_TIME, SHAKE_CUPS_TIME, GAME_PHASE, 
 
     // selectively close down dialogs
     if (data.gamePhase === GAME_PHASE.WAITING_TO_START) {
-      setShowShowDoubtDlg(false);
       setShowInOutDlg(false);
+      setShowLiftCupDlg (false);
+      setShowShowDoubtDlg(false);
       winnerConfettiShownRef.current = false;
     }    
     if (data.gamePhase === GAME_PHASE.CHOOSING_DIRECTION) {
@@ -933,7 +935,7 @@ import { STICKS_BLINK_TIME, SHOWN_DICE_BLINK_TIME, SHAKE_CUPS_TIME, GAME_PHASE, 
     let s1 = "";  // who doubted whom
     let s2 = "";  // what the bid was
     let s3 = "";  // result of doubt
-    let s4 = "";  // who got the stick
+    let s4 = "";  // who got the stick (and who timed-out, if anyone)
     let s5 = "";  // who got won the game (if anyone)
     s1 = ggc.allParticipantNames[ggc.curRound.whoDoubted];
     s1 += " doubted ";
@@ -965,7 +967,12 @@ import { STICKS_BLINK_TIME, SHOWN_DICE_BLINK_TIME, SHAKE_CUPS_TIME, GAME_PHASE, 
     if (ggc.curRound.doubtLoserOut) {
       s4 += ", and is OUT.";
     }
-    setDoubtWhoGotStick(s4);
+    for (let i = 0; i < MAX_CONNECTIONS; i++) {
+      if (ggc.allConnectionStatus[i] === CONN_PLAYER_TIMED_OUT ||
+          ggc.allConnectionStatus[i] === CONN_PLAYER_TIMED_OUT_DEFER) {
+        s4 += "\n" + ggc.allParticipantNames[i] + " left the lobby, and is OUT.";
+      }
+    }
 
     if (ggc.bWinnerGame) {
       s5 = ggc.allParticipantNames[ggc.whoWonGame] + " WINS THE GAME!!";
@@ -973,13 +980,7 @@ import { STICKS_BLINK_TIME, SHOWN_DICE_BLINK_TIME, SHAKE_CUPS_TIME, GAME_PHASE, 
       s5 = '';
     }
 
-    /*
-    if (ggc.bWinnerGame) {
-      s5 = ggc.allParticipantNames[ggc.whoWonGame] + " WINS THE GAME!!"
-    } else {
-      s5 = '';
-    }
-*/
+    setDoubtWhoGotStick(s4);
     setDoubtWhoWon(s5);
   }
 

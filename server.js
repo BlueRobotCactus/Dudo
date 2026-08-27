@@ -2,7 +2,7 @@
 
 import { LobbySession, DudoGame, DudoRound, DudoBid } from './client/src/shared/DudoGame.js';
 
-import { MAX_CONNECTIONS, CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYER_TIMED_OUT,
+import { MAX_CONNECTIONS, CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYER_TIMED_OUT, CONN_PLAYER_TIMED_OUT_DEFER,
          CONN_PLAYER_IN_DISCONN, CONN_PLAYER_OUT_DISCONN, CONN_OBSERVER_DISCONN, GAME_PHASE,
          ROUND_END_DOUBT, ROUND_END_TIMEOUT } from './client/src/shared/DudoGame.js';
 
@@ -90,6 +90,19 @@ const disconnectTimers = {};
 const COUNTDOWN_SILENT_SECONDS = 3;
 const COUNTDOWN_VISIBLE_SECONDS = 10;
 
+//---------------------------------------
+// Finalize deferred time outs
+// (convert them to "normal" time outs)
+// called by PostRound()
+//---------------------------------------
+function finalizeDeferredTimeouts(ggs) {
+  for (let i = 0; i < MAX_CONNECTIONS; i++) {
+    if (ggs.allConnectionStatus[i] === CONN_PLAYER_TIMED_OUT_DEFER) {
+      ggs.allConnectionStatus[i] = CONN_PLAYER_TIMED_OUT;
+    }
+  }
+}
+
 // ******************************
 // Socket.IO setup
 // ******************************
@@ -125,7 +138,8 @@ io.on('connection', (socket) => {
     const existingIndex = ggs.allParticipantGuid.indexOf(playerGuid);
     if (
       existingIndex !== -1 &&
-      ggs.allConnectionStatus[existingIndex] === CONN_PLAYER_TIMED_OUT &&
+      (ggs.allConnectionStatus[existingIndex] === CONN_PLAYER_TIMED_OUT ||
+       ggs.allConnectionStatus[existingIndex] === CONN_PLAYER_TIMED_OUT_DEFER) &&
       ggs.GAME_IN_PROGRESS
     ) {
       return {
@@ -301,7 +315,8 @@ io.on('connection', (socket) => {
     const ggs = lobby.game;
 
     for (let i = MAX_CONNECTIONS - 1; i >= 0; i--) {
-      if (ggs.allConnectionStatus[i] !== CONN_PLAYER_TIMED_OUT) {
+      if ((ggs.allConnectionStatus[i] !== CONN_PLAYER_TIMED_OUT) &&
+          (ggs.allConnectionStatus[i] !== CONN_PLAYER_TIMED_OUT_DEFER)) {
         continue;
       }
 
@@ -328,6 +343,39 @@ io.on('connection', (socket) => {
       timedOutPlayerName
     });
 }
+
+  //---------------------------------------
+  // end of game processing
+  // reason is 'normal' or 'timeout'
+  //---------------------------------------
+  function processEndOfGame(lobbyId, ggs, reason, timedOutPlayerName = '') {
+      const lobby = lobbies[lobbyId];
+      if (!lobby) return;
+
+      ggs.setGamePhase(GAME_PHASE.WAITING_TO_START);
+
+      ggs.GetOrderOfFinish();
+
+      const now = new Date();
+      ggs.endDate = GetDate(now);
+      ggs.endTime = GetTime(now);
+
+      // save completed game
+      const snapshot = JSON.parse(JSON.stringify(ggs));
+      lobby.lobbySession.Games.push(snapshot);
+
+      // announce winner
+      announceGameOver(lobbyId, ggs, reason, timedOutPlayerName);
+
+      // physically remove timed-out players
+      GarbageCollection(lobby);
+
+      // prepare clean state for another game
+      ggs.PrepareNextGame();
+
+      io.to(lobbyId).emit('lobbyData', lobby);
+      io.emit('lobbiesList', getLobbiesList());
+  }
 
   //---------------------------------------
   // Continue after ASKING_IN_OUT
@@ -422,6 +470,90 @@ io.on('connection', (socket) => {
   }
 
   //---------------------------------------
+  // Continue after LIFT_CUP timeout
+  // called from:
+  //    socket.on('liftCup',...
+  //    handleDisconnectTimeout
+  //---------------------------------------
+  function continueAfterLiftCup(lobbyId, ggs) {
+    const lobby = lobbies[lobbyId];
+    if (!lobby) return;
+
+    // is that everybody we need to hear from?
+    let allLifted = true;
+
+    for (let i = 0; i < MAX_CONNECTIONS; i++) {
+      if (ggs.doubtMustLiftCup[i]) {
+        if (!ggs.doubtDidLiftCup[i]) {
+          allLifted = false;
+          break;
+        }
+      }
+    }
+
+    // re-compute showing and lookage
+    ggs.curRound.doubtShowing =
+      ggs.GetHowManyShowing(
+        ggs.curRound.doubtOfWhat,
+        ggs.bPaloFijoRound
+      );
+
+    ggs.curRound.doubtLookingFor =
+      ggs.curRound.doubtHowMany -
+      ggs.curRound.doubtShowing;
+
+    if (ggs.curRound.doubtLookingFor < 0) {
+      ggs.curRound.doubtLookingFor = 0;
+    }
+
+    if (allLifted) {
+      ggs.setGamePhase(GAME_PHASE.DOUBT_SHOW_RESULT);
+    }
+
+    io.to(lobbyId).emit('gameStateUpdate', ggs);
+  }
+
+  //---------------------------------------
+  // Continue after SHOW_RESULT timeout
+  // called from:
+  //    socket.on('liftCup',...
+  //    handleDisconnectTimeout
+  //---------------------------------------
+  function continueAfterShowResult(lobbyId, ggs) {
+    const lobby = lobbies[lobbyId];
+    if (!lobby) return;
+
+    // is that everybody we need to hear from?
+    let okToGo = true;
+    for (let i=0; i<MAX_CONNECTIONS; i++) {
+      if (ggs.nextRoundMustSay[i]) {
+        if (!ggs.nextRoundDidSay[i]) {
+          okToGo = false;
+          break;
+        }
+      }
+    }
+
+    if (okToGo) {
+      //-----------------------------------
+      // the round is over
+      //-----------------------------------
+      PostRound(lobby.game, lobbyId);
+      
+      if (ggs.bWinnerGame) {
+        processEndOfGame(lobbyId, ggs, 'normal');      
+      } else {
+        ggs.setGamePhase(GAME_PHASE.BETWEEN_ROUNDS);
+        StartRound(lobby.game);
+      }
+    }
+
+    io.to(lobbyId).emit('gameStateUpdate', lobby.game);
+    ggs.bBlinkSticks = false;
+    ggs.bBlinkSticksPlayer = undefined;
+  }
+
+  //---------------------------------------
   // Handle disconnect timeout
   //---------------------------------------
   function handleDisconnectTimeout(lobbyId, guid) {
@@ -459,7 +591,20 @@ io.on('connection', (socket) => {
 
     const originalStarter = ggs.curRound?.startingPlayerIndex ?? ggs.whosTurn;
 
-    removeActivePlayerFromGame(ggs, gameIndex);
+    // remove player unless its time out deferred
+    const deferTimeout =
+        ggs.gamePhase === GAME_PHASE.DOUBT_LIFT_CUPS ||
+        ggs.gamePhase === GAME_PHASE.DOUBT_SHOW_RESULT;
+
+    if (deferTimeout) {
+        ggs.allConnectionID[gameIndex] = '';
+        ggs.allConnectionStatus[gameIndex] = CONN_PLAYER_TIMED_OUT_DEFER;
+        ggs.doubtDidLiftCup[gameIndex] = true;
+        ggs.nextRoundDidSay[gameIndex] = true;
+    }
+    else {
+        removeActivePlayerFromGame(ggs, gameIndex);
+    }
 
     //---------------------------------------
     // Only one player left
@@ -501,8 +646,20 @@ io.on('connection', (socket) => {
         announceGameOver(lobbyId, ggs,'timeout', playerName);
         break;
       case GAME_PHASE.DOUBT_LIFT_CUPS:
-        break;
+
+
+      //&&& try this
+          // remaining player is the winner
+          const winnerIndex = ggs.GetIndexFirstPlayerStillIn();
+          ggs.bWinnerGame = true;
+          ggs.whoWonGame = winnerIndex;          
+
+
+
+        continueAfterLiftCup(lobbyId, ggs);
+        break;        
       case GAME_PHASE.DOUBT_SHOW_RESULT:
+        continueAfterShowResult(lobbyId, ggs);
         break;
       case GAME_PHASE.BETWEEN_ROUNDS:
         break;
@@ -542,8 +699,20 @@ io.on('connection', (socket) => {
       continueAfterBiddingTimeout(lobbyId, ggs, gameIndex);
       break;
     case GAME_PHASE.DOUBT_LIFT_CUPS:
+
+      //&&& try this
+      if (ggs.GetNumberPlayersStillIn() === 2 && ggs.curRound.doubtLoserOut) {
+        ggs.bWinnerGame = true;
+        ggs.whoWonGame = ggs.curRound.doubtWinner;
+      }
+
+
+
+    
+      continueAfterLiftCup(lobbyId, ggs);
       break;
     case GAME_PHASE.DOUBT_SHOW_RESULT:
+      continueAfterShowResult(lobbyId, ggs);
       break;
     case GAME_PHASE.BETWEEN_ROUNDS:
       break;
@@ -1511,29 +1680,7 @@ io.on('connection', (socket) => {
     // mark this player cup lifted
     ggs.doubtDidLiftCup[index] = true;
 
-    // is that everybody we need to hear from?
-    let allLifted = true;
-    for (let i=0; i<MAX_CONNECTIONS; i++) {
-      if (ggs.doubtMustLiftCup[i]) {
-        if (!ggs.doubtDidLiftCup[i]) {
-          allLifted = false;
-          break;
-        }
-      }
-    }
-
-    // re-compute showing and lookage
-    ggs.curRound.doubtShowing = ggs.GetHowManyShowing(ggs.curRound.doubtOfWhat, ggs.bPaloFijoRound);
-    ggs.curRound.doubtLookingFor = ggs.curRound.doubtHowMany - ggs.curRound.doubtShowing;
-    if (ggs.curRound.doubtLookingFor < 0) {
-      ggs.curRound.doubtLookingFor = 0;
-    }
-
-    if (allLifted) {
-      ggs.setGamePhase(GAME_PHASE.DOUBT_SHOW_RESULT);
-    }
-    io.to(lobbyId).emit('gameStateUpdate', lobby.game);
-   
+    continueAfterLiftCup(lobbyId, ggs);
   });
   
   //************************************************************
@@ -1554,60 +1701,7 @@ io.on('connection', (socket) => {
     // mark this player heard back
     ggs.nextRoundDidSay[index] = true;
 
-    // is that everybody we need to hear from?
-    let okToGo = true;
-    for (let i=0; i<MAX_CONNECTIONS; i++) {
-      if (ggs.nextRoundMustSay[i]) {
-        if (!ggs.nextRoundDidSay[i]) {
-          okToGo = false;
-          break;
-        }
-      }
-    }
-
-    if (okToGo) {
-      //-----------------------------------
-      // the round is over
-      //-----------------------------------
-      PostRound(lobby.game, lobbyId);
-      
-      if (ggs.bWinnerGame) {
-      //-----------------------------------
-      // the game is over
-      //-----------------------------------
-        ggs.setGamePhase( GAME_PHASE.WAITING_TO_START);
-        ggs.GetOrderOfFinish();
-
-        // log the end date/time
-        const now = new Date();
-        ggs.endDate = GetDate(now);
-        ggs.endTime = GetTime(now);
-
-        // save this game
-        const snapshot = JSON.parse(JSON.stringify(lobby.game));
-        lobby.lobbySession.Games.push(snapshot);
-
-        // confetti signal
-        announceGameOver(lobbyId, ggs, 'normal');
-
-        // clean-up timed-out players
-        GarbageCollection (lobby);
-
-        // prepare clean state for another game
-        ggs.PrepareNextGame();
-
-        io.to(lobbyId).emit('lobbyData', lobby);
-        io.emit('lobbiesList', getLobbiesList());        
-      } else {
-        ggs.setGamePhase(GAME_PHASE.BETWEEN_ROUNDS);
-        StartRound(lobby.game);
-      }
-    }
-
-    io.to(lobbyId).emit('gameStateUpdate', lobby.game);
-    ggs.bBlinkSticks = false;
-    ggs.bBlinkSticksPlayer = undefined;
-
+    continueAfterShowResult(lobbyId, ggs);
   });
   
   //************************************************************
@@ -2224,6 +2318,12 @@ function PostRound(ggs, lobbyId) {
         //io.to(lobbyId).emit('blinkSticks', ggs.curRound.doubtLoser);
     }
     
+    //------------------------------------------------------------
+    // deferred timeouts are no longer needed once doubt resolution
+    // is complete
+    //------------------------------------------------------------
+    finalizeDeferredTimeouts(ggs);
+
     //------------------------------------------------------------
     // push the round  
     //------------------------------------------------------------

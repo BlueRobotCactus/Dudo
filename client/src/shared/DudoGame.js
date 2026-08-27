@@ -11,6 +11,7 @@ const CONN_PLAYER_IN_DISCONN = 4;
 const CONN_PLAYER_OUT_DISCONN = 5;
 const CONN_OBSERVER_DISCONN = 6;
 const CONN_PLAYER_TIMED_OUT = 99;
+const CONN_PLAYER_TIMED_OUT_DEFER = 98;
 
 const ROUND_END_DOUBT = 1;
 const ROUND_END_TIMEOUT = 2;
@@ -1162,8 +1163,8 @@ export class DudoGame {
 	GetHowManyShowing (ofWhat, bPaloFijo) {
 		let result = 0;
 		for (let cc = 0; cc < MAX_CONNECTIONS; cc++) {
-			if (this.allConnectionStatus[cc] === CONN_PLAYER_IN) {
-				// player is still in
+			if (this.allConnectionStatus[cc] === CONN_PLAYER_IN ||
+				  this.allConnectionStatus[cc] === CONN_PLAYER_TIMED_OUT_DEFER) {
 				for (let i=0; i<5; i++) {
 					if (this.doubtDidLiftCup[cc] || !this.bDiceHidden[cc][i]) {
 						// this die is seen by all, examine it
@@ -1416,7 +1417,7 @@ export class DudoBid {
   
 export { 
 	MAX_CONNECTIONS,
-	CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYER_TIMED_OUT,
+	CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYER_TIMED_OUT, CONN_PLAYER_TIMED_OUT_DEFER,
   CONN_PLAYER_IN_DISCONN, CONN_PLAYER_OUT_DISCONN, CONN_OBSERVER_DISCONN,
 	STICKS_BLINK_TIME, SHOWN_DICE_BLINK_TIME, SHAKE_CUPS_TIME,
 	GAME_PHASE, GetGamePhaseName,

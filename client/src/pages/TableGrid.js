@@ -6,7 +6,8 @@ import PlayerGrid from './PlayerGrid';
 import PlayerCard from './PlayerCard.js';
 
 import { MAX_CONNECTIONS, CONN_PLAYER_IN, CONN_PLAYER_OUT, 
-         CONN_PLAYER_IN_DISCONN, CONN_PLAYER_OUT_DISCONN } 
+         CONN_PLAYER_IN_DISCONN, CONN_PLAYER_OUT_DISCONN, 
+         CONN_PLAYER_TIMED_OUT_DEFER} 
          from '../shared/DudoGame.js';
 
 //************************************************************
@@ -57,7 +58,8 @@ export function TableGrid({lobbyId, ggc, myIndex, backgroundColor}) {
     if (ggc.allConnectionStatus[cc] === CONN_PLAYER_IN ||
         ggc.allConnectionStatus[cc] === CONN_PLAYER_OUT ||
         ggc.allConnectionStatus[cc] === CONN_PLAYER_IN_DISCONN ||
-        ggc.allConnectionStatus[cc] === CONN_PLAYER_OUT_DISCONN) {
+        ggc.allConnectionStatus[cc] === CONN_PLAYER_OUT_DISCONN ||
+        ggc.allConnectionStatus[cc] === CONN_PLAYER_TIMED_OUT_DEFER) {
       ccList.push(cc);
     }      
       cc++;

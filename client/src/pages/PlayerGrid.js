@@ -4,7 +4,9 @@ import './PlayerGrid.css';
 import { SocketContext } from '../SocketContext.js';
 import { ImageRefsContext } from '../ImageRefsContext.js';
 import { DudoGame, DudoRound } from '../shared/DudoGame.js';
-import { MAX_CONNECTIONS, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_PLAYER_IN_DISCONN, CONN_PLAYER_OUT_DISCONN } from '../shared/DudoGame.js';
+import { MAX_CONNECTIONS, CONN_PLAYER_IN, CONN_PLAYER_OUT,
+         CONN_PLAYER_IN_DISCONN, CONN_PLAYER_OUT_DISCONN, 
+         CONN_PLAYER_TIMED_OUT, CONN_PLAYER_TIMED_OUT_DEFER } from '../shared/DudoGame.js';
 import { STICKS_BLINK_TIME, SHOWN_DICE_BLINK_TIME, SHAKE_CUPS_TIME, GAME_PHASE } from '../shared/DudoGame.js';
 
 //************************************************************
@@ -198,7 +200,8 @@ export function PlayerGrid({ lobbyId, ggc, myIndex, cc }) {
   // fill in the values
   if (ggc.GAME_IN_PROGRESS) {
     if (ggc.allConnectionStatus[cc] == CONN_PLAYER_IN ||
-        ggc.allConnectionStatus[cc] == CONN_PLAYER_IN_DISCONN) {
+        ggc.allConnectionStatus[cc] == CONN_PLAYER_IN_DISCONN ||
+        ggc.allConnectionStatus[cc] == CONN_PLAYER_TIMED_OUT_DEFER) {
       let x, y, w, h;
       for (let i = 0; i < 5; i++) {
         const value = ggc.dice[cc][i];
@@ -264,7 +267,7 @@ export function PlayerGrid({ lobbyId, ggc, myIndex, cc }) {
   }
 
   // lift cup dlg
-  if (ggc.gamePhase === GAME_PHASE.DOUBT_LIFT_CUPS && !ggc.gamePhase === GAME_PHASE.DOUBT_SHOW_RESULT) {
+  if (ggc.gamePhase === GAME_PHASE.DOUBT_LIFT_CUPS) {
     if (ggc.doubtMustLiftCup[cc] && !ggc.doubtDidLiftCup[cc]) {
       bgColor = softGreen;
     }
@@ -282,6 +285,12 @@ export function PlayerGrid({ lobbyId, ggc, myIndex, cc }) {
       bgColor = 'white';
     }
   }
+
+  // deferred timed-out player overrides normal color
+  if (ggc.allConnectionStatus[cc] === CONN_PLAYER_TIMED_OUT_DEFER) {
+    bgColor = 'white';
+  }  
+
   // line color in background color
   switch (bgColor) {
     case 'white':
@@ -290,6 +299,7 @@ export function PlayerGrid({ lobbyId, ggc, myIndex, cc }) {
       break;
     case softGreen:
     case 'pink':
+    case 'lightgray':
       lineColor = 'gray';
       break;
     default:
@@ -552,6 +562,7 @@ export function PlayerGrid({ lobbyId, ggc, myIndex, cc }) {
             backgroundColor: bgColor,
             zIndex: 0,
             overflow: 'hidden',
+            position: 'relative',
           }}
         >
           <div
@@ -567,6 +578,39 @@ export function PlayerGrid({ lobbyId, ggc, myIndex, cc }) {
           >
             {ggc.allParticipantNames[cc]}
           </div>
+          {/* red X through the name rectanble if time-out-deferred */}
+          {ggc.allConnectionStatus[cc] === CONN_PLAYER_TIMED_OUT_DEFER && (
+            <>
+              <div
+                style={{
+                  position: 'absolute',
+                  top: '50%',
+                  left: 0,
+                  width: '100%',
+                  height: '3px',
+                  backgroundColor: 'red',
+                  transform: 'rotate(15deg)',
+                  transformOrigin: 'center',
+                  zIndex: 5,
+                  pointerEvents: 'none',
+                }}
+              />
+              <div
+                style={{
+                  position: 'absolute',
+                  top: '50%',
+                  left: 0,
+                  width: '100%',
+                  height: '3px',
+                  backgroundColor: 'red',
+                  transform: 'rotate(-15deg)',
+                  transformOrigin: 'center',
+                  zIndex: 5,
+                  pointerEvents: 'none',
+                }}
+              />
+            </>
+          )}
         </div>
 
         {/*--------------------------------------------------------
