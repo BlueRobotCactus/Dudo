@@ -375,6 +375,7 @@ io.on('connection', (socket) => {
 
       io.to(lobbyId).emit('lobbyData', lobby);
       io.emit('lobbiesList', getLobbiesList());
+      io.to(lobbyId).emit('gameStateUpdate', lobby.game);    
   }
 
   //---------------------------------------
@@ -613,10 +614,12 @@ io.on('connection', (socket) => {
 
       switch (ggs.gamePhase) {
       case GAME_PHASE.ASKING_IN_OUT:
-        // nothing special to do
+        GarbageCollection(lobby);
+        ggs.PrepareNextGame();
         break;
       case GAME_PHASE.CHOOSING_DIRECTION:
-        // nothing special to do
+        GarbageCollection(lobby);
+        ggs.PrepareNextGame();
         break;
       case GAME_PHASE.BIDDING:
         if (ggs.curRound) {
@@ -644,6 +647,9 @@ io.on('connection', (socket) => {
         const snapshot = JSON.parse(JSON.stringify(ggs));
         lobby.lobbySession.Games.push(snapshot);
         announceGameOver(lobbyId, ggs,'timeout', playerName);
+
+        GarbageCollection(lobby);
+        ggs.PrepareNextGame();
         break;
       case GAME_PHASE.DOUBT_LIFT_CUPS:
         // remaining player is the winner
@@ -666,9 +672,6 @@ io.on('connection', (socket) => {
       default:
         break;
       }
-
-      GarbageCollection(lobby);
-      ggs.PrepareNextGame();
     }
 
     //---------------------------------------
@@ -1728,10 +1731,7 @@ io.on('connection', (socket) => {
     const playerGuid = socket.data.playerGuid;
 
     if (!lobbyId || !playerGuid) {
-      console.log(
-        'disconnect: socket has no stored lobby/player identity:',
-        socket.id
-      );
+      console.log('disconnect: socket has no stored lobby/player identity:', socket.id);
       return;
     }
 
@@ -1746,10 +1746,7 @@ io.on('connection', (socket) => {
     const gameIndex = findGameIndexByGuid(ggs, playerGuid);
 
     if (gameIndex === -1) {
-      console.log(
-        'disconnect: player GUID is not in game:',
-        playerGuid
-      );
+      console.log('disconnect: player GUID is not in game:', playerGuid);
       return;
     }
 
@@ -1786,18 +1783,15 @@ io.on('connection', (socket) => {
     let bCountDown = false;
     const status = ggs.allConnectionStatus[gameIndex];
 
-    if (status === CONN_OBSERVER || status === CONN_PLAYER_OUT) {
+    if (status === CONN_OBSERVER || status === CONN_PLAYER_OUT ||
+       (!ggs.GAME_IN_PROGRESS && status === CONN_PLAYER_IN)) {      
       // Keep the slot temporarily so a refresh or brief
       // connection loss can restore the same role.
       ggs.allConnectionID[gameIndex] = '';
       const disconnectedStatus = disconnectStatus(status);
       ggs.allConnectionStatus[gameIndex] = disconnectedStatus;
 
-      startSilentRemovalTimer(
-        lobbyId,
-        playerGuid,
-        disconnectedStatus
-      );
+      startSilentRemovalTimer(lobbyId, playerGuid, disconnectedStatus);
 
     } else {
       ggs.allConnectionID[gameIndex] = '';
@@ -1823,10 +1817,7 @@ io.on('connection', (socket) => {
         if (!lobbyNow) return;
 
         const gameNow = lobbyNow.game;
-        const indexNow = findGameIndexByGuid(
-          gameNow,
-          removedPlayer.guid
-        );
+        const indexNow = findGameIndexByGuid(gameNow, removedPlayer.guid);
 
         if (indexNow === -1) return;
 
@@ -2284,27 +2275,33 @@ function PostRound(ggs, lobbyId) {
     //------------------------------------------------------------
     ggs.bPaloFijoRound = false;
 
+    // keep track of whether loser also timed-out
+    const doubtLoser = ggs.curRound.doubtLoser;
+    const doubtLoserTimedOut = (ggs.allConnectionStatus[doubtLoser] === CONN_PLAYER_TIMED_OUT_DEFER);
+
     // loser gets a stick
-    ggs.allSticks[ggs.curRound.doubtLoser]++;
-    
-    if (ggs.allSticks[ggs.curRound.doubtLoser] === ggs.maxSticks) {
+    ggs.allSticks[doubtLoser]++;
+
+    if (ggs.allSticks[doubtLoser] === ggs.maxSticks) {
         // out! winner of doubt inherits first bid
-        ggs.allConnectionStatus[ggs.curRound.doubtLoser] = CONN_PLAYER_OUT;
-        ggs.allSticks[ggs.curRound.doubtLoser] = 0;  
+        if (!doubtLoserTimedOut) {
+            ggs.allConnectionStatus[doubtLoser] = CONN_PLAYER_OUT;
+        }
+        ggs.allSticks[doubtLoser] = 0;
         ggs.whosTurn = ggs.curRound.doubtWinner;
         ggs.bPaloFijoRound = false;
     } else {
-        // not out, loser of doubt goes first next round
-        ggs.whosTurn = ggs.curRound.doubtLoser;
+        // not out, loser of doubt goes first next round (unless timed-out)
+        ggs.whosTurn = (doubtLoserTimedOut ? ggs.curRound.doubtWinner: doubtLoser);
         // see if palofijo
         if (ggs.bPaloFijoAllowed && ggs.GetNumberPlayersStillIn() > 2) {
-            if (ggs.allSticks[ggs.curRound.doubtLoser] === ggs.maxSticks - 1) {
+            if (ggs.allSticks[ggs.doubtLoser] === ggs.maxSticks - 1) {
                 ggs.bPaloFijoRound = true;
             }
         }
 
         ggs.bBlinkSticks = true;
-        ggs.bBlinkSticksPlayer = ggs.curRound.doubtLoser;
+        ggs.bBlinkSticksPlayer = ggs.doubtLoser;
         //io.to(lobbyId).emit('blinkSticks', ggs.curRound.doubtLoser);
     }
     
