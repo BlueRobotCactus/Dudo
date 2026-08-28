@@ -644,6 +644,21 @@ export class DudoGame {
 	}
 
 	//************************************************************
+	// reset all who must say back to false(did not say)
+	// this is used when a player times out during SHOWING_RESULT
+	//************************************************************
+	resetNextRoundDidSay () {
+		for (let i=0; i<MAX_CONNECTIONS; i++) {
+			let status = this.allConnectionStatus[i];
+			if ((status === CONN_PLAYER_IN) || (status === CONN_PLAYER_TIMED_OUT)) {
+				if (this.nextRoundMustSay[i]) {
+					this.nextRoundDidSay[i] = false;
+				}
+			}
+		}
+	}
+
+	//************************************************************
 	// does the doubted player have the paso?
 	//************************************************************
 	hasPaso() {

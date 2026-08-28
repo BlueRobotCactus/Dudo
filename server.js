@@ -37,10 +37,10 @@ const io = new Server(server, {
 app.use(cors());
 app.use(express.json());
 
-//-------------------------------------------
+//************************************************************
 // session middleware (chatgpt)
 // cookies
-//-------------------------------------------
+//************************************************************
 const sessionMiddleware = session({
   secret: process.env.SESSION_SECRET || 'dev-secret-change-this',
   resave: false,
@@ -88,7 +88,7 @@ const disconnectTimers = {};
   };
 */
 const COUNTDOWN_SILENT_SECONDS = 3;
-const COUNTDOWN_VISIBLE_SECONDS = 10;
+const COUNTDOWN_VISIBLE_SECONDS = 5;
 
 //---------------------------------------
 // Finalize deferred time outs
@@ -553,9 +553,9 @@ io.on('connection', (socket) => {
     ggs.bBlinkSticksPlayer = undefined;
   }
 
-  //---------------------------------------
+  //***************************************
   // Handle disconnect timeout
-  //---------------------------------------
+  //***************************************
   function handleDisconnectTimeout(lobbyId, guid) {
     const lobby = lobbies[lobbyId];
     if (!lobby) return;
@@ -607,7 +607,7 @@ io.on('connection', (socket) => {
     }
 
     //---------------------------------------
-    // Only one player left
+    // Only one player left - game ends
     //---------------------------------------
     if (ggs.GetNumberPlayersStillIn() < 2) {
 
@@ -646,19 +646,19 @@ io.on('connection', (socket) => {
         announceGameOver(lobbyId, ggs,'timeout', playerName);
         break;
       case GAME_PHASE.DOUBT_LIFT_CUPS:
-
-
-      //&&& try this
-          // remaining player is the winner
-          const winnerIndex = ggs.GetIndexFirstPlayerStillIn();
-          ggs.bWinnerGame = true;
-          ggs.whoWonGame = winnerIndex;          
-
-
-
+        // remaining player is the winner
+        const winnerIndex = ggs.GetIndexFirstPlayerStillIn();
+        ggs.bWinnerGame = true;
+        ggs.whoWonGame = winnerIndex;          
         continueAfterLiftCup(lobbyId, ggs);
         break;        
       case GAME_PHASE.DOUBT_SHOW_RESULT:
+        // remaining player is the winner
+        const wIndex = ggs.GetIndexFirstPlayerStillIn();
+        ggs.bWinnerGame = true;
+        ggs.whoWonGame = wIndex;
+        // make other players see the (new) result
+        ggs.resetNextRoundDidSay();
         continueAfterShowResult(lobbyId, ggs);
         break;
       case GAME_PHASE.BETWEEN_ROUNDS:
@@ -669,68 +669,58 @@ io.on('connection', (socket) => {
 
       GarbageCollection(lobby);
       ggs.PrepareNextGame();
-
-      io.to(lobbyId).emit('disconnectCountdownEnded', {
-        playerName,
-        reason: 'timed_out'
-      });
-
-      io.to(lobbyId).emit('lobbyData', lobby);
-      io.emit('lobbiesList', getLobbiesList());
-
-      turnPauseOFF(ggs);
-
-      io.to(lobbyId).emit('gameStateUpdate', ggs);
-
-      return;
     }
 
     //---------------------------------------
-    // yes enough players to continue the game
+    // > 1 player left - game continues
     //---------------------------------------
-    switch (ggs.gamePhase) {
-    case GAME_PHASE.ASKING_IN_OUT:
-      continueAfterInOut(lobbyId, ggs);
-      break;
-    case GAME_PHASE.CHOOSING_DIRECTION:
-      continueAfterChoosingDirection(lobbyId, ggs);
-      break;
-    case GAME_PHASE.BIDDING:
-      continueAfterBiddingTimeout(lobbyId, ggs, gameIndex);
-      break;
-    case GAME_PHASE.DOUBT_LIFT_CUPS:
-
-      //&&& try this
-      if (ggs.GetNumberPlayersStillIn() === 2 && ggs.curRound.doubtLoserOut) {
-        ggs.bWinnerGame = true;
-        ggs.whoWonGame = ggs.curRound.doubtWinner;
+    if (ggs.GetNumberPlayersStillIn() > 1) {
+      switch (ggs.gamePhase) {
+      case GAME_PHASE.ASKING_IN_OUT:
+        continueAfterInOut(lobbyId, ggs);
+        break;
+      case GAME_PHASE.CHOOSING_DIRECTION:
+        continueAfterChoosingDirection(lobbyId, ggs);
+        break;
+      case GAME_PHASE.BIDDING:
+        continueAfterBiddingTimeout(lobbyId, ggs, gameIndex);
+        break;
+      case GAME_PHASE.DOUBT_LIFT_CUPS:
+        if (ggs.GetNumberPlayersStillIn() === 2 && ggs.curRound.doubtLoserOut) {
+          ggs.bWinnerGame = true;
+          ggs.whoWonGame = ggs.curRound.doubtWinner;
+        }
+        continueAfterLiftCup(lobbyId, ggs);
+        break;
+      case GAME_PHASE.DOUBT_SHOW_RESULT:
+        if (ggs.GetNumberPlayersStillIn() === 2 && ggs.curRound.doubtLoserOut) {
+          ggs.bWinnerGame = true;
+          ggs.whoWonGame = ggs.curRound.doubtWinner;
+        }
+        // make other players see the (new) result
+        ggs.resetNextRoundDidSay();
+        continueAfterShowResult(lobbyId, ggs);
+        break;
+      case GAME_PHASE.BETWEEN_ROUNDS:
+        break;
+      default:
+        break;
       }
-
-
-
-    
-      continueAfterLiftCup(lobbyId, ggs);
-      break;
-    case GAME_PHASE.DOUBT_SHOW_RESULT:
-      continueAfterShowResult(lobbyId, ggs);
-      break;
-    case GAME_PHASE.BETWEEN_ROUNDS:
-      break;
-    default:
-      break;
     }
 
+    //---------------------------------------
     // finish up
+    //---------------------------------------
     io.to(lobbyId).emit('disconnectCountdownEnded', { playerName, reason: 'timed_out' });
     io.to(lobbyId).emit('lobbyData', lobby);
     io.emit('lobbiesList', getLobbiesList());
-    turnPauseOFF (ggs);
+    turnPauseOFF(ggs);
     io.to(lobbyId).emit('gameStateUpdate', ggs);
   }
 
-  //---------------------------------------
+  //***************************************
   // Start disconnect countdown
-  //---------------------------------------
+  //***************************************
   function startDisconnectCountdown(lobbyId, removedPlayer) {
     const lobby = lobbies[lobbyId];
     if (!lobby) return;
@@ -803,9 +793,9 @@ io.on('connection', (socket) => {
     };
   }
 
-  //---------------------------------------
+  //***************************************
   // Set silent timer removal
-  //---------------------------------------
+  //***************************************
   const SILENT_REMOVAL_SECONDS = 5;
 
   function startSilentRemovalTimer(
