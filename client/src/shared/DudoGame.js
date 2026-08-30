@@ -1316,6 +1316,7 @@ export class DudoRound {
 	numBids = 0;
 	curBid;		// one DudoBid object
 	Bids = [];	// array of DudoBid objects
+	timedoutPlayers = [];	// array of players that timeout during this round
 
 	whichDirection = undefined;          // 1 = left (clockwise); 2 = right (counter-clockwise)
 	startingPlayerIndex = -1;

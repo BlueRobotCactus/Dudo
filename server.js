@@ -493,16 +493,8 @@ io.on('connection', (socket) => {
     }
 
     // re-compute showing and lookage
-    ggs.curRound.doubtShowing =
-      ggs.GetHowManyShowing(
-        ggs.curRound.doubtOfWhat,
-        ggs.bPaloFijoRound
-      );
-
-    ggs.curRound.doubtLookingFor =
-      ggs.curRound.doubtHowMany -
-      ggs.curRound.doubtShowing;
-
+    ggs.curRound.doubtShowing = ggs.GetHowManyShowing(ggs.curRound.doubtOfWhat, ggs.bPaloFijoRound);
+    ggs.curRound.doubtLookingFor = ggs.curRound.doubtHowMany - ggs.curRound.doubtShowing;
     if (ggs.curRound.doubtLookingFor < 0) {
       ggs.curRound.doubtLookingFor = 0;
     }
@@ -592,6 +584,10 @@ io.on('connection', (socket) => {
 
     const originalStarter = ggs.curRound?.startingPlayerIndex ?? ggs.whosTurn;
 
+    // Record this timeout as belonging to this round
+    if (!ggs.curRound.timedoutPlayers.includes(gameIndex)) {
+        ggs.curRound.timedoutPlayers.push(gameIndex);
+    }    
     // remove player unless its time out deferred
     const deferTimeout =
         ggs.gamePhase === GAME_PHASE.DOUBT_LIFT_CUPS ||
@@ -605,6 +601,16 @@ io.on('connection', (socket) => {
     }
     else {
         removeActivePlayerFromGame(ggs, gameIndex);
+    }
+
+    //---------------------------------------
+    // special case:
+    // never palofijo if < 3 players
+    // maybe getDoubtResult marked player palofijo
+    // but after time-out(s) only 2 players left 
+    //---------------------------------------
+    if (ggs.GetNumberPlayersStillIn() < 3) {
+      ggs.curRound.doubtLoserPaloFijo = false;
     }
 
     //---------------------------------------
@@ -2295,14 +2301,13 @@ function PostRound(ggs, lobbyId) {
         ggs.whosTurn = (doubtLoserTimedOut ? ggs.curRound.doubtWinner: doubtLoser);
         // see if palofijo
         if (ggs.bPaloFijoAllowed && ggs.GetNumberPlayersStillIn() > 2) {
-            if (ggs.allSticks[ggs.doubtLoser] === ggs.maxSticks - 1) {
+            if (ggs.allSticks[doubtLoser] === ggs.maxSticks - 1) {
                 ggs.bPaloFijoRound = true;
             }
         }
 
         ggs.bBlinkSticks = true;
-        ggs.bBlinkSticksPlayer = ggs.doubtLoser;
-        //io.to(lobbyId).emit('blinkSticks', ggs.curRound.doubtLoser);
+        ggs.bBlinkSticksPlayer = doubtLoser;
     }
     
     //------------------------------------------------------------

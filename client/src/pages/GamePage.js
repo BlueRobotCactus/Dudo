@@ -967,12 +967,16 @@ import { STICKS_BLINK_TIME, SHOWN_DICE_BLINK_TIME, SHAKE_CUPS_TIME, GAME_PHASE, 
     if (ggc.curRound.doubtLoserOut) {
       s4 += ", and is OUT.";
     }
-    for (let i = 0; i < MAX_CONNECTIONS; i++) {
-      if (ggc.allConnectionStatus[i] === CONN_PLAYER_TIMED_OUT ||
-          ggc.allConnectionStatus[i] === CONN_PLAYER_TIMED_OUT_DEFER) {
-        s4 += "\n" + ggc.allParticipantNames[i] + " left the lobby, and is OUT.";
-      }
+
+    for (const i of ggc.curRound.timedoutPlayers) {
+      s4 += "\n" + ggc.allParticipantNames[i] + " left the lobby, and is OUT.";
     }
+//    for (let i = 0; i < MAX_CONNECTIONS; i++) {
+//      if (ggc.allConnectionStatus[i] === CONN_PLAYER_TIMED_OUT ||
+//          ggc.allConnectionStatus[i] === CONN_PLAYER_TIMED_OUT_DEFER) {
+//        s4 += "\n" + ggc.allParticipantNames[i] + " left the lobby, and is OUT.";
+//      }
+//    }
 
     if (ggc.bWinnerGame) {
       s5 = ggc.allParticipantNames[ggc.whoWonGame] + " WINS THE GAME!!";
