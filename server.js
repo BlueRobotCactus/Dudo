@@ -332,7 +332,7 @@ io.on('connection', (socket) => {
   // confetti and message if by time-out
   // reason is 'normal' or 'timeout'
   //---------------------------------------
-  function announceGameOver(lobbyId, ggs, reason, timedOutPlayerName = '') {
+  function announceGameOver(lobbyId, ggs, reason) {
     const winnerIndex = ggs.whoWonGame;
 
     io.to(lobbyId).emit('gameOver', {
@@ -340,15 +340,14 @@ io.on('connection', (socket) => {
       winnerGuid: ggs.allParticipantGuid[winnerIndex],
       winnerName: ggs.allParticipantNames[winnerIndex],
       reason,
-      timedOutPlayerName
     });
-}
+  }
 
   //---------------------------------------
   // end of game processing
   // reason is 'normal' or 'timeout'
   //---------------------------------------
-  function processEndOfGame(lobbyId, ggs, reason, timedOutPlayerName = '') {
+  function processEndOfGame(lobbyId, ggs, reason) {
       const lobby = lobbies[lobbyId];
       if (!lobby) return;
 
@@ -365,7 +364,7 @@ io.on('connection', (socket) => {
       lobby.lobbySession.Games.push(snapshot);
 
       // announce winner
-      announceGameOver(lobbyId, ggs, reason, timedOutPlayerName);
+      announceGameOver(lobbyId, ggs, reason);
 
       // physically remove timed-out players
       GarbageCollection(lobby);
@@ -454,7 +453,6 @@ io.on('connection', (socket) => {
 
     // Record why this round ended.
     ggs.curRound.endRoundCause = ROUND_END_TIMEOUT;
-    ggs.curRound.timeoutPlayer = timedOutIndex;
 
     // Preserve the aborted round in round history.
     ggs.Rounds.push(ggs.curRound);
@@ -554,6 +552,7 @@ io.on('connection', (socket) => {
     if (!lobby) return;
 
     const ggs = lobby.game;
+    const phaseAtTimeout = ggs.gamePhase;
     const gameIndex = findGameIndexByGuid(ggs, guid);
     if (gameIndex === -1) return;
 
@@ -569,7 +568,8 @@ io.on('connection', (socket) => {
 
     // If game not in progress, just leave them disconnected/out of lobby state
     if (!ggs.GAME_IN_PROGRESS) {
-      io.to(lobbyId).emit('disconnectCountdownEnded', { playerName, reason: 'timed_out' });
+      io.to(lobbyId).emit('disconnectCountdownEnded', 
+        { playerName, reason: 'timed_out', phaseAtTimeout, gameOver: ggs.GetNumberPlayersStillIn() < 2 });
       io.to(lobbyId).emit('lobbyData', lobby);
       io.emit('lobbiesList', getLobbiesList());
       turnPauseOFF (ggs);
@@ -631,7 +631,6 @@ io.on('connection', (socket) => {
         if (ggs.curRound) {
           // Preserve the aborted round
           ggs.curRound.endRoundCause = ROUND_END_TIMEOUT;
-          ggs.curRound.timeoutPlayer = gameIndex;
           ggs.Rounds.push(ggs.curRound);
 
           if (ggs.firstRound) {
@@ -658,18 +657,33 @@ io.on('connection', (socket) => {
         ggs.PrepareNextGame();
         break;
       case GAME_PHASE.DOUBT_LIFT_CUPS:
-        // remaining player is the winner
-        const winnerIndex = ggs.GetIndexFirstPlayerStillIn();
-        ggs.bWinnerGame = true;
-        ggs.whoWonGame = winnerIndex;          
+        if (ggs.curRound.doubtLoserOut) {
+          // The doubt already decided the game.
+          // A timeout during display/lift-cup does not change the winner.
+          ggs.bWinnerGame = true;
+          ggs.whoWonGame = ggs.curRound.doubtWinner;
+        }
+        else {
+          // Doubt did not eliminate anybody, so remaining player is the winner.
+          const winnerIndex = ggs.GetIndexFirstPlayerStillIn();
+          ggs.bWinnerGame = true;
+          ggs.whoWonGame = winnerIndex;
+        }
         continueAfterLiftCup(lobbyId, ggs);
         break;        
       case GAME_PHASE.DOUBT_SHOW_RESULT:
-        // remaining player is the winner
-        const wIndex = ggs.GetIndexFirstPlayerStillIn();
-        ggs.bWinnerGame = true;
-        ggs.whoWonGame = wIndex;
-        // make other players see the (new) result
+        if (ggs.curRound.doubtLoserOut) {
+          // The doubt already decided the game.
+          // A timeout while showing the result does not change the winner.
+          ggs.bWinnerGame = true;
+          ggs.whoWonGame = ggs.curRound.doubtWinner;
+        }
+        else {
+          // Doubt did not eliminate anybody, so remaining player is the winner.
+          const winnerIndex = ggs.GetIndexFirstPlayerStillIn();
+          ggs.bWinnerGame = true;
+          ggs.whoWonGame = winnerIndex;
+        }
         ggs.resetNextRoundDidSay();
         continueAfterShowResult(lobbyId, ggs);
         break;
@@ -720,7 +734,8 @@ io.on('connection', (socket) => {
     //---------------------------------------
     // finish up
     //---------------------------------------
-    io.to(lobbyId).emit('disconnectCountdownEnded', { playerName, reason: 'timed_out' });
+    io.to(lobbyId).emit('disconnectCountdownEnded', 
+      { playerName, reason: 'timed_out', phaseAtTimeout, gameOver: ggs.GetNumberPlayersStillIn() < 2 });
     io.to(lobbyId).emit('lobbyData', lobby);
     io.emit('lobbiesList', getLobbiesList());
     turnPauseOFF(ggs);
@@ -1451,13 +1466,7 @@ io.on('connection', (socket) => {
       oldStatus === CONN_PLAYER_IN_DISCONN
     ) {
       clearDisconnectTimer(lobbyId, authedPlayer.guid);
-
-      io.to(lobbyId).emit('disconnectCountdownEnded',
-        {
-          playerName,
-          reason: 'reconnected'
-        }
-      );
+      io.to(lobbyId).emit('disconnectCountdownEnded', {playerName, reason: 'reconnected'});
 
       turnPauseOFF(ggs);
     }

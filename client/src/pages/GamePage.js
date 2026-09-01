@@ -475,7 +475,7 @@ import { STICKS_BLINK_TIME, SHOWN_DICE_BLINK_TIME, SHAKE_CUPS_TIME, GAME_PHASE, 
     if (data.reason === 'timeout') {
       setOkTitle('Game Over');
       setOkMessage(
-        `${data.timedOutPlayerName} timed out.\n${data.winnerName} WINS THE GAME!!`
+        `All players have left the lobby.\n${data.winnerName} WINS THE GAME!!`
       );
 
       setOnOkHandler(() => () => {
@@ -1030,15 +1030,24 @@ import { STICKS_BLINK_TIME, SHOWN_DICE_BLINK_TIME, SHAKE_CUPS_TIME, GAME_PHASE, 
     setShowCountdown(true);
   };
 
-  const handleDisconnectCountdownEnded = ({ playerName, reason }) => {
-    console.log(`Countdown for ${playerName} ended: ${reason}`);
+  const handleDisconnectCountdownEnded = ({ playerName, reason, phaseAtTimeout, gameOver}) => {
+    console.log(`Countdown for ${playerName} ended: reason=${reason}, phaseAtTimeout=${phaseAtTimeout}`);
 
     if (reason === 'reconnected') {
       setCountdownMessage(`${playerName} reconnected.`);
-    } else {
-      setCountdownMessage(`${playerName} did not reconnect in time.`);
     }
-
+    else if (gameOver) {
+      setShowCountdown(false);
+      return;
+    }
+    else if (phaseAtTimeout === GAME_PHASE.BIDDING) {
+      setCountdownMessage(`${playerName} left the lobby and is OUT.\n` +
+        `This round is cancelled. A new round will begin.`
+      );
+    }
+    else {
+      setCountdownMessage(`${playerName} left the lobby and is OUT.`);
+    }
     setTimeout(() => setShowCountdown(false), 3000);
   };
 
@@ -1663,7 +1672,8 @@ useEffect(() => {
                   borderRadius: '10px',
                   fontSize: '18px',
                   textAlign: 'center',
-                  fontWeight: 'bold'
+                  fontWeight: 'bold',
+                  whiteSpace: 'pre-line'
                 }}
               >
                 {countdownMessage}
