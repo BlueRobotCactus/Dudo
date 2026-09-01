@@ -3,10 +3,8 @@ import React, { useState, useEffect, useRef, useContext } from 'react';
 import './PlayerGrid.css';
 import { SocketContext } from '../SocketContext.js';
 import { ImageRefsContext } from '../ImageRefsContext.js';
-import { DudoGame, DudoRound } from '../shared/DudoGame.js';
 import { MAX_CONNECTIONS, CONN_PLAYER_IN, CONN_PLAYER_OUT,
-         CONN_PLAYER_IN_DISCONN, CONN_PLAYER_OUT_DISCONN, 
-         CONN_PLAYER_TIMED_OUT, CONN_PLAYER_TIMED_OUT_DEFER } from '../shared/DudoGame.js';
+         CONN_PLAYER_IN_DISCONN, CONN_PLAYER_OUT_DISCONN, CONN_PLAYER_TIMED_OUT_DEFER } from '../shared/DudoGame.js';
 import { STICKS_BLINK_TIME, SHOWN_DICE_BLINK_TIME, SHAKE_CUPS_TIME, GAME_PHASE } from '../shared/DudoGame.js';
 
 //************************************************************
@@ -30,7 +28,7 @@ export function PlayerGrid({ lobbyId, ggc, myIndex, cc }) {
   const BUBBLE_SHOW_TIME = 3000;
 
   // get our socket so we can emit
-  const { socket, socketId, connected } = useContext(SocketContext);
+  const { socket } = useContext(SocketContext);
 
   // images
   const {
@@ -154,7 +152,7 @@ export function PlayerGrid({ lobbyId, ggc, myIndex, cc }) {
   //--------------------------------------------------------
   let cupImageToShow;
 
-  if (ggc.allConnectionStatus[cc] == CONN_PLAYER_OUT || !ggc.GAME_IN_PROGRESS) {
+  if (ggc.allConnectionStatus[cc] === CONN_PLAYER_OUT || !ggc.GAME_IN_PROGRESS) {
     cupImageToShow = cupUpImageRef.current;
   } else if ((ggc.gamePhase === GAME_PHASE.DOUBT_LIFT_CUPS || ggc.gamePhase === GAME_PHASE.DOUBT_SHOW_RESULT) && ggc.doubtDidLiftCup[cc]) {
     cupImageToShow = cupUpImageRef.current;
@@ -199,15 +197,15 @@ export function PlayerGrid({ lobbyId, ggc, myIndex, cc }) {
 
   // fill in the values
   if (ggc.GAME_IN_PROGRESS) {
-    if (ggc.allConnectionStatus[cc] == CONN_PLAYER_IN ||
-        ggc.allConnectionStatus[cc] == CONN_PLAYER_IN_DISCONN ||
-        ggc.allConnectionStatus[cc] == CONN_PLAYER_TIMED_OUT_DEFER) {
+    if (ggc.allConnectionStatus[cc] === CONN_PLAYER_IN ||
+        ggc.allConnectionStatus[cc] === CONN_PLAYER_IN_DISCONN ||
+        ggc.allConnectionStatus[cc] === CONN_PLAYER_TIMED_OUT_DEFER) {
       let x, y, w, h;
       for (let i = 0; i < 5; i++) {
         const value = ggc.dice[cc][i];
         if (ggc.bDiceHidden[cc][i]) {
           // hidden dice in upper box
-          if (cc == myIndex) {
+          if (cc === myIndex) {
             // if me, show the die
             diceImageTopList[cc][i] = diceImagesRef.current[value];
             if (ggc.bDiceHilite[cc][i]) {
@@ -311,7 +309,7 @@ export function PlayerGrid({ lobbyId, ggc, myIndex, cc }) {
   //--------------------------------------------------------
   //  for debugging
   //  const name = ggc.allParticipantNames[0];
-  //  if (name.length == 2) {
+  //  if (name.length === 2) {
   //    adjustedFontSize = Number(name) / 10;
   //  }
 
@@ -422,7 +420,7 @@ export function PlayerGrid({ lobbyId, ggc, myIndex, cc }) {
     if (ggc.allConnectionStatus[cc] === CONN_PLAYER_OUT) {
       showText = "I'm out.";
     }
-    if (ggc.allConnectionStatus[cc] == CONN_PLAYER_IN) {
+    if (ggc.allConnectionStatus[cc] === CONN_PLAYER_IN) {
       // look for this player's last bid
       let bidText = '';
       for (let i = ggc.curRound.numBids - 1; i >= 0; i--) {

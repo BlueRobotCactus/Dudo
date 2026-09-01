@@ -24,9 +24,8 @@ import { GameSettingsDlg } from '../Dialogs.js';
 import { SetGameParametersDlg } from '../Dialogs.js';
 import { BidDlg } from '../Dialogs.js';
 
-import { MAX_CONNECTIONS, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER,
-         CONN_PLAYER_TIMED_OUT, CONN_PLAYER_TIMED_OUT_DEFER, } from '../shared/DudoGame.js';
-import { STICKS_BLINK_TIME, SHOWN_DICE_BLINK_TIME, SHAKE_CUPS_TIME, GAME_PHASE, GetGamePhaseName } from '../shared/DudoGame.js';
+import { MAX_CONNECTIONS, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, } from '../shared/DudoGame.js';
+import { STICKS_BLINK_TIME, SHAKE_CUPS_TIME, GAME_PHASE, GetGamePhaseName } from '../shared/DudoGame.js';
 
   //************************************************************
   // GamePage function
@@ -43,13 +42,6 @@ import { STICKS_BLINK_TIME, SHOWN_DICE_BLINK_TIME, SHAKE_CUPS_TIME, GAME_PHASE, 
     const navigate = useNavigate();
 
     const {
-      cupDownImageRef,
-      cupUpImageRef,
-      diceImagesRef,
-      diceHiddenImageRef,
-      stickImageRef,
-      directionLeftImageRef,
-      directionRightImageRef,
       imagesReady,
     } = useContext(ImageRefsContext);
 
@@ -79,9 +71,9 @@ import { STICKS_BLINK_TIME, SHOWN_DICE_BLINK_TIME, SHAKE_CUPS_TIME, GAME_PHASE, 
     
     // Row2
     // game settings
-    const [row2NumSticks, setRow2NumSticks] = useState("3");
-    const [row2PasoAllowed, setRow2PasoAllowed] = useState(true);
-    const [row2PalofijoAllowed, setRow2PalofijoAllowed] = useState(true);
+    //const [row2NumSticks, setRow2NumSticks] = useState("3");
+    //const [row2PasoAllowed, setRow2PasoAllowed] = useState(true);
+    //const [row2PalofijoAllowed, setRow2PalofijoAllowed] = useState(true);
 
     // bid
     //const [showBidPanel, setShowBidPanel] = useState(false);  // obsolete
@@ -91,18 +83,18 @@ import { STICKS_BLINK_TIME, SHOWN_DICE_BLINK_TIME, SHAKE_CUPS_TIME, GAME_PHASE, 
     const [row2CurrentBid, setRow2CurrentBid] = useState('');
     const [row2BidToWhom, setRow2BidToWhom] = useState('');
 
-    const [thisBid, setThisBid] = useState('');
+    //const [thisBid, setThisBid] = useState('');
     const [selectedBid, setSelectedBid] = useState('');
     const [canShowShake, setCanShowShake] = useState(false);
     const [bidShowShake, setBidShowShake] = useState(false);
 
     // show doubt
-    const [row2DoubtWho, setRow2DoubtWho] = useState('');
-    const [row2DoubtBid, setRow2DoubtBid] = useState('');
-    const [row2DoubtResult, setRow2DoubtResult] = useState('');
-    const [row2DoubtStick, setRow2DoubtStick] = useState('');
-    const [row2DoubtWin, setRow2DoubtWin] = useState('');
-    const [row2DoubtShowButton, setRow2DoubtShowButton] = useState('');
+    //const [row2DoubtWho, setRow2DoubtWho] = useState('');
+    //const [row2DoubtBid, setRow2DoubtBid] = useState('');
+    //const [row2DoubtResult, setRow2DoubtResult] = useState('');
+    //const [row2DoubtStick, setRow2DoubtStick] = useState('');
+    //const [row2DoubtWin, setRow2DoubtWin] = useState('');
+    //const [row2DoubtShowButton, setRow2DoubtShowButton] = useState('');
     
     // Row3 (TableGrid)
     const fixedRef = useRef(null);
@@ -128,7 +120,7 @@ import { STICKS_BLINK_TIME, SHOWN_DICE_BLINK_TIME, SHAKE_CUPS_TIME, GAME_PHASE, 
     // Bid
     const [showBidDlg, setShowBidDlg] = useState(false);
 
-    // OK
+    // OKhistShowingyPosIncr
     const [showOkDlg, setShowOkDlg] = useState(false);
     const [okPosition, setOkPosition] = useState({ x: 200, y: 200 });
     const [okTitle, setOkTitle] = useState('');
@@ -2234,6 +2226,7 @@ function RenderGridBid() {
   /*----------------------------------------------
           DOUBT (obsolete)
   -----------------------------------------------*/
+  /*
   function RenderDoubt () {
     return (
       <div className="border border-primary rounded p-1">
@@ -2267,7 +2260,7 @@ function RenderGridBid() {
       </div>
     )
   }
-
+*/
 }
 
 export default GamePage;

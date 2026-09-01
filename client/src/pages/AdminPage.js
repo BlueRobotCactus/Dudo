@@ -17,10 +17,11 @@ function formatDateTimeLocal(ts) {
 //-----------------------------------
 // show GUID
 //-----------------------------------
+/*
 const handleShowGuid = (guid, username) => {
   window.prompt(`GUID for ${username}:`, guid);
 };
-
+*/
 //************************************************************
 // AdminPage function
 //************************************************************

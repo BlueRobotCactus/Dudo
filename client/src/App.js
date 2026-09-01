@@ -1,11 +1,8 @@
-'use strict';
-
 import React, { useState } from 'react';
 import {
   BrowserRouter as Router,
   Routes,
   Route,
-  Navigate
 } from 'react-router-dom';
 import './App.css';
 
@@ -22,12 +19,6 @@ function App() {
   const [playerName, setPlayerName] = useState(
     () => localStorage.getItem('playerName') || ''
   );
-
-  // Helper to update localStorage and state
-  const savePlayerName = (name) => {
-    localStorage.setItem('playerName', name);
-    setPlayerName(name);
-  };
 
   return (
    <div className="app-wrapper">

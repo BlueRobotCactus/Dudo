@@ -1,5 +1,3 @@
-'use strict';
-
 import React, { useContext } from 'react';
 import { ImageRefsContext } from '../ImageRefsContext.js';
 import { CONN_PLAYER_IN, CONN_PLAYER_OUT, GAME_PHASE } from '../shared/DudoGame.js';

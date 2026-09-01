@@ -1,5 +1,3 @@
-'use strict';
-
 import { LobbySession, DudoGame, DudoRound, DudoBid } from './client/src/shared/DudoGame.js';
 
 import { MAX_CONNECTIONS, CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYER_TIMED_OUT, CONN_PLAYER_TIMED_OUT_DEFER,

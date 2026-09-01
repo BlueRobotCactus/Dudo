@@ -3,7 +3,6 @@ import React, { useEffect, useState, useContext } from 'react';
 import './TableGrid.css';
 import { ImageRefsContext } from '../ImageRefsContext.js';
 import PlayerGrid from './PlayerGrid';
-import PlayerCard from './PlayerCard.js';
 
 import { MAX_CONNECTIONS, CONN_PLAYER_IN, CONN_PLAYER_OUT, 
          CONN_PLAYER_IN_DISCONN, CONN_PLAYER_OUT_DISCONN, 
@@ -45,7 +44,7 @@ export function TableGrid({lobbyId, ggc, myIndex, backgroundColor}) {
   if (debugging) {
     const name = localStorage.getItem('playerName');
     let numPlayers = 1;
-    if (name.length == 1) {
+    if (name.length === 1) {
       numPlayers = Number(name);
     }
     for (let i=0; i<numPlayers; i++) {
@@ -63,7 +62,7 @@ export function TableGrid({lobbyId, ggc, myIndex, backgroundColor}) {
       ccList.push(cc);
     }      
       cc++;
-      if (cc == MAX_CONNECTIONS) { 
+      if (cc === MAX_CONNECTIONS) { 
         cc = 0;
       }
     }

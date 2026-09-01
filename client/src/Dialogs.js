@@ -1,5 +1,3 @@
-'use strict';
-
 import React, { useState, useRef, useEffect } from 'react';
 import Modal from 'react-bootstrap/Modal';
 import Button from 'react-bootstrap/Button';
@@ -270,12 +268,12 @@ export function BidDlg({
     ggc.parseBid(bid);
     for (let i = 0; i < 5; i++) {
         if (ggc.bDiceHidden[myIndex][i]) {
-            if (ggc.dice[myIndex][i] == ggc.parsedOfWhat) {
+            if (ggc.dice[myIndex][i] === ggc.parsedOfWhat) {
                 return true;
             }
             if (!ggc.bPaloFijoRound) {
                 // aces wild if not palofijo
-                if (ggc.dice[myIndex][i] == 1) {
+                if (ggc.dice[myIndex][i] === 1) {
                   return true;
                 }
             }

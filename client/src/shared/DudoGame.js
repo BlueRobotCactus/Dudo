@@ -1,5 +1,3 @@
-'use strict';
-
 // connectionStatus codes
 // &&& these are more like player status codes
 const MAX_CONNECTIONS = 10;

@@ -3,7 +3,7 @@ import { ImageRefsContext } from '../ImageRefsContext';
 
 export function BidGrid({ validBids, onBidSelect }) {
   const { diceImagesRef, imagesReady } = useContext(ImageRefsContext);
-  const numRows = validBids.length;
+//  const numRows = validBids.length;
   const numCols = validBids[0]?.length || 0;
 
   const [selectedBid, setSelectedBid] = useState(null);
