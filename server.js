@@ -10,9 +10,7 @@ import http from 'http';
 import { Server } from 'socket.io';
 import cors from 'cors';
 import { v4 as uuidv4 } from 'uuid';
-import fs from 'fs';
-//import { getPool } from './db.js';    goes away with CloudSQL
-import { playersRef } from './firestoreDB.js';  // replaces the above
+import { playersRef } from './firestoreDB.js';
 import bcrypt from 'bcrypt';
 import session from 'express-session';
 
@@ -304,6 +302,40 @@ io.on('connection', (socket) => {
     }
   }
 
+
+  //---------------------------------------
+  // Check for a winner after a doubt
+  // when somebody has timed out
+  //---------------------------------------
+  function checkForWinnerAfterDoubtTimeout(ggs, timedOutIndex) {
+    if (ggs.GetNumberPlayersStillIn() !== 2) { return; }
+    if (!ggs.curRound.doubtLoserOut) { return; }
+
+    // If the doubt loser timed out, there are still
+    // two other players alive. No winner yet.
+    if (timedOutIndex === ggs.curRound.doubtLoser) { return; }
+
+    // If the doubt winner timed out, the winner is the
+    // remaining active player who is not the doubt loser.
+    if (timedOutIndex === ggs.curRound.doubtWinner) {
+        for (let i = 0; i < MAX_CONNECTIONS; i++) {
+            if (ggs.allConnectionStatus[i] === CONN_PLAYER_IN &&
+                i !== ggs.curRound.doubtLoser) {
+
+                ggs.bWinnerGame = true;
+                ggs.whoWonGame = i;
+                return;
+            }
+        }
+        return;
+      }
+
+    // An unrelated player timed out.
+    // The doubt loser is going OUT, so the doubt winner wins.
+    ggs.bWinnerGame = true;
+    ggs.whoWonGame = ggs.curRound.doubtWinner;
+  }
+
   //---------------------------------------
   // Garbage collection
   // (clean-up disconnected players)
@@ -367,12 +399,37 @@ io.on('connection', (socket) => {
       // physically remove timed-out players
       GarbageCollection(lobby);
 
+      // If the host timed out during this game,
+      // there can be no next game in this lobby.
+      if (lobby.closeWhenGameEnds) {
+          closeLobby(lobbyId);
+          return;
+      }
+
       // prepare clean state for another game
       ggs.PrepareNextGame();
 
       io.to(lobbyId).emit('lobbyData', lobby);
       io.emit('lobbiesList', getLobbiesList());
       io.to(lobbyId).emit('gameStateUpdate', lobby.game);    
+  }
+
+  //---------------------------------------
+  // close the lobby
+  //---------------------------------------
+  function closeLobby(lobbyId) {
+      const lobby = lobbies[lobbyId];
+      if (!lobby) return;
+
+      const now = new Date();
+      lobby.lobbySession.endDate = GetDate(now);
+      lobby.lobbySession.endTime = GetTime(now);
+
+      io.to(lobbyId).emit('forceLeaveLobby', lobby);
+
+      delete lobbies[lobbyId];
+
+      io.emit('lobbiesList', getLobbiesList());
   }
 
   //---------------------------------------
@@ -575,17 +632,25 @@ io.on('connection', (socket) => {
       return;
     }
 
+    //---------------------------------------
     // Game is in progress 
-    const hadAnyBid =
-      ggs.curRound &&
-      ggs.curRound.numBids > 0;
+    //---------------------------------------
+//    const hadAnyBid = (ggs.curRound && ggs.curRound.numBids > 0);
+//    const originalStarter = ggs.curRound?.startingPlayerIndex ?? ggs.whosTurn;
 
-    const originalStarter = ggs.curRound?.startingPlayerIndex ?? ggs.whosTurn;
+    // If the host actually timed out during a game,
+    // allow the game to finish, then close the lobby.
+    if (guid === lobby.hostGuid) {
+        lobby.closeWhenGameEnds = true;
+    }
 
     // Record this timeout as belonging to this round
-    if (!ggs.curRound.timedoutPlayers.includes(gameIndex)) {
-        ggs.curRound.timedoutPlayers.push(gameIndex);
-    }    
+    if (ggs.curRound) {
+        if (!ggs.curRound.timedoutPlayers.includes(gameIndex)) {
+            ggs.curRound.timedoutPlayers.push(gameIndex);
+        }
+    }
+
     // remove player unless its time out deferred
     const deferTimeout =
         ggs.gamePhase === GAME_PHASE.DOUBT_LIFT_CUPS ||
@@ -608,7 +673,9 @@ io.on('connection', (socket) => {
     // but after time-out(s) only 2 players left 
     //---------------------------------------
     if (ggs.GetNumberPlayersStillIn() < 3) {
-      ggs.curRound.doubtLoserPaloFijo = false;
+      if (ggs.curRound) {
+        ggs.curRound.doubtLoserPaloFijo = false;
+      }
     }
 
     //---------------------------------------
@@ -652,6 +719,12 @@ io.on('connection', (socket) => {
         announceGameOver(lobbyId, ggs,'timeout', playerName);
 
         GarbageCollection(lobby);
+
+        if (lobby.closeWhenGameEnds) {
+          closeLobby(lobbyId);
+          return;
+        }
+
         ggs.PrepareNextGame();
         break;
       case GAME_PHASE.DOUBT_LIFT_CUPS:
@@ -707,17 +780,11 @@ io.on('connection', (socket) => {
         continueAfterBiddingTimeout(lobbyId, ggs, gameIndex);
         break;
       case GAME_PHASE.DOUBT_LIFT_CUPS:
-        if (ggs.GetNumberPlayersStillIn() === 2 && ggs.curRound.doubtLoserOut) {
-          ggs.bWinnerGame = true;
-          ggs.whoWonGame = ggs.curRound.doubtWinner;
-        }
+        checkForWinnerAfterDoubtTimeout(ggs, gameIndex);
         continueAfterLiftCup(lobbyId, ggs);
         break;
       case GAME_PHASE.DOUBT_SHOW_RESULT:
-        if (ggs.GetNumberPlayersStillIn() === 2 && ggs.curRound.doubtLoserOut) {
-          ggs.bWinnerGame = true;
-          ggs.whoWonGame = ggs.curRound.doubtWinner;
-        }
+        checkForWinnerAfterDoubtTimeout(ggs, gameIndex);
         // make other players see the (new) result
         ggs.resetNextRoundDidSay();
         continueAfterShowResult(lobbyId, ggs);
@@ -827,31 +894,25 @@ io.on('connection', (socket) => {
   ) {
       setTimeout(() => {
           const lobby = lobbies[lobbyId];
-
-          if (!lobby || !lobby.game) {
-              return;
-          }
+          if (!lobby || !lobby.game) { return; }
 
           const ggs = lobby.game;
-
           const gameIndex = findGameIndexByGuid(ggs, playerGuid);
 
           //The participant may already have been removed.
-          if (gameIndex === -1) {
-              return;
-          }
+          if (gameIndex === -1) { return; }
 
           // A successful reconnect assigns a new socket ID.
-          if (ggs.allConnectionID[gameIndex]) {
-              return;
-          }
+          if (ggs.allConnectionID[gameIndex]) { return; }
 
           // Make sure this is still the same disconnected participant for whom this timer was started.
-          if (
-              ggs.allConnectionStatus[gameIndex] !==
-              expectedDisconnectedStatus
-          ) {
-              return;
+          if (ggs.allConnectionStatus[gameIndex] !== expectedDisconnectedStatus) { return; }
+
+          // If the host did not reconnect before the game started,
+          // close the entire lobby.
+          if (playerGuid === lobby.hostGuid && !ggs.GAME_IN_PROGRESS) {
+            closeLobby(lobbyId);
+            return;
           }
 
           // The participant did not reconnect within the silent period. Remove the slot.
@@ -894,6 +955,7 @@ io.on('connection', (socket) => {
       hostGuid: authedPlayer.guid,
       host: hostName,              // optional display field
       hostSocketId: socket.id,     // temporary, can keep for now
+      closeWhenGameEnds: false,
       players: [{
         guid: authedPlayer.guid,
         socketId: socket.id,
@@ -1310,29 +1372,7 @@ io.on('connection', (socket) => {
     if (removedPlayer.guid === lobby.hostGuid) { 
       console.log(`server.js: Host left lobby. Removing lobby: ${lobbyId}`);
 
-      // log the end date/time
-      const now = new Date();
-      lobbies[lobbyId].lobbySession.endDate = GetDate(now);
-      lobbies[lobbyId].lobbySession.endTime = GetTime(now);
-
-      // delete the lobby from the lobbies array
-      delete lobbies[lobbyId];
-
-      // tell everybody else to leave
-      io.to(lobbyId).emit('lobbyData', lobby);
-      io.emit('lobbiesList', getLobbiesList());
-      io.to(lobbyId).emit('forceLeaveLobby', lobby);
-
-      // write the lobby object to file &&&
-      try {
-        const file = './temp.json';
-        const str = JSON.stringify(lobby, null, 2);
-        fs.writeFileSync(file, str, 'utf-8');
-        console.log(`Debug dump written to ${file}`);
-      } catch (err) {
-        console.error('Failed to write debug file:', err);
-      }
-
+      closeLobby(lobbyId);
       return;
     }
     
