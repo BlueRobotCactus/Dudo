@@ -6,6 +6,7 @@ import { DudoGame } from '../shared/DudoGame.js'
 import { TableGrid } from './TableGrid.js'
 import { BidGrid } from './BidGrid.js'
 import confetti from 'canvas-confetti';
+import Dropdown from 'react-bootstrap/Dropdown';
 
 import tableBackground from '../assets/table-background.png';
 import tableBackgroundFaded from '../assets/table-background-faded.png';
@@ -2031,6 +2032,9 @@ useEffect(() => {
     )
   }
 
+  /*----------------------------------------------
+          Render Bid
+  -----------------------------------------------*/
   function RenderBid () {
     return (
       //----- MY TURN -----//
@@ -2081,16 +2085,37 @@ useEffect(() => {
                 columnGap: '0.75rem',
               }}
             >
-              {/* Select box */}
-              <select
-                value={selectedBid}
-                onChange={(e) => setSelectedBid(e.target.value)}
-                className="form-select form-select-sm w-auto"
-                style={{ minWidth: 0, width: 'auto' }}        >
-                {possibleBids.map((bid) => (
-                  <option key={bid} value={bid}>{bid}</option>
-                ))}
-              </select>
+              {/* Select bid dropdown */}
+              <Dropdown>
+                <Dropdown.Toggle
+                  variant="outline-secondary"
+                  size="sm"
+                  style={{
+                    fontSize: '1rem',
+                    minWidth: '90px',
+                    textAlign: 'left',
+                  }}
+                >
+                  {selectedBid}
+                </Dropdown.Toggle>
+
+                <Dropdown.Menu
+                  style={{
+                    maxHeight: '50vh',
+                    overflowY: 'auto',
+                    fontSize: '.875rem',
+                  }}
+                >
+                  {possibleBids.map((bid) => (
+                    <Dropdown.Item
+                      key={bid}
+                      onClick={() => setSelectedBid(bid)}
+                    >
+                      {bid}
+                    </Dropdown.Item>
+                  ))}
+                </Dropdown.Menu>
+              </Dropdown>
 
               {/* Checkbox */}
               <div className="form-check me-2">
@@ -2151,142 +2176,6 @@ useEffect(() => {
       </div>
     )
   }
-
-  /*----------------------------------------------
-          BID USING GRID
-  -----------------------------------------------*/
-function RenderGridBid() {
-  const bidGridRows = bidMatrix.length;
-
-  return (
-    <div className="border border-primary rounded p-2">
-      {/* Row 1: header message (span all 8 cols) */}
-      <div style={{ marginBottom: '0.5rem' }}>
-        <p className="fw-bold mb-1">{row2YourTurnString}</p>
-        <p className="fw-bold mb-0">{row2SpecialPasoString}</p>
-      </div>
-
-      <div
-        className="d-grid"
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(7, auto) auto', // 7 bid columns + 1 right column
-          gridTemplateRows: `repeat(${bidGridRows}, auto)`, // each row of BidGrid = 1 row
-          columnGap: '0.75rem',
-          rowGap: '0.25rem',
-        }}
-      >
-        {/* BidGrid: spans 7 columns and all rows */}
-        <div style={{ gridColumn: '1 / span 7', gridRow: `1 / span ${bidGridRows}` }}>
-          <BidGrid
-            validBids={bidMatrix}
-            onBidSelect={(row, col) => {
-              console.log(`You selected: ${row + 1} x ${col + 1}`);
-              setSelectedBid(`${row + 1} - ${col + 1}`);
-            }}
-          />
-        </div>
-
-        {/* Right-side controls aligned with rows 1–4 */}
-
-        {/* Row 1: Checkbox */}
-        <div style={{ gridColumn: 8, gridRow: 1 }}>
-          <div className="form-check">
-            <input
-              className="form-check-input"
-              type="checkbox"
-              id="showShakeCheckbox"
-              disabled={!canShowShake}
-              checked={bidShowShake}
-              onChange={(e) => setBidShowShake(e.target.checked)}
-            />
-            <label
-              className="form-check-label"
-              htmlFor="showShakeCheckbox"
-              style={{ color: canShowShake ? 'black' : 'gray' }}
-            >
-              Show
-            </label>
-          </div>
-        </div>
-
-        {/* Row 2: Bid button */}
-        <div style={{ gridColumn: 8, gridRow: 2 }}>
-          <button
-            className="btn btn-primary btn-sm w-100"
-            disabled={selectedBid === '--Select--'}
-            onClick={() => handleBidOK(selectedBid, bidShowShake)}
-          >
-            Bid
-          </button>
-        </div>
-
-        {/* Row 3: Doubt button */}
-        <div style={{ gridColumn: 8, gridRow: 3 }}>
-          <button
-            className="btn btn-danger btn-sm text-white w-100"
-            disabled={ggc.curRound.numBids < 1}
-            onClick={() => handleBidOK('DOUBT', bidShowShake)}
-          >
-            Doubt
-          </button>
-        </div>
-
-        {/* Row 4: Paso button */}
-        {ggc.bPasoAllowed && (
-          <div style={{ gridColumn: 8, gridRow: 4 }}>
-            <button
-              className="btn btn-outline-secondary btn-sm w-100"
-              disabled={!ggc.CanPaso()}
-              onClick={() => handleBidOK('PASO', bidShowShake)}
-            >
-              Paso
-            </button>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-  /*----------------------------------------------
-          DOUBT (obsolete)
-  -----------------------------------------------*/
-  /*
-  function RenderDoubt () {
-    return (
-      <div className="border border-primary rounded p-1">
-        <div className="row">
-          <div className="col text-center">
-            <div className="fw-bold">{row2DoubtWho}</div>
-            <div className="fw-bold">{row2DoubtBid}</div>
-            <div className="fw-bold">{row2DoubtResult}</div>
-            <div className="fw-bold">{row2DoubtStick}</div>
-            <div className="fw-bold">{row2DoubtWin}</div>
-            {ggc.gamePhase === GAME_PHASE.DOUBT_LIFT_CUPS && (ggc.doubtMustLiftCup[myIndex]) ? (
-            <button
-              className="btn btn-primary btn-sm"
-              disabled = {ggc.doubtDidLiftCup[myIndex]}
-              onClick={() => socket.emit('liftCup', { lobbyId, index: myIndex })}
-            >
-              Lift Cup
-            </button>
-            ) : null}
-            {ggc.gamePhase === GAME_PHASE.DOUBT_SHOW_RESULT && (ggc.nextRoundMustSay[myIndex]) ? (
-            <button
-              className="btn btn-primary btn-sm"
-              disabled = {ggc.nextRoundDidSay[myIndex]}
-              onClick={() => socket.emit('nextRound', { lobbyId, index: myIndex })}
-            >
-              OK
-            </button>
-            ) : null}
-          </div>
-        </div>
-      </div>
-    )
-  }
-*/
 }
 
 export default GamePage;

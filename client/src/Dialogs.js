@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import Modal from 'react-bootstrap/Modal';
 import Button from 'react-bootstrap/Button';
+import Dropdown from 'react-bootstrap/Dropdown';
 import BidGrid from './pages/BidGrid.js';
 
 //************************************************************
@@ -786,15 +787,35 @@ export function SetGameParametersDlg({
               Number of sticks:
             </div>
             <div className="col-3">
-              <select
-                className="form-select form-select-sm w-auto"
-                value={localSticks}
-                onChange={(e) => setLocalSticks(parseInt(e.target.value))}                
-              >
-                <option value="1">1</option>
-                <option value="2">2</option>
-                <option value="3">3</option>
-              </select>
+              <Dropdown>
+                <Dropdown.Toggle
+                  variant="outline-secondary"
+                  size="sm"
+                  style={{
+                    fontSize: '.875rem',
+                    minWidth: '55px',
+                    textAlign: 'left',
+                  }}
+                >
+                  {localSticks}
+                </Dropdown.Toggle>
+
+                <Dropdown.Menu
+                  style={{
+                    fontSize: '.875rem',
+                    minWidth: '55px',
+                  }}
+                >
+                  {[1, 2, 3].map((sticks) => (
+                    <Dropdown.Item
+                      key={sticks}
+                      onClick={() => setLocalSticks(sticks)}
+                    >
+                      {sticks}
+                    </Dropdown.Item>
+                  ))}
+                </Dropdown.Menu>
+              </Dropdown>
             </div>
           </div>
 
