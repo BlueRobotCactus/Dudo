@@ -615,7 +615,7 @@ export function BidHistoryDlg({
       onHide={onOk}
       centered
       backdrop="static"
-      keyboard={false}
+      keyboard={true}
       dialogClassName="yesno-sm-modal" // custom class for size
     >
 
@@ -623,12 +623,18 @@ export function BidHistoryDlg({
         closeButton
         closeVariant="white"
         className="bg-primary text-white py-1 px-3"
-        style={{ fontSize: '.875rem' }}
+        style={{ fontSize: '1rem' }}
       >
         <Modal.Title style={{ fontSize: '1rem' }}>Bid History (most recent first)</Modal.Title>
       </Modal.Header>
 
       <Modal.Body>
+        <div
+          className="text-center mb-2"
+          style={{ fontSize: '1rem' }}
+        >
+          (click/tap on any player to see their last bid)
+        </div>
         <div
           style={{
             maxHeight: '50vh',

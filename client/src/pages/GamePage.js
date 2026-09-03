@@ -1620,27 +1620,51 @@ useEffect(() => {
           </div>
         </div>
 
-        {/* Row 3: TableGrid takes up remaining height */}
-        <div
-          style={{
-            height: `${availableHeight}px`,
-            overflow: 'hidden',
-            padding: '.5rem',
-            ...backgroundStyle,
-            boxSizing: 'border-box',
-            border: '2px solid red',
-          }}
-        >
+          {/* Row 3: TableGrid takes up remaining height */}
           <div
             style={{
-              width: '100%',
-              height: '100%',
-              ...backgroundStyle
+              height: `${availableHeight}px`,
+              overflow: 'hidden',
+              padding: '.5rem',
+              ...backgroundStyle,
+              boxSizing: 'border-box',
+              border: '2px solid red',
+              position: 'relative',
             }}
           >
-            <TableGrid lobbyId={lobbyId} ggc={ggc} myIndex={myIndex} backgroundColor="transparent" />
+
+            {ggc.GAME_IN_PROGRESS &&
+            ggc.curRound &&
+            ggc.curRound.numBids > 0 && (
+              <button
+                onClick={handleOptBidHistory}
+                className="btn btn-primary btn-sm"
+                style={{
+                  position: 'absolute',
+                  top: '8px',
+                  left: '8px',
+                  zIndex: 10,
+                }}
+              >
+                Bid History
+              </button>
+            )}
+
+            <div
+              style={{
+                width: '100%',
+                height: '100%',
+                ...backgroundStyle
+              }}
+            >
+              <TableGrid
+                lobbyId={lobbyId}
+                ggc={ggc}
+                myIndex={myIndex}
+                backgroundColor="transparent"
+              />
+            </div>
           </div>
-        </div>
 
         {/* Floating countdown overlay */}
         {isFrozen && (
