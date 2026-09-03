@@ -36,6 +36,12 @@ html {
   html {
     font-size: 14px;
   }
+
+  input,
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
 }
 
 @media (max-width: 400px) {
@@ -45,8 +51,8 @@ html {
 }
 
 .app-wrapper {
-  max-width: 750px;  /* limit the width */
-  min-height: 100vh; /* Fill full vertical height */  
+  max-width: 750px;
+  min-height: 100dvh;
   margin: 0 auto;
   width: 100%;
   background-color: white;

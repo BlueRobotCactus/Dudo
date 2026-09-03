@@ -1556,6 +1556,7 @@ useEffect(() => {
   return (
     <>
         {/* Show game phase for DEBUGGING */} 
+        {/*}
         <div
           style={{
             position: 'fixed',
@@ -1573,6 +1574,7 @@ useEffect(() => {
           Phase: {GetGamePhaseName(gameState?.gamePhase)}
           , Game in progress: {ggc.GAME_IN_PROGRESS ? 'YES' : 'NO'} 
         </div>
+        */}
 
          <div
           className="d-flex flex-column"

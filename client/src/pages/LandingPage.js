@@ -610,6 +610,9 @@ function LandingPage({ playerName, setPlayerName }) {
                 <input
                   ref={usernameRef}
                   type="text"
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                  spellCheck="false"
                   className="form-control mb-3"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
@@ -617,7 +620,6 @@ function LandingPage({ playerName, setPlayerName }) {
                   maxLength={30}
                   disabled={authBusy}
                 />
-
                 <label className="form-label">Password</label>
                 <input
                   type="password"
