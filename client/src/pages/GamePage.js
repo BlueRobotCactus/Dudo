@@ -12,7 +12,6 @@ import tableBackground from '../assets/table-background.png';
 import tableBackgroundFaded from '../assets/table-background-faded.png';
 import './GamePage.css';
 
-//import { ConfirmBidDlg } from '../Dialogs.js';
 import { InOutDlg } from '../Dialogs.js';
 import { DirectionDlg } from '../Dialogs.js';
 import { OkDlg } from '../Dialogs.js';
@@ -71,6 +70,8 @@ import { STICKS_BLINK_TIME, SHAKE_CUPS_TIME, GAME_PHASE, GetGamePhaseName } from
     // structure: { playerName: 'Alice', secondsRemaining: 23 }
     const [countdownMessage, setCountdownMessage] = useState('');
     
+    const [showChat, setShowChat] = useState(false);
+
     // Row2
     // game settings
     //const [row2NumSticks, setRow2NumSticks] = useState("3");
@@ -99,6 +100,7 @@ import { STICKS_BLINK_TIME, SHAKE_CUPS_TIME, GAME_PHASE, GetGamePhaseName } from
     //const [row2DoubtShowButton, setRow2DoubtShowButton] = useState('');
     
     // Row3 (TableGrid)
+    const tableGridRef = useRef(null);
     const fixedRef = useRef(null);
     const [availableHeight, setAvailableHeight] = useState(window.innerHeight);
     //const [availableWidth, setAvailableWidth] = useState(window.innerWidth);
@@ -202,7 +204,9 @@ import { STICKS_BLINK_TIME, SHAKE_CUPS_TIME, GAME_PHASE, GetGamePhaseName } from
     const observersRef = useRef([]);
     const leaveLobbyTimerRef = useRef(null);
     const myGuidRef = useRef(''); 
-    const winnerConfettiShownRef = useRef(false);    
+    const winnerConfettiShownRef = useRef(false);
+    const confettiCanvasRef = useRef(null);
+    const tableConfettiRef = useRef(null);
 
     // Refs debugging
     const prevReconnect = useRef(null);
@@ -350,7 +354,6 @@ import { STICKS_BLINK_TIME, SHAKE_CUPS_TIME, GAME_PHASE, GetGamePhaseName } from
 
     // close down any dialogs
     // no, don't, otherwise they'll get nuked when another player refreshes
-    //setShowConfirmBidDlg (false);
     //setShowOkDlg (false);
     //setShowYesNoDlg (false);
     //setShowLiftCupDlg (false);
@@ -452,11 +455,23 @@ import { STICKS_BLINK_TIME, SHAKE_CUPS_TIME, GAME_PHASE, GetGamePhaseName } from
       winnerConfettiShownRef.current = true;
 
       // one confetti shower
-      confetti({
-        particleCount: 150,
-        spread: 100,
-        origin: { y: 0.6 }
-      });
+      // on tblgrid container, not whole app if chat is open
+      if (confettiCanvasRef.current) {
+        if (!tableConfettiRef.current) {
+          tableConfettiRef.current = confetti.create(
+            confettiCanvasRef.current,
+            {
+              resize: true,
+              useWorker: true
+            }
+          );
+        }
+        tableConfettiRef.current({
+          particleCount: 150,
+          spread: 100,
+          origin: { y: 0.6 }
+        });
+      }
 
       // winner stars blink also
       const WINNER_STARS_SECONDS = 5;
@@ -1599,8 +1614,11 @@ useEffect(() => {
         </div>
         */}
 
-         <div
-          className="d-flex flex-column"
+
+
+      <div className={`game-chat-layout ${showChat ? 'chat-open' : ''}`}>
+        <div
+          className="game-panel d-flex flex-column"
           style={{ height: '100vh', overflow: 'hidden', margin: `${UIMargin}`}}
         >
         {/* Fixed Content: NavBar + Row1 + Row2 */}
@@ -1645,6 +1663,7 @@ useEffect(() => {
 
           {/* Row 3: TableGrid takes up remaining height */}
           <div
+            ref={tableGridRef}
             style={{
               height: `${availableHeight}px`,
               overflow: 'hidden',
@@ -1655,7 +1674,17 @@ useEffect(() => {
               position: 'relative',
             }}
           >
-
+            <canvas
+              ref={confettiCanvasRef}
+              style={{
+                position: 'absolute',
+                inset: 0,
+                width: '100%',
+                height: '100%',
+                pointerEvents: 'none',
+                zIndex: 4000
+              }}
+            />
             {ggc.GAME_IN_PROGRESS &&
             ggc.curRound &&
             ggc.curRound.numBids > 0 && (
@@ -1672,6 +1701,22 @@ useEffect(() => {
                 Bid History
               </button>
             )}
+
+  {showBidDlg && (
+    <BidDlg
+      open={showBidDlg}
+      onHide={() => setShowBidDlg(false)}
+      bidMatrix={bidMatrix}
+      yourTurnString={row2YourTurnString}
+      specialPasoString={row2SpecialPasoString}
+      ggc={ggc}
+      myIndex={myIndex}
+      onSubmit={handleBidOK}
+    />
+  )}
+
+
+
 
             <div
               style={{
@@ -1690,6 +1735,8 @@ useEffect(() => {
               />
             </div>
           </div>
+
+
 
         {/* Floating countdown overlay */}
         {isFrozen && (
@@ -1729,22 +1776,10 @@ useEffect(() => {
         {/*-------------------------------------------------------------------
           DIALOGS
         --------------------------------------------------------------------*/}
-        {/*
-        {showConfirmBidDlg && (
-          <ConfirmBidDlg
-            open={showConfirmBidDlg}
-            position={confirmPosition}
-            setPosition={setConfirmPosition}          
-            message={confirmMessage}
-            onYes={handleConfirmBidYes}
-            onNo={handleConfirmBidNo}
-          />
-        )}
-        */}
-
         {showInOutDlg && (
           <InOutDlg
             open={showInOutDlg}
+            container={tableGridRef.current}
             inOutSticks={inOutSticks}
             inOutPaso={inOutPaso}
             inOutPaloFijo={inOutPaloFijo}
@@ -1756,6 +1791,7 @@ useEffect(() => {
         {showDirectionDlg && (
           <DirectionDlg
             open={showDirectionDlg}
+            container={tableGridRef.current}
             title={titleDirection}
             leftText={leftTextDirection}
             rightText={rightTextDirection}
@@ -1764,22 +1800,10 @@ useEffect(() => {
           />
         )}
 
-        {showBidDlg && (
-          <BidDlg
-            open={showBidDlg}
-            onHide={() => setShowBidDlg(false)}
-            bidMatrix={bidMatrix}
-            yourTurnString={row2YourTurnString}
-            specialPasoString={row2SpecialPasoString}
-            ggc={ggc}
-            myIndex={myIndex}
-            onSubmit={handleBidOK}
-          />
-        )}
-
         {showOkDlg && (
           <OkDlg
             open={showOkDlg}
+            container={tableGridRef.current}
             position={okPosition}
             setPosition={setOkPosition}          
             title={okTitle}
@@ -1791,6 +1815,7 @@ useEffect(() => {
         {showYesNoDlg && (
           <YesNoDlg
             open={showYesNoDlg}
+            container={tableGridRef.current}
             position={yesNoPosition}
             setPosition={setYesNoPosition}          
             title={yesNoTitle}
@@ -1808,6 +1833,7 @@ useEffect(() => {
         {showLiftCupDlg && (
           <LiftCupDlg
             open={showLiftCupDlg}
+            container={tableGridRef.current}
             doubtWhoDoubtedWhom={doubtWhoDoubtedWhom}
             doubtDoubtedBid={doubtDoubtedBid}
             liftCupShowButton={liftCupShowButton}
@@ -1819,6 +1845,7 @@ useEffect(() => {
         {showShowDoubtDlg && (
           <ShowDoubtDlg
             open={showShowDoubtDlg}
+            container={tableGridRef.current}
             doubtWhoDoubtedWhom={doubtWhoDoubtedWhom}
             doubtDoubtedBid={doubtDoubtedBid}
             doubtThereAre={doubtThereAre}
@@ -1833,6 +1860,7 @@ useEffect(() => {
         {showBidHistoryDlg && (
           <BidHistoryDlg
             open={showBidHistoryDlg}
+            container={tableGridRef.current}
             bids={reversedBids.current}
             onOk={onBidHistoryOkHandler}
           />
@@ -1841,6 +1869,7 @@ useEffect(() => {
         {showObserversDlg && (
           <ObserversDlg
             open={showObserversDlg}
+            container={tableGridRef.current}
             observers={observersRef.current}
             onOk={onObserversOkHandler}
           />
@@ -1849,6 +1878,7 @@ useEffect(() => {
         {showSessionStatsDlg && (
           <SessionStatsDlg
             open={showSessionStatsDlg}
+            container={tableGridRef.current}
             games={lobby?.lobbySession?.Games || []}
             onOk={onSessionStatsOkHandler}
           />
@@ -1857,6 +1887,7 @@ useEffect(() => {
         {showSetGameParametersDlg && (
           <SetGameParametersDlg
             open={showSetGameParametersDlg}
+            container={tableGridRef.current}
             sticks={gameParametersSticks}
             paso={gameParametersPaso}
             palofijo={gameParametersPalofijo}
@@ -1869,6 +1900,7 @@ useEffect(() => {
         {showGameSettingsDlg && (
           <GameSettingsDlg
             open={showGameSettingsDlg}
+            container={tableGridRef.current}
             sticks={ggc.maxSticks}
             paso={ggc.bPasoAllowed}
             palofijo={ggc.bPaloFijoAllowed}
@@ -1876,7 +1908,23 @@ useEffect(() => {
           />
         )}
 
-      </div>
+
+        </div>  {/* game-panel */}
+
+        <div className="chat-panel">
+          <button
+            className="btn btn-light btn-sm"
+            onClick={() => setShowChat(false)}
+          >
+            Close Chat
+          </button>
+
+          <div className="mt-2">Chat</div>
+        </div>
+
+      </div>  {/* game-chat-layout */}
+
+
 
       {/* OUTSIDE of flex column to allow fixed positioning */}
       {/* <BidPanel show={showBidPanel} onClose={() => setShowBidPanel(false)} /> */}
@@ -2001,6 +2049,14 @@ useEffect(() => {
               className="btn btn-secondary btn-outline-light btn-sm"
             >
               Leave lobby
+            </button>
+          )}
+          {!showChat && (
+            <button
+              onClick={() => setShowChat(true)}
+              className="btn btn-primary btn-outline-light btn-sm ms-auto"
+            >
+              Open Chat
             </button>
           )}
         </div>

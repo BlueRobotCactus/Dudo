@@ -79,102 +79,11 @@ function useDraggableDialog(open, position, setPosition) {
 }
 
 //************************************************************
-// ConfirmBidDlg
-// (obsolete)
-//************************************************************
-export function ConfirmBidDlg({
-  open,
-  message,
-  onYes,
-  onNo,
-  position,
-  setPosition,
-  style = {},
-}) {
-  const { handleMouseDown, handleMouseMove, handleMouseUp, dialogRef } =
-    useDraggableDialog({ open, position, setPosition });
-
-  if (!open) return null;
-  if (open) return null;      // TURNS THIS OFF
-  return (
-    <div
-      onMouseMove={handleMouseMove}
-      onMouseUp={handleMouseUp}
-      style={{
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        width: '100vw',
-        height: '100vh',
-        zIndex: 1000,
-        userSelect: 'none',
-      }}
-    >
-      <div
-        ref={dialogRef}
-        style={{
-          position: 'absolute',
-          top: position.y,
-          left: position.x,
-          backgroundColor: 'white',
-          border: '2px solid darkblue',
-          borderRadius: '10px',
-          overflow: 'hidden',
-          paddingBottom: '20px',
-          textAlign: 'center',
-          minWidth: '280px',
-          maxWidth: '90vw',
-          boxShadow: '0 0 10px rgba(0,0,0,0.25)',
-          ...style,
-        }}
-      >
-        {/* Title Bar */}
-        <div
-          onMouseDown={handleMouseDown}
-          style={{
-            backgroundColor: 'darkblue',
-            color: 'white',
-            padding: '10px 12px',
-            fontWeight: 'bold',
-            cursor: 'move',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-          }}
-        >
-          <span>Confirm Bid</span>
-        </div>
-
-        {/* Message */}
-        <div
-          style={{
-            margin: '20px 10px',
-            fontSize: '18px',
-            whiteSpace: 'pre-line',
-          }}
-        >
-          {message}
-        </div>
-
-        {/* Buttons */}
-        <div className="d-flex justify-content-center gap-3 mt-3">
-          <button className="btn btn-primary" onClick={onYes}>
-            Yes
-          </button>
-          <button className="btn btn-primary" onClick={onNo}>
-            No
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-//************************************************************
 // DirectionDlg
 //************************************************************
 export function DirectionDlg({
   open,
+  container,
   title,
   message = "You start the bidding.\nWhich way?",
   leftText = leftText,
@@ -188,6 +97,9 @@ export function DirectionDlg({
       backdrop="static"
       keyboard={false}
       dialogClassName="yesno-sm-modal"
+      container={container}
+      backdropClassName="tablegrid-modal-backdrop"
+      className="tablegrid-modal"      
     >
       <Modal.Header
         closeVariant="white"
@@ -300,12 +212,12 @@ export function BidDlg({
       <div
         className={`floating-dialog border border-primary rounded-3 bg-white shadow ${minimized ? 'minimized' : ''}`}
         style={{
-          position: 'fixed',
-          top: '10vh',
+          position: 'absolute',
+          top: '10%',
           left: '50%',
+          width: '80%',
           transform: 'translateX(-50%)',
           zIndex: 2000,
-          width: '80vw',
           maxWidth: '600px',
           height: minimized ? 'auto' : 'fit-content',
           overflow: 'hidden',
@@ -426,6 +338,7 @@ export function BidDlg({
 //************************************************************
 export function OkDlg({
   open,
+  container,
   onOk = () => {},
   title = "",
   message = "",
@@ -439,6 +352,9 @@ export function OkDlg({
       backdrop="static"
       keyboard={true}
       dialogClassName="yesno-sm-modal" // keep size consistent
+      container={container}
+      backdropClassName="tablegrid-modal-backdrop"
+      className="tablegrid-modal"      
     >
       <Modal.Header
         closeButton={xShowButton}
@@ -473,6 +389,7 @@ export function OkDlg({
 //************************************************************
 export function YesNoDlg({
   open,
+  container,
   title = "",
   message = "",
   yesText = "Yes",
@@ -492,6 +409,9 @@ export function YesNoDlg({
       backdrop="static"
       keyboard={false}
       dialogClassName="yesno-sm-modal"
+      container={container}
+      backdropClassName="tablegrid-modal-backdrop"
+      className="tablegrid-modal"      
     >
       <Modal.Header
         closeButton={xShowButton}
@@ -533,6 +453,7 @@ export function YesNoDlg({
 //************************************************************
 export function InOutDlg({
   open,
+  container,
   onIn = () => {},
   onOut = () => {},
   onClose = () => {},
@@ -547,9 +468,12 @@ export function InOutDlg({
     <Modal
       show={open}
       onHide={onClose}
-      backdrop="static"
       keyboard={false}
-      dialogClassName="yesno-sm-modal" // custom class for size
+      dialogClassName="yesno-sm-modal"
+      container={container}
+      backdrop="static"
+      backdropClassName="tablegrid-modal-backdrop"
+      className="tablegrid-modal"
     >
       <Modal.Header
         closeButton={xShowButton}
@@ -605,7 +529,8 @@ export function InOutDlg({
 // BidHistoryDlg
 //************************************************************
 export function BidHistoryDlg({ 
-  open, 
+  open,
+  container,
   bids,
   onOk = () => {},
   onHide={onOk}
@@ -618,8 +543,10 @@ export function BidHistoryDlg({
       backdrop="static"
       keyboard={true}
       dialogClassName="yesno-sm-modal" // custom class for size
+      container={container}
+      backdropClassName="tablegrid-modal-backdrop"
+      className="tablegrid-modal"      
     >
-
       <Modal.Header
         closeButton
         closeVariant="white"
@@ -682,7 +609,8 @@ export function BidHistoryDlg({
 // ObserverDlg
 //************************************************************
 export function ObserversDlg({ 
-  open, 
+  open,
+  container,
   observers,
   onOk = () => {},
   onHide={onOk}
@@ -694,7 +622,10 @@ export function ObserversDlg({
       centered
       backdrop="static"
       keyboard={false}
-      dialogClassName="yesno-sm-modal" // custom class for size
+      dialogClassName="yesno-sm-modal"
+      container={container}
+      backdropClassName="tablegrid-modal-backdrop"
+      className="tablegrid-modal"      
     >
 
       <Modal.Header
@@ -748,6 +679,7 @@ export function ObserversDlg({
 //************************************************************
 export function SessionStatsDlg({
   open,
+  container,
   games = [],
   onOk = () => {},
   onHide = onOk
@@ -792,6 +724,9 @@ export function SessionStatsDlg({
       onHide={onHide}
       centered
       scrollable
+      container={container}
+      backdropClassName="tablegrid-modal-backdrop"
+      className="tablegrid-modal"      
     >
       <Modal.Header
         closeButton
@@ -863,7 +798,8 @@ export function SessionStatsDlg({
 //************************************************************
 
 export function SetGameParametersDlg({ 
-  open, 
+  open,
+  container,
   sticks,
   paso,
   palofijo,
@@ -883,7 +819,10 @@ export function SetGameParametersDlg({
       centered
       backdrop="static"
       keyboard={false}
-      dialogClassName="yesno-sm-modal" // custom class for size
+      dialogClassName="yesno-sm-modal"
+      container={container}
+      backdropClassName="tablegrid-modal-backdrop"
+      className="tablegrid-modal"      
     >
       <Modal.Header
         closeButton
@@ -998,7 +937,8 @@ export function SetGameParametersDlg({
 // GameSettingsDlg
 //************************************************************
 export function GameSettingsDlg({ 
-  open, 
+  open,
+  container,
   sticks,
   paso,
   palofijo,
@@ -1012,7 +952,10 @@ export function GameSettingsDlg({
       centered
       backdrop="static"
       keyboard={false}
-      dialogClassName="yesno-sm-modal" // custom class for size
+      dialogClassName="yesno-sm-modal"
+      container={container}
+      backdropClassName="tablegrid-modal-backdrop"
+      className="tablegrid-modal"      
     >
 
       <Modal.Header
@@ -1069,6 +1012,7 @@ export function GameSettingsDlg({
 //************************************************************
 export function LiftCupDlg({ 
   open,
+  container,
   doubtWhoDoubtedWhom,
   doubtDoubtedBid,
   liftCupShowButton,
@@ -1083,6 +1027,9 @@ export function LiftCupDlg({
       backdrop="static"
       keyboard={false}
       dialogClassName="dialog-top yesno-sm-modal"
+      container={container}
+      backdropClassName="tablegrid-modal-backdrop"
+      className="tablegrid-modal"      
     >
       <Modal.Header
         {...(liftCupShowButtonX ? { closeButton: true } : {})} 
@@ -1129,6 +1076,7 @@ export function LiftCupDlg({
 //************************************************************
 export function ShowDoubtDlg({ 
   open,
+  container,
   doubtWhoDoubtedWhom,
   doubtDoubtedBid,
   doubtThereAre,
@@ -1146,6 +1094,9 @@ export function ShowDoubtDlg({
       backdrop="static"
       keyboard={false}
       dialogClassName="dialog-top yesno-sm-modal"
+      container={container}
+      backdropClassName="tablegrid-modal-backdrop"
+      className="tablegrid-modal"      
     >
       <Modal.Header
         {...(showDoubtShowButtonX ? { closeButton: true } : {})} 

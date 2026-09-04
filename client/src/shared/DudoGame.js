@@ -40,12 +40,55 @@ function GetGamePhaseName(phase) {
     ) || `UNKNOWN (${phase})`;
 }
 
+
+//****************************************************************
+// LobbyChatEntry class
+//****************************************************************
+export class LobbyChatEntry {
+	date;
+	time;
+	type;			// 'player' or 'system'
+
+	senderName;
+	senderGuid;
+
+	recipientName;
+	recipientGuid;
+
+	text;
+
+	constructor() {
+		this.date = '';
+		this.time = '';
+		this.type = 'player';
+
+		this.senderName = '';
+		this.senderGuid = '';
+
+		this.recipientName = 'All';
+		this.recipientGuid = '';
+
+		this.text = '';
+	}
+}
+
+//****************************************************************
+// LobbyChatEntry class
+//****************************************************************
+export class LobbyChat {
+    Entries = [];
+
+    constructor() {
+    }
+}
+
 //****************************************************************
 // LobbySession class
 //****************************************************************
 export class LobbySession {
 	lobbyHost;
 	Games = []
+	Chat;
 
 	startDate = '';
 	startTime = '';
@@ -54,6 +97,7 @@ export class LobbySession {
 	
 	constructor(host) {
 		this.lobbyHost = host;
+		this.Chat = new LobbyChat();
 	}
 }
 
@@ -1442,7 +1486,7 @@ export class DudoBid {
   InitDudoBid() {
 		this.date = '';
 		this.time = '';
-		
+
     this.text = "";
     this.playerIndex = 0;
     this.playerName = ''

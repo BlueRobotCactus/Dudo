@@ -13,3 +13,42 @@
 .bid-panel.open {
   transform: translateY(0) !important;
 }
+
+.game-chat-layout {
+  display: flex;
+  width: 100%;
+  height: 100dvh;
+}
+
+.game-panel {
+  flex: 1 1 100%;
+  min-width: 0;
+}
+
+.chat-panel {
+  flex: 0 0 0;
+  width: 0;
+  overflow: hidden;
+  box-sizing: border-box;
+
+  background-color: black;
+  color: white;
+}
+
+.game-chat-layout.chat-open .game-panel {
+  flex: 2 1 0;
+}
+
+.game-chat-layout.chat-open .chat-panel {
+  flex: 1 1 0;
+  width: auto;
+  padding: 0.5rem;
+}
+
+.tablegrid-modal {
+  position: absolute !important;
+}
+
+.tablegrid-modal-backdrop {
+  position: absolute !important;
+}
