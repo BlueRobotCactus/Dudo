@@ -510,6 +510,9 @@ io.on('connection', (socket) => {
     ggs.curRound.endRoundCause = ROUND_END_TIMEOUT;
 
     // Preserve the aborted round in round history.
+    const now = new Date();
+    ggs.curRound.endDate = GetDate(now);
+    ggs.curRound.endTime = GetTime(now);
     ggs.Rounds.push(ggs.curRound);
 
     // This was a real round, even though it was aborted.
@@ -696,6 +699,9 @@ io.on('connection', (socket) => {
         if (ggs.curRound) {
           // Preserve the aborted round
           ggs.curRound.endRoundCause = ROUND_END_TIMEOUT;
+          const now = new Date();
+          ggs.curRound.endDate = GetDate(now);
+          ggs.curRound.endTime = GetTime(now);
           ggs.Rounds.push(ggs.curRound);
 
           if (ggs.firstRound) {
@@ -1584,6 +1590,9 @@ io.on('connection', (socket) => {
     //-------------------------------------------------
     // add this bid to the bid array
     //-------------------------------------------------
+    const now = new Date();
+    ggs.curRound.curBid.date = GetDate(now);
+    ggs.curRound.curBid.time = GetTime(now);    
     ggs.curRound.curBid.text = bidText;
     ggs.curRound.curBid.playerIndex = index;
     ggs.curRound.curBid.playerName = name;
@@ -2259,6 +2268,10 @@ function StartRound (ggs) {
 		ggs.curRound = new DudoRound();
 		ggs.curRound.init();
 
+    const now = new Date();
+    ggs.curRound.startDate = GetDate(now);
+    ggs.curRound.startTime = GetTime(now);    
+
     if (ggs.GetNumberPlayersStillIn() > 2) {
       ggs.curRound.whichDirection = undefined;
       ggs.setGamePhase(GAME_PHASE.CHOOSING_DIRECTION);
@@ -2367,6 +2380,9 @@ function PostRound(ggs, lobbyId) {
     // push the round  
     //------------------------------------------------------------
     ggs.curRound.endRoundCause = ROUND_END_DOUBT;
+    const now = new Date();
+    ggs.curRound.endDate = GetDate(now);
+    ggs.curRound.endTime = GetTime(now);
 		ggs.Rounds.push(ggs.curRound);
 
 		//------------------------------------------------------------

@@ -1336,6 +1336,12 @@ export class DudoRound {
 	numBids = 0;
 	curBid;		// one DudoBid object
 	Bids = [];	// array of DudoBid objects
+
+	startDate = '';
+	startTime = '';
+	endDate = '';
+	endTime = '';
+
 	timedoutPlayers = [];	// array of players that timeout during this round
 
 	whichDirection = undefined;          // 1 = left (clockwise); 2 = right (counter-clockwise)
@@ -1388,6 +1394,9 @@ export class DudoRound {
 // DudoBid class
 //****************************************************************
 export class DudoBid {
+	date;
+	time;
+	
   text;
   playerIndex;
   playerName;
@@ -1407,6 +1416,9 @@ export class DudoBid {
 	didUIShake;		// avoid re-shaking on reconnect
 
   constructor() {
+		this.date = '';
+		this.time = '';
+
     this.text = "";
     this.playerIndex = 0;
     this.playerName = '';
@@ -1428,6 +1440,9 @@ export class DudoBid {
   }
 
   InitDudoBid() {
+		this.date = '';
+		this.time = '';
+		
     this.text = "";
     this.playerIndex = 0;
     this.playerName = ''
