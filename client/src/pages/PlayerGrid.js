@@ -12,7 +12,7 @@ import { STICKS_BLINK_TIME, SHOWN_DICE_BLINK_TIME, SHAKE_CUPS_TIME, GAME_PHASE }
 // ggc = DudoGame object
 // cc = connection number of this player
 //************************************************************
-export function PlayerGrid({ lobbyId, ggc, myIndex, cc }) {
+export function PlayerGrid({ lobbyId, ggc, myIndex, cc, showWinnerStars }) {
 
   console.log ("ENTERING PlayerGrid, myIndex=", myIndex, " cc=", cc, "name=", ggc.allParticipantNames[cc]);
 
@@ -563,6 +563,34 @@ export function PlayerGrid({ lobbyId, ggc, myIndex, cc }) {
             position: 'relative',
           }}
         >
+          {showWinnerStars && (
+            <>
+              {[
+                { left: '8%',  top: '25%', size: 10, color: 'gold',        delay: '0s' },
+                { left: '18%', top: '70%', size: 7,  color: 'deepskyblue', delay: '.4s' },
+                { left: '30%', top: '30%', size: 12, color: 'hotpink',     delay: '.8s' },
+                { left: '42%', top: '72%', size: 8,  color: 'limegreen',   delay: '1.1s' },
+                { left: '58%', top: '25%', size: 9,  color: 'violet',      delay: '.2s' },
+                { left: '70%', top: '70%', size: 13, color: 'orange',      delay: '.7s' },
+                { left: '82%', top: '28%', size: 8,  color: 'cyan',        delay: '1.0s' },
+                { left: '92%', top: '68%', size: 11, color: 'yellow',      delay: '.5s' },
+              ].map((star, i) => (
+                <span
+                  key={i}
+                  className="winner-star"
+                  style={{
+                    left: star.left,
+                    top: star.top,
+                    fontSize: `${star.size}px`,
+                    color: star.color,
+                    animationDelay: star.delay,
+                  }}
+                >
+                  ★
+                </span>
+              ))}
+            </>
+          )}
           <div
             style={{
               textAlign: 'center',

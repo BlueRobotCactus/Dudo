@@ -57,4 +57,27 @@
     pulse 0.5s ease-in-out infinite;
 }
 
+/*---------------------------------------------------------------
+  animations for stars for the winning player
+---------------------------------------------------------------*/
+.winner-star {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  z-index: 1;
 
+  animation: winnerStarBlink 1.4s infinite ease-in-out;
+  text-shadow: 0 0 6px currentColor;
+}
+
+@keyframes winnerStarBlink {
+  0%, 100% {
+    opacity: 0.1;
+    transform: translate(-50%, -50%) scale(0.6);
+  }
+
+  50% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.3);
+  }
+}

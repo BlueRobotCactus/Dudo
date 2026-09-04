@@ -84,7 +84,7 @@ const disconnectTimers = {};
   };
 */
 const COUNTDOWN_SILENT_SECONDS = 3;
-const COUNTDOWN_VISIBLE_SECONDS = 5;
+const COUNTDOWN_VISIBLE_SECONDS = 30;
 
 //---------------------------------------
 // Finalize deferred time outs

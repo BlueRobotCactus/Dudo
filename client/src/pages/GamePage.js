@@ -181,6 +181,10 @@ import { STICKS_BLINK_TIME, SHAKE_CUPS_TIME, GAME_PHASE, GetGamePhaseName } from
     const [showGameSettingsDlg, setShowGameSettingsDlg] = useState(false);
     const [onGameSettingsOkHandler, setOnGameSettingsOkHandler] = useState(() => () => {});
 
+    // decorations around the winner at the end of game
+    const [showWinnerDecoration, setShowWinnerDecoration] = useState(false);
+    const [winnerIndex, setWinnerIndex] = useState(-1);
+
     // old stuff
     const [histCurrentBid, setHistCurrentBid] = useState('');
     const [histShowing, setHistShowing] = useState('');
@@ -433,24 +437,27 @@ import { STICKS_BLINK_TIME, SHAKE_CUPS_TIME, GAME_PHASE, GetGamePhaseName } from
   const handleGameOver = (data) => {
     console.log("GamePage: entering function: handleGameOver", data);
 
+    setShowWinnerDecoration(true);
+    setWinnerIndex(data.winnerIndex);
+
     //---------------------------------------
     // Confetti for every game winner
     //---------------------------------------
     if (!winnerConfettiShownRef.current) {
       winnerConfettiShownRef.current = true;
-      const CONFETTI_SECONDS = 3;
-      const duration = CONFETTI_SECONDS * 1000;
-      const end = Date.now() + duration;
-      const interval = setInterval(() => {
-        confetti({
-          particleCount: 50,
-          spread: 100,
-          origin: { y: 0.6 }
-        });
-        if (Date.now() >= end) {
-          clearInterval(interval);
-        }
-      }, 250);
+
+      // one confetti shower
+      confetti({
+        particleCount: 150,
+        spread: 100,
+        origin: { y: 0.6 }
+      });
+
+      // winner stars blink also
+      const WINNER_STARS_SECONDS = 5;
+      setTimeout(() => {
+        setShowWinnerDecoration(false);
+      }, WINNER_STARS_SECONDS * 1000);
     }
 
     //---------------------------------------
@@ -484,6 +491,8 @@ import { STICKS_BLINK_TIME, SHAKE_CUPS_TIME, GAME_PHASE, GetGamePhaseName } from
   //************************************************************
   const handleStartGame = () => {
     if (!connected) { return; }
+
+    setShowWinnerDecoration (false);
 
     setGameParametersSticks(ggc.maxSticks);
     setGameParametersPaso(ggc.bPasoAllowed);
@@ -1663,6 +1672,8 @@ useEffect(() => {
                 ggc={ggc}
                 myIndex={myIndex}
                 backgroundColor="transparent"
+                showWinnerDecoration={showWinnerDecoration}
+                winnerIndex={winnerIndex}
               />
             </div>
           </div>
