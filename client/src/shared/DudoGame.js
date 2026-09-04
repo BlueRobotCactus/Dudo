@@ -1268,53 +1268,63 @@ export class DudoGame {
 	// Get order of finish for the players
 	// who came in 1st, 2nd, etc.
 	//****************************************************************
-	GetOrderOfFinish () {
-    this.orderOfFinish.length = 0;
-		
-    // find players knocked out / timed-out in each round
-    for (let i = 0; i < this.Rounds.length; i++) {
-        const round = this.Rounds[i];
+	GetOrderOfFinish () { 
+			this.orderOfFinish.length = 0; 
+			
+			// find players knocked out / timed-out in each round 
+			for (let i = 0; i < this.Rounds.length; i++) { 
+					const round = this.Rounds[i]; 
 
-        // Players who timed out during this round
-        if (round.timedoutPlayers) {
-            for (const cc of round.timedoutPlayers) {
-							// Special case: player timed out after already winning a game-ending doubt
-							if (this.bWinnerGame && cc === this.whoWonGame) {
-									continue;
-							}
-							// If this player was knocked out by the doubt,
-							// record the elimination as "doubt", not "timeout"
-							if (round.endRoundCause === ROUND_END_DOUBT &&
-									round.doubtLoserOut &&
-									cc === round.doubtLoser) {
-									continue;
-							}
-							const guid = this.allParticipantGuid[cc];
-							const name = this.allParticipantNames[cc];
-							this.orderOfFinish.push({ cc, guid, name, reason: 'timeout'});
-            }
-        }
+					// Player knocked out by the doubt result
+					// This happens before any timeout during LIFT_CUP / SHOW_RESULT
+					if (round.endRoundCause === ROUND_END_DOUBT && 
+							round.doubtLoserOut) { 
 
-        // Player knocked out by the doubt result
-        if (round.endRoundCause === ROUND_END_DOUBT &&
-            round.doubtLoserOut) {
+							const cc = round.doubtLoser; 
 
-            const cc = round.doubtLoser;
+							const guid = this.allParticipantGuid[cc]; 
+							const name = this.allParticipantNames[cc]; 
+							this.orderOfFinish.push({ cc, guid, name, reason: 'doubt' }); 
+					}
 
-						const guid = this.allParticipantGuid[cc];
-						const name = this.allParticipantNames[cc];
-						this.orderOfFinish.push({cc, guid, name, reason: 'doubt'});
-        }
-    }
+					// Players who timed out during this round 
+					if (round.timedoutPlayers) { 
+							for (const cc of round.timedoutPlayers) {
 
-		// add the winner
-		const cc = this.whoWonGame;
-		const guid = this.allParticipantGuid[cc];
-		const name = this.allParticipantNames[cc];
-		this.orderOfFinish.push({ cc, guid, name });
+									// Special case: player timed out after already winning
+									// a game-ending doubt
+									if (this.bWinnerGame && cc === this.whoWonGame) { 
+											continue; 
+									} 
 
-		// reverse so winner is first
-		this.orderOfFinish.reverse();
+									// If this player was knocked out by the doubt,
+									// don't also record them as a timeout
+									if (round.endRoundCause === ROUND_END_DOUBT && 
+											round.doubtLoserOut && 
+											cc === round.doubtLoser) { 
+											continue; 
+									} 
+
+									const guid = this.allParticipantGuid[cc]; 
+									const name = this.allParticipantNames[cc]; 
+									this.orderOfFinish.push({
+											cc,
+											guid,
+											name,
+											reason: 'timeout'
+									}); 
+							} 
+					} 
+			} 
+	
+			// add the winner 
+			const cc = this.whoWonGame; 
+			const guid = this.allParticipantGuid[cc]; 
+			const name = this.allParticipantNames[cc]; 
+			this.orderOfFinish.push({ cc, guid, name }); 
+	
+			// reverse so winner is first 
+			this.orderOfFinish.reverse(); 
 	}
 }
 

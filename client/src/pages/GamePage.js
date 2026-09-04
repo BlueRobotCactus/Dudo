@@ -21,6 +21,7 @@ import { LiftCupDlg } from '../Dialogs.js';
 import { ShowDoubtDlg } from '../Dialogs.js';
 import { BidHistoryDlg } from '../Dialogs.js';
 import { ObserversDlg } from '../Dialogs.js';
+import { SessionStatsDlg } from '../Dialogs.js';
 import { GameSettingsDlg } from '../Dialogs.js';
 import { SetGameParametersDlg } from '../Dialogs.js';
 import { BidDlg } from '../Dialogs.js';
@@ -154,6 +155,14 @@ import { STICKS_BLINK_TIME, SHAKE_CUPS_TIME, GAME_PHASE, GetGamePhaseName } from
     const [showBidHistoryDlg, setShowBidHistoryDlg] = useState(false);
     const [onBidHistoryOkHandler, setOnBidHistoryOkHandler] = useState(() => () => {});
 
+    // Observers
+    const [showObserversDlg, setShowObserversDlg] = useState(false);
+    const [onObserversOkHandler, setOnObserversOkHandler] = useState(() => () => {});
+
+    // Session Statistics
+    const [showSessionStatsDlg, setShowSessionStatsDlg] = useState(false);
+    const [onSessionStatsOkHandler, setOnSessionStatsOkHandler] = useState(() => () => {});    
+
     // doubt result strings (used by Lift Cup and Show Doubt)
     const [doubtWhoDoubtedWhom, setDoubtWhoDoubtedWhom] = useState('');
     const [doubtDoubtedBid, setDoubtDoubtedBid] = useState('');
@@ -172,10 +181,6 @@ import { STICKS_BLINK_TIME, SHAKE_CUPS_TIME, GAME_PHASE, GetGamePhaseName } from
     const [onShowDoubtOkHandler, setOnShowDoubtOkHandler] = useState(() => () => {});
     const [showDoubtShowButton, setShowDoubtShowButton] = useState(false);
     const [showDoubtShowButtonX, setShowDoubtShowButtonX] = useState(false);
-
-    // Observers
-    const [showObserversDlg, setShowObserversDlg] = useState(false);
-    const [onObserversOkHandler, setOnObserversOkHandler] = useState(() => () => {});
 
     // Game Settings
     const [showGameSettingsDlg, setShowGameSettingsDlg] = useState(false);
@@ -643,6 +648,14 @@ import { STICKS_BLINK_TIME, SHAKE_CUPS_TIME, GAME_PHASE, GetGamePhaseName } from
       setShowObserversDlg(false);
     });
   }
+
+  const handleOptSessionStats = () => {
+    setShowSessionStatsDlg(true);
+
+    setOnSessionStatsOkHandler(() => () => {
+      setShowSessionStatsDlg(false);
+    });
+  };
 
   const handleOptGameSettings = () => {
     setShowGameSettingsDlg(true);
@@ -1833,6 +1846,14 @@ useEffect(() => {
           />
         )}
 
+        {showSessionStatsDlg && (
+          <SessionStatsDlg
+            open={showSessionStatsDlg}
+            games={lobby?.lobbySession?.Games || []}
+            onOk={onSessionStatsOkHandler}
+          />
+        )}
+
         {showSetGameParametersDlg && (
           <SetGameParametersDlg
             open={showSetGameParametersDlg}
@@ -1917,6 +1938,15 @@ useEffect(() => {
                 disabled={!ggc.GAME_IN_PROGRESS}
               >
                 Bid UI: grid</button>
+              </li>
+
+              <li>
+                <button
+                  className="dropdown-item"
+                  onClick={handleOptSessionStats}
+                >
+                  Session Stats
+                </button>
               </li>
 
               <li><button className="dropdown-item" 

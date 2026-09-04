@@ -437,7 +437,7 @@ export function OkDlg({
       onHide={onOk} // close when OK is clicked
       centered
       backdrop="static"
-      keyboard={false}
+      keyboard={true}
       dialogClassName="yesno-sm-modal" // keep size consistent
     >
       <Modal.Header
@@ -735,6 +735,121 @@ export function ObserversDlg({
       </Modal.Body>
 
       <Modal.Footer className="py-1">
+        <Button variant="primary" size="sm" onClick={onOk}>
+          OK
+        </Button>
+      </Modal.Footer>
+    </Modal>
+  );
+}
+
+//************************************************************
+// SessionStatsDlg
+//************************************************************
+export function SessionStatsDlg({
+  open,
+  games = [],
+  onOk = () => {},
+  onHide = onOk
+}) {
+
+  const places = [
+    '1st', '2nd', '3rd', '4th',
+    '5th', '6th', '7th', '8th'
+  ];
+
+  //-------------------------------------------------
+  // reformat time from UTC to local 12 hour format
+  //-------------------------------------------------
+  const formatGameStart = (date, time) => {
+    if (!date || !time) return '';
+
+    const [month, day, shortYear] = date.split('/');
+    const year = `20${shortYear}`;
+
+    const utcDate = new Date(
+      `${year}-${month}-${day}T${time}Z`
+    );
+
+    const localDate = utcDate.toLocaleDateString('en-US', {
+      month: '2-digit',
+      day: '2-digit',
+      year: 'numeric'
+    });
+
+    const localTime = utcDate.toLocaleTimeString('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true
+    }).replace(' ', '').toLowerCase();
+
+    return `${localDate}, ${localTime}`;
+  };
+
+  return (
+    <Modal
+      show={open}
+      onHide={onHide}
+      centered
+      scrollable
+    >
+      <Modal.Header
+        closeButton
+        closeVariant="white"
+        className="bg-primary text-white py-1 px-3"
+      >
+        <Modal.Title style={{ fontSize: '1rem' }}>
+          Session Statistics
+        </Modal.Title>
+      </Modal.Header>
+
+      <Modal.Body>
+        <div
+          style={{
+            maxHeight: '50vh',
+            overflowY: 'auto',
+          }}
+        >
+          {games.length === 0 ? (
+            <div className="text-center">
+              No games have been completed yet.
+            </div>
+          ) : (
+            <table className="table table-sm table-bordered text-center align-middle mb-0">
+              <tbody>
+                {games.map((game, gameIndex) => (
+                  <React.Fragment key={gameIndex}>
+
+                    <tr className="table-secondary">
+                      <th colSpan="2">
+                        Game {gameIndex + 1}:&nbsp;&nbsp;
+                        {formatGameStart(game.startDate, game.startTime)}
+                      </th>
+                    </tr>
+                    {game.orderOfFinish?.map((player, placeIndex) => (
+                      <tr key={placeIndex}>
+                        <td style={{ width: '60px' }}>
+                          {places[placeIndex]}
+                        </td>
+
+                        <td>
+                          {player.name}
+                          {player.reason === 'timeout'
+                            ? ' (disconnected)'
+                            : ''}
+                        </td>
+                      </tr>
+                    ))}
+
+                  </React.Fragment>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      </Modal.Body>
+
+      <Modal.Footer className="d-flex justify-content-center py-1">
         <Button variant="primary" size="sm" onClick={onOk}>
           OK
         </Button>
