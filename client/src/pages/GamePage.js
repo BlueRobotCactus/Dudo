@@ -1662,11 +1662,19 @@ useEffect(() => {
                 >
                   {FormatLocalTime(entry.date, entry.time)}
                 </span>
-                <strong>
-                  {entry.senderName}
-                  {entry.recipientGuid ? ` to ${entry.recipientName}` : ''}:
-                </strong>{' '}
-                {entry.text}
+
+
+                {entry.type === 'system' ? (
+                  <span>{entry.text}</span>
+                ) : (
+                  <>
+                    <strong>
+                      {entry.senderName}
+                      {entry.recipientGuid ? ` to ${entry.recipientName}` : ''}:
+                    </strong>{' '}
+                    {entry.text}
+                  </>
+                )}
               </div>
             ))}
             <div ref={chatBottomRef} />
@@ -1674,23 +1682,39 @@ useEffect(() => {
 
           <div>
             {/* Recipient */}
-            <select
-              value={chatRecipientGuid}
-              onChange={(e) => setChatRecipientGuid(e.target.value)}
-              style={{
-                width: '100%',
-                marginBottom: '0.5rem'
-              }}
+            <Dropdown
+              onSelect={(eventKey) => setChatRecipientGuid(eventKey || '')}
+              style={{ marginBottom: '0.5rem', width: '100%' }}
             >
-              <option value="">All</option>
-              {lobby?.players
-                ?.filter(p => p.guid !== myGuidRef.current)
-                .map(p => (
-                  <option key={p.guid} value={p.guid}>
-                    {p.displayName}
-                  </option>
-                ))}
-            </select>
+              <Dropdown.Toggle
+                variant="secondary"
+                size="sm"
+                style={{ width: '100%', textAlign: 'left' }}
+              >
+                To: {
+                  chatRecipientGuid
+                    ? lobby?.players?.find(p => p.guid === chatRecipientGuid)?.displayName
+                    : 'All'
+                }
+              </Dropdown.Toggle>
+
+              <Dropdown.Menu style={{ width: '100%' }}>
+                <Dropdown.Item eventKey="">
+                  All
+                </Dropdown.Item>
+
+                {lobby?.players
+                  ?.filter(p => p.guid !== myGuidRef.current)
+                  .map(p => (
+                    <Dropdown.Item
+                      key={p.guid}
+                      eventKey={p.guid}
+                    >
+                      {p.displayName}
+                    </Dropdown.Item>
+                  ))}
+              </Dropdown.Menu>
+            </Dropdown>
 
             {/* Message input and Send button */}
             <div style={{ display: 'flex', gap: '0.5rem' }}>
@@ -1705,11 +1729,13 @@ useEffect(() => {
                 }}
                 style={{
                   flex: 1,
-                  minWidth: 0
+                  minWidth: 0,
                 }}
               />
-
-              <button onClick={handleSendChat}>
+              <button
+                className="btn btn-primary btn-sm"
+                onClick={handleSendChat}
+              >
                 Send
               </button>
             </div>

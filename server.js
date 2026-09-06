@@ -99,6 +99,36 @@ function finalizeDeferredTimeouts(ggs) {
   }
 }
 
+//---------------------------------------
+// SYSTEM CHAT MESSAGE
+//---------------------------------------
+function addSystemChatMessage(lobbyId, text) {
+  const lobby = lobbies[lobbyId];
+  if (!lobby) {
+    return;
+  }
+
+  const entry = new LobbyChatEntry();
+
+  const now = new Date();
+  entry.date = GetDate(now);
+  entry.time = GetTime(now);
+
+  entry.type = 'system';
+
+  entry.senderName = '';
+  entry.senderGuid = '';
+
+  entry.recipientName = 'All';
+  entry.recipientGuid = '';
+
+  entry.text = text;
+
+  lobby.lobbySession.Chat.Entries.push(entry);
+
+  io.to(lobbyId).emit('chatMessage', entry);
+}
+
 // ******************************
 // Socket.IO setup
 // ******************************
@@ -1179,6 +1209,12 @@ io.on('connection', (socket) => {
 
       console.log(`server.js: ${playerName} joined lobby: ${lobbyId}`);
 
+      let chatText = `${playerName} joined the lobby.`;
+      if (joinAsObserver) {
+        chatText += " (observer)";
+      }
+      addSystemChatMessage(lobbyId, chatText);
+
       io.to(lobbyId).emit('lobbyData', lobby);
 
       if (callback) {
@@ -1221,7 +1257,7 @@ io.on('connection', (socket) => {
 
   //************************************************************
   // socket.on
-  // SEND A CHAT MESSAGE
+  // SEND A PLAYER MESSAGE
   //************************************************************
   socket.on('chatMessage', ({ lobbyId, recipientGuid, text }) => {
 
