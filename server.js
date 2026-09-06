@@ -1221,9 +1221,9 @@ io.on('connection', (socket) => {
 
   //************************************************************
   // socket.on
-  // CHAT MESSAGE - BROADCAST TO ALL
+  // SEND A CHAT MESSAGE
   //************************************************************
-  socket.on('chatMessage', ({ lobbyId, text }) => {
+  socket.on('chatMessage', ({ lobbyId, recipientGuid, text }) => {
 
     const authedPlayer = getAuthedPlayer(socket);
     if (!authedPlayer) { return; }
@@ -1231,11 +1231,10 @@ io.on('connection', (socket) => {
     const lobby = lobbies[lobbyId];
     if (!lobby) { return; }
 
-    // Make sure this authenticated player is actually in this lobby.
     const lobbyPlayer = lobby.players.find(p => p.guid === authedPlayer.guid);
+
     if (!lobbyPlayer) { return; }
 
-    // Don't store blank messages.
     const cleanText = String(text ?? '').trim();
     if (!cleanText) { return; }
 
@@ -1247,31 +1246,100 @@ io.on('connection', (socket) => {
 
     entry.type = 'player';
 
-    // Sender identity comes from the server, not the client.
     entry.senderName = lobbyPlayer.displayName;
     entry.senderGuid = authedPlayer.guid;
 
-    // Broadcast message.
-    entry.recipientName = 'All';
-    entry.recipientGuid = '';
+    //------------------------------------------------
+    // Recipient
+    //------------------------------------------------
+    if (recipientGuid) {
+      const recipient = lobby.players.find(p => p.guid === recipientGuid);
+      if (!recipient) { return; }
+
+      // Don't allow sending a private message to yourself
+      if (recipient.guid === authedPlayer.guid) { return; }
+
+      entry.recipientName = recipient.displayName;
+      entry.recipientGuid = recipient.guid;
+
+    } else {
+      entry.recipientName = 'All';
+      entry.recipientGuid = '';
+    }
 
     entry.text = cleanText;
 
-    // Save in this lobby session's chat history.
+    //------------------------------------------------
+    // Save message
+    //------------------------------------------------
     lobby.lobbySession.Chat.Entries.push(entry);
 
-    // Send this new message to everyone currently in the lobby.
-    io.to(lobbyId).emit('chatMessage', entry);
+    //------------------------------------------------
+    // Deliver message
+    //------------------------------------------------
+    if (entry.recipientGuid === '') {
+      // Public message
+      io.to(lobbyId).emit('chatMessage', entry);
+    } else {
+      // Private message:
+      // sender sees his own message
+      socket.emit('chatMessage', entry);
+
+      // recipient sees it
+      const recipient = lobby.players.find(
+        p => p.guid === entry.recipientGuid
+      );
+
+      if (recipient?.socketId) {
+        io.to(recipient.socketId).emit('chatMessage', entry);
+      }
+    }
 
     console.log(
-      `CHAT: ${entry.senderName} -> All: ${entry.text}`
+      `CHAT: ${entry.senderName} -> ${entry.recipientName}: ${entry.text}`
     );
   });
 
+  //************************************************************
+  // socket.on
+  // GET THE CHAT HISTORY
+  //************************************************************
+  socket.on('getChatHistory', ({ lobbyId }, callback) => {
 
+    const authedPlayer = getAuthedPlayer(socket);
+    if (!authedPlayer) { 
+      callback([]);
+      return;
+    }
 
+    const lobby = lobbies[lobbyId];
+    if (!lobby) {
+      callback([]);
+      return;
+    }
 
+    const lobbyPlayer = lobby.players.find(p => p.guid === authedPlayer.guid);
 
+    if (!lobbyPlayer) {
+      callback([]);
+      return;
+    }
+
+    // filter private-public messages.
+    const entries = lobby.lobbySession.Chat.Entries.filter(entry => {
+      // Public message
+      if (!entry.recipientGuid) { return true; }
+
+      // I sent it
+      if (entry.senderGuid === authedPlayer.guid) { return true; }
+
+      // It was sent to me
+      if (entry.recipientGuid === authedPlayer.guid) { return true; }
+
+      return false;
+    });
+    callback(entries);
+  });
 
   //************************************************************
   // socket.on

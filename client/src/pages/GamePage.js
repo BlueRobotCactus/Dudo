@@ -74,8 +74,9 @@ import { STICKS_BLINK_TIME, SHAKE_CUPS_TIME, GAME_PHASE, GetGamePhaseName } from
     const [showChat, setShowChat] = useState(false);
     const [chatText, setChatText] = useState('');
     const [chatEntries, setChatEntries] = useState([]);
+    const [chatRecipientGuid, setChatRecipientGuid] = useState('');
     const chatBottomRef = useRef(null);
-
+    
     // Row2
     // game settings
     //const [row2NumSticks, setRow2NumSticks] = useState("3");
@@ -311,7 +312,10 @@ import { STICKS_BLINK_TIME, SHAKE_CUPS_TIME, GAME_PHASE, GetGamePhaseName } from
           setLobbyPlayers(data.players);
           setLobbyHost(data.host);
           setGameState(data.game || {});
-          setChatEntries(data.lobbySession?.Chat?.Entries || []);
+          //setChatEntries(data.lobbySession?.Chat?.Entries || []);
+          socket.emit('getChatHistory', { lobbyId }, (entries) => {
+            setChatEntries(entries || []);
+          });
 
           // Initialize our local DudoGame immediately.
           ggc.AssignGameState(data.game || {});
@@ -358,15 +362,34 @@ import { STICKS_BLINK_TIME, SHAKE_CUPS_TIME, GAME_PHASE, GetGamePhaseName } from
       chatBottomRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [chatEntries]);
 
+    //************************************************************
+    // useEffect: CHAT RECIPIENT STILL IN LOBBY
+    // in case we need to change timedout person to "All"
+    //************************************************************
+    useEffect(() => {
+      if (!chatRecipientGuid) {
+        return;     // "All" is selected
+      }
+
+      const recipientStillHere = lobby?.players?.some(
+        p => p.guid === chatRecipientGuid
+      );
+
+      if (!recipientStillHere) {
+        setChatRecipientGuid('');
+      }
+
+    }, [lobby?.players, chatRecipientGuid]);  
+
   //************************************************************
-  // functions handleSendChat, handleCharMessage, formatChatTime
+  // functions handleSendChat, handleCharMessage
   //************************************************************
   const handleSendChat = () => {
     const text = chatText.trim();
 
     if (!text || !connected) { return; }
 
-    socket.emit('chatMessage', {lobbyId, text});
+    socket.emit('chatMessage', {lobbyId, recipientGuid: chatRecipientGuid, text});
 
     setChatText('');
   };
@@ -374,6 +397,7 @@ import { STICKS_BLINK_TIME, SHAKE_CUPS_TIME, GAME_PHASE, GetGamePhaseName } from
   const handleChatMessage = (entry) => {
     setChatEntries(prev => [...prev, entry]);
   };
+  
   
   //************************************************************
   // function handleGameStateUpdate
@@ -1638,33 +1662,57 @@ useEffect(() => {
                 >
                   {FormatLocalTime(entry.date, entry.time)}
                 </span>
-
-                <strong>{entry.senderName}:</strong> {entry.text}
+                <strong>
+                  {entry.senderName}
+                  {entry.recipientGuid ? ` to ${entry.recipientName}` : ''}:
+                </strong>{' '}
+                {entry.text}
               </div>
             ))}
             <div ref={chatBottomRef} />
           </div>
 
-          <div style={{ display: 'flex', gap: '0.25rem' }}>
-            <input
-              type="text"
-              className="form-control form-control-sm"
-              value={chatText}
-              onChange={(e) => setChatText(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  handleSendChat();
-                }
+          <div>
+            {/* Recipient */}
+            <select
+              value={chatRecipientGuid}
+              onChange={(e) => setChatRecipientGuid(e.target.value)}
+              style={{
+                width: '100%',
+                marginBottom: '0.5rem'
               }}
-              placeholder="Message..."
-            />
-
-            <button
-              className="btn btn-primary btn-sm"
-              onClick={handleSendChat}
             >
-              Send
-            </button>
+              <option value="">All</option>
+              {lobby?.players
+                ?.filter(p => p.guid !== myGuidRef.current)
+                .map(p => (
+                  <option key={p.guid} value={p.guid}>
+                    {p.displayName}
+                  </option>
+                ))}
+            </select>
+
+            {/* Message input and Send button */}
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <input
+                type="text"
+                value={chatText}
+                onChange={(e) => setChatText(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    handleSendChat();
+                  }
+                }}
+                style={{
+                  flex: 1,
+                  minWidth: 0
+                }}
+              />
+
+              <button onClick={handleSendChat}>
+                Send
+              </button>
+            </div>
           </div>
         </div>
       </div>
