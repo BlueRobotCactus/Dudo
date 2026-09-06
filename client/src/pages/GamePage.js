@@ -4,7 +4,7 @@ import { SocketContext } from '../SocketContext.js';
 import { ImageRefsContext } from '../ImageRefsContext.js';
 import { DudoGame } from '../shared/DudoGame.js'
 import { TableGrid } from './TableGrid.js'
-import { BidGrid } from './BidGrid.js'
+import { FormatLocalTime } from '../shared/DateTimeUtils.js';
 import confetti from 'canvas-confetti';
 import Dropdown from 'react-bootstrap/Dropdown';
 
@@ -70,7 +70,11 @@ import { STICKS_BLINK_TIME, SHAKE_CUPS_TIME, GAME_PHASE, GetGamePhaseName } from
     // structure: { playerName: 'Alice', secondsRemaining: 23 }
     const [countdownMessage, setCountdownMessage] = useState('');
     
+    // chat related
     const [showChat, setShowChat] = useState(false);
+    const [chatText, setChatText] = useState('');
+    const [chatEntries, setChatEntries] = useState([]);
+    const chatBottomRef = useRef(null);
 
     // Row2
     // game settings
@@ -292,7 +296,6 @@ import { STICKS_BLINK_TIME, SHAKE_CUPS_TIME, GAME_PHASE, GetGamePhaseName } from
     // useEffect: INITIAL LOBBY [socket, connected, lobbyId, navigate]
     //            Join lobby, get initial lobby data, listener
     //************************************************************
-    //
     useEffect(() => {
       if (!socket || !connected) {
         console.log('GamePage: useEffect: INITIAL LOBBY: socket not connected yet');
@@ -308,6 +311,7 @@ import { STICKS_BLINK_TIME, SHAKE_CUPS_TIME, GAME_PHASE, GetGamePhaseName } from
           setLobbyPlayers(data.players);
           setLobbyHost(data.host);
           setGameState(data.game || {});
+          setChatEntries(data.lobbySession?.Chat?.Entries || []);
 
           // Initialize our local DudoGame immediately.
           ggc.AssignGameState(data.game || {});
@@ -331,7 +335,6 @@ import { STICKS_BLINK_TIME, SHAKE_CUPS_TIME, GAME_PHASE, GetGamePhaseName } from
           navigate('/'); // lobby doesn't exist
         }
       });
-  
       // Listen for lobby data updates
       const handleLobbyData = (updatedLobby) => {
         if (updatedLobby.id === lobbyId) {
@@ -347,6 +350,30 @@ import { STICKS_BLINK_TIME, SHAKE_CUPS_TIME, GAME_PHASE, GetGamePhaseName } from
         socket.off('lobbyData', handleLobbyData);
       };
     }, [socket, connected, lobbyId, navigate]);
+  
+    //************************************************************
+    // useEffect: SCROLL CHAT PROPERLY
+    //************************************************************
+    useEffect(() => {
+      chatBottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, [chatEntries]);
+
+  //************************************************************
+  // functions handleSendChat, handleCharMessage, formatChatTime
+  //************************************************************
+  const handleSendChat = () => {
+    const text = chatText.trim();
+
+    if (!text || !connected) { return; }
+
+    socket.emit('chatMessage', {lobbyId, text});
+
+    setChatText('');
+  };
+
+  const handleChatMessage = (entry) => {
+    setChatEntries(prev => [...prev, entry]);
+  };
   
   //************************************************************
   // function handleGameStateUpdate
@@ -468,27 +495,19 @@ import { STICKS_BLINK_TIME, SHAKE_CUPS_TIME, GAME_PHASE, GetGamePhaseName } from
             }
           );
         }
-        tableConfettiRef.current({
-          particleCount: 150,
-          spread: 100,
-          origin: { y: 0.6 }
-        });
+        tableConfettiRef.current({particleCount: 150, spread: 100, origin: { y: 0.6 }});
       }
 
       // winner stars blink also
       const WINNER_STARS_SECONDS = 5;
-      setTimeout(() => {
-        setShowWinnerDecoration(false);
-      }, WINNER_STARS_SECONDS * 1000);
+      setTimeout(() => { setShowWinnerDecoration(false); }, WINNER_STARS_SECONDS * 1000);
     }
 
     //---------------------------------------
     // Normal win:
     // ShowDoubtDlg already explains everything
     //---------------------------------------
-    if (data.reason === 'normal') {
-      return;
-    }
+    if (data.reason === 'normal') { return; }
 
     //---------------------------------------
     // Timeout win:
@@ -1003,12 +1022,6 @@ import { STICKS_BLINK_TIME, SHAKE_CUPS_TIME, GAME_PHASE, GetGamePhaseName } from
     for (const i of ggc.curRound.timedoutPlayers) {
       s4 += "\n" + ggc.allParticipantNames[i] + " left the lobby, and is OUT.";
     }
-//    for (let i = 0; i < MAX_CONNECTIONS; i++) {
-//      if (ggc.allConnectionStatus[i] === CONN_PLAYER_TIMED_OUT ||
-//          ggc.allConnectionStatus[i] === CONN_PLAYER_TIMED_OUT_DEFER) {
-//        s4 += "\n" + ggc.allParticipantNames[i] + " left the lobby, and is OUT.";
-//      }
-//    }
 
     if (ggc.bWinnerGame) {
       s5 = ggc.allParticipantNames[ggc.whoWonGame] + " WINS THE GAME!!";
@@ -1100,6 +1113,7 @@ import { STICKS_BLINK_TIME, SHAKE_CUPS_TIME, GAME_PHASE, GetGamePhaseName } from
     socket.on('forceLeaveLobby', handleForceLeaveLobby);
     socket.on('disconnectCountdown', handleDisconnectCountdown);
     socket.on('disconnectCountdownEnded', handleDisconnectCountdownEnded);
+    socket.on('chatMessage', handleChatMessage);
 
     return () => {
       socket.off('gameStateUpdate', handleGameStateUpdate);
@@ -1107,6 +1121,7 @@ import { STICKS_BLINK_TIME, SHAKE_CUPS_TIME, GAME_PHASE, GetGamePhaseName } from
       socket.off('forceLeaveLobby', handleForceLeaveLobby);
       socket.off('disconnectCountdown', handleDisconnectCountdown);
       socket.off('disconnectCountdownEnded', handleDisconnectCountdownEnded);
+      socket.off('chatMessage', handleChatMessage);      
     };
   }, [socket, connected]); 
 
@@ -1132,8 +1147,6 @@ import { STICKS_BLINK_TIME, SHAKE_CUPS_TIME, GAME_PHASE, GetGamePhaseName } from
       if (fixedRef.current) {
         const fixedHeight = fixedRef.current.offsetHeight;
         setAvailableHeight(getViewportHeight() - fixedHeight - 16);
-        //timing issue with UIMargin, use literal instead
-        //setAvailableHeight(getViewportHeight() - fixedHeight - 2 * UIMargin);
       }
     };
 
@@ -1599,7 +1612,61 @@ useEffect(() => {
           Close Chat
         </button>
 
-        <div className="mt-2">Chat</div>
+        <div
+          className="mt-2"
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            height: 'calc(100% - 40px)'
+          }}
+        >
+          <div
+            style={{
+              flex: 1,
+              overflowY: 'auto',
+              marginBottom: '0.5rem'
+            }}
+          >
+            {chatEntries.map((entry, index) => (
+              <div key={index} style={{ marginBottom: '0.5rem' }}>
+                <span
+                  style={{
+                    fontSize: '0.75rem',
+                    opacity: 0.7,
+                    marginRight: '0.4rem'
+                  }}
+                >
+                  {FormatLocalTime(entry.date, entry.time)}
+                </span>
+
+                <strong>{entry.senderName}:</strong> {entry.text}
+              </div>
+            ))}
+            <div ref={chatBottomRef} />
+          </div>
+
+          <div style={{ display: 'flex', gap: '0.25rem' }}>
+            <input
+              type="text"
+              className="form-control form-control-sm"
+              value={chatText}
+              onChange={(e) => setChatText(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  handleSendChat();
+                }
+              }}
+              placeholder="Message..."
+            />
+
+            <button
+              className="btn btn-primary btn-sm"
+              onClick={handleSendChat}
+            >
+              Send
+            </button>
+          </div>
+        </div>
       </div>
     );
   }
@@ -1633,9 +1700,6 @@ useEffect(() => {
           , Game in progress: {ggc.GAME_IN_PROGRESS ? 'YES' : 'NO'} 
         </div>
         */}
-
-
-
       <div className={`game-chat-layout ${showChat ? 'chat-open' : ''}`}>
         <div
           className="game-panel d-flex flex-column"
@@ -1721,23 +1785,18 @@ useEffect(() => {
                 Bid History
               </button>
             )}
-
-  {showBidDlg && (
-    <BidDlg
-      open={showBidDlg}
-      onHide={() => setShowBidDlg(false)}
-      bidMatrix={bidMatrix}
-      yourTurnString={row2YourTurnString}
-      specialPasoString={row2SpecialPasoString}
-      ggc={ggc}
-      myIndex={myIndex}
-      onSubmit={handleBidOK}
-    />
-  )}
-
-
-
-
+            {showBidDlg && (
+              <BidDlg
+                open={showBidDlg}
+                onHide={() => setShowBidDlg(false)}
+                bidMatrix={bidMatrix}
+                yourTurnString={row2YourTurnString}
+                specialPasoString={row2SpecialPasoString}
+                ggc={ggc}
+                myIndex={myIndex}
+                onSubmit={handleBidOK}
+              />
+            )}
             <div
               style={{
                 width: '100%',
@@ -1753,14 +1812,9 @@ useEffect(() => {
                 showWinnerDecoration={showWinnerDecoration}
                 winnerIndex={winnerIndex}
               />
-            {narrowScreen && showChat && RenderChatPanel(true)}
-
-
-
+              {narrowScreen && showChat && RenderChatPanel(true)}
             </div>
           </div>
-
-
 
         {/* Floating countdown overlay */}
         {isFrozen && (
@@ -1795,7 +1849,6 @@ useEffect(() => {
             )}
           </div>
         )}
-
 
         {/*-------------------------------------------------------------------
           DIALOGS
@@ -1931,18 +1984,9 @@ useEffect(() => {
             onOk={onGameSettingsOkHandler}
           />
         )}
-
-
         </div>  {/* game-panel */}
           {!narrowScreen && RenderChatPanel(false)}
-
       </div>  {/* game-chat-layout */}
-
-
-
-      {/* OUTSIDE of flex column to allow fixed positioning */}
-      {/* <BidPanel show={showBidPanel} onClose={() => setShowBidPanel(false)} /> */}
-
     </>
   );
 

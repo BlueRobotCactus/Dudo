@@ -73,7 +73,7 @@ export class LobbyChatEntry {
 }
 
 //****************************************************************
-// LobbyChatEntry class
+// LobbyChat class
 //****************************************************************
 export class LobbyChat {
     Entries = [];

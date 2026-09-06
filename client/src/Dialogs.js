@@ -3,6 +3,7 @@ import Modal from 'react-bootstrap/Modal';
 import Button from 'react-bootstrap/Button';
 import Dropdown from 'react-bootstrap/Dropdown';
 import BidGrid from './pages/BidGrid.js';
+import { FormatLocalDateTime } from './shared/DateTimeUtils.js';
 
 //************************************************************
 // Shared Hook: useDraggableDialog
@@ -690,34 +691,6 @@ export function SessionStatsDlg({
     '5th', '6th', '7th', '8th'
   ];
 
-  //-------------------------------------------------
-  // reformat time from UTC to local 12 hour format
-  //-------------------------------------------------
-  const formatGameStart = (date, time) => {
-    if (!date || !time) return '';
-
-    const [month, day, shortYear] = date.split('/');
-    const year = `20${shortYear}`;
-
-    const utcDate = new Date(
-      `${year}-${month}-${day}T${time}Z`
-    );
-
-    const localDate = utcDate.toLocaleDateString('en-US', {
-      month: '2-digit',
-      day: '2-digit',
-      year: 'numeric'
-    });
-
-    const localTime = utcDate.toLocaleTimeString('en-US', {
-      hour: 'numeric',
-      minute: '2-digit',
-      hour12: true
-    }).replace(' ', '').toLowerCase();
-
-    return `${localDate}, ${localTime}`;
-  };
-
   return (
     <Modal
       show={open}
@@ -758,7 +731,7 @@ export function SessionStatsDlg({
                     <tr className="table-secondary">
                       <th colSpan="2">
                         Game {gameIndex + 1}:&nbsp;&nbsp;
-                        {formatGameStart(game.startDate, game.startTime)}
+                        {FormatLocalDateTime(game.startDate, game.startTime)}
                       </th>
                     </tr>
                     {game.orderOfFinish?.map((player, placeIndex) => (

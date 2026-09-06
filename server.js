@@ -1,4 +1,4 @@
-import { LobbySession, DudoGame, DudoRound, DudoBid } from './client/src/shared/DudoGame.js';
+import { LobbySession, LobbyChatEntry, DudoGame, DudoRound, DudoBid } from './client/src/shared/DudoGame.js';
 
 import { MAX_CONNECTIONS, CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYER_TIMED_OUT, CONN_PLAYER_TIMED_OUT_DEFER,
          CONN_PLAYER_IN_DISCONN, CONN_PLAYER_OUT_DISCONN, CONN_OBSERVER_DISCONN, GAME_PHASE,
@@ -1218,6 +1218,60 @@ io.on('connection', (socket) => {
       callback({ error: 'Lobby not found' });
     }
   });
+
+  //************************************************************
+  // socket.on
+  // CHAT MESSAGE - BROADCAST TO ALL
+  //************************************************************
+  socket.on('chatMessage', ({ lobbyId, text }) => {
+
+    const authedPlayer = getAuthedPlayer(socket);
+    if (!authedPlayer) { return; }
+
+    const lobby = lobbies[lobbyId];
+    if (!lobby) { return; }
+
+    // Make sure this authenticated player is actually in this lobby.
+    const lobbyPlayer = lobby.players.find(p => p.guid === authedPlayer.guid);
+    if (!lobbyPlayer) { return; }
+
+    // Don't store blank messages.
+    const cleanText = String(text ?? '').trim();
+    if (!cleanText) { return; }
+
+    const entry = new LobbyChatEntry();
+
+    const now = new Date();
+    entry.date = GetDate(now);
+    entry.time = GetTime(now);
+
+    entry.type = 'player';
+
+    // Sender identity comes from the server, not the client.
+    entry.senderName = lobbyPlayer.displayName;
+    entry.senderGuid = authedPlayer.guid;
+
+    // Broadcast message.
+    entry.recipientName = 'All';
+    entry.recipientGuid = '';
+
+    entry.text = cleanText;
+
+    // Save in this lobby session's chat history.
+    lobby.lobbySession.Chat.Entries.push(entry);
+
+    // Send this new message to everyone currently in the lobby.
+    io.to(lobbyId).emit('chatMessage', entry);
+
+    console.log(
+      `CHAT: ${entry.senderName} -> All: ${entry.text}`
+    );
+  });
+
+
+
+
+
 
   //************************************************************
   // socket.on
