@@ -243,6 +243,8 @@ import { STICKS_BLINK_TIME, SHAKE_CUPS_TIME, GAME_PHASE, GetGamePhaseName } from
         }
     const UIMargin = '.5rem';
 
+    const narrowScreen = screenSize.width < 600;
+
     //************************************************************
     // UseEffect CHECKBOX [selectedBid, CanShowShake] &&& old
     // UseEffect CHECKBOX [selectedBid]
@@ -1585,6 +1587,24 @@ useEffect(() => {
   }
 
   //************************************************************
+  //  function Render the chat panel
+  //************************************************************
+  function RenderChatPanel(overlay = false) {
+    return (
+      <div className={overlay ? "chat-panel chat-panel-overlay" : "chat-panel"}>
+        <button
+          className="btn btn-light btn-sm"
+          onClick={() => setShowChat(false)}
+        >
+          Close Chat
+        </button>
+
+        <div className="mt-2">Chat</div>
+      </div>
+    );
+  }
+
+  //************************************************************
   //************************************************************
   //  Render 
   //************************************************************
@@ -1733,6 +1753,10 @@ useEffect(() => {
                 showWinnerDecoration={showWinnerDecoration}
                 winnerIndex={winnerIndex}
               />
+            {narrowScreen && showChat && RenderChatPanel(true)}
+
+
+
             </div>
           </div>
 
@@ -1910,17 +1934,7 @@ useEffect(() => {
 
 
         </div>  {/* game-panel */}
-
-        <div className="chat-panel">
-          <button
-            className="btn btn-light btn-sm"
-            onClick={() => setShowChat(false)}
-          >
-            Close Chat
-          </button>
-
-          <div className="mt-2">Chat</div>
-        </div>
+          {!narrowScreen && RenderChatPanel(false)}
 
       </div>  {/* game-chat-layout */}
 

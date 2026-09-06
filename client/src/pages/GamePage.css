@@ -52,3 +52,28 @@
 .tablegrid-modal-backdrop {
   position: absolute !important;
 }
+
+.chat-panel-overlay {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+
+  padding: 0.5rem;
+
+  z-index: 1000;
+
+  background-color: black;
+  color: white;
+}
+
+@media (max-width: 599px) {
+  .game-chat-layout.chat-open .game-panel {
+    flex: 1 1 100%;
+  }
+
+  .game-chat-layout.chat-open .chat-panel.chat-panel-overlay {
+    flex: none;
+    width: 250px;
+  }
+}
