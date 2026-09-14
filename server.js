@@ -654,6 +654,8 @@ io.on('connection', (socket) => {
 
     clearDisconnectTimer(lobbyId, guid);
 
+    addSystemChatMessage(lobbyId, `${playerName} timed out and left the lobby.`);
+
     // If game not in progress, just leave them disconnected/out of lobby state
     if (!ggs.GAME_IN_PROGRESS) {
       io.to(lobbyId).emit('disconnectCountdownEnded', 
@@ -668,9 +670,6 @@ io.on('connection', (socket) => {
     //---------------------------------------
     // Game is in progress 
     //---------------------------------------
-//    const hadAnyBid = (ggs.curRound && ggs.curRound.numBids > 0);
-//    const originalStarter = ggs.curRound?.startingPlayerIndex ?? ggs.whosTurn;
-
     // If the host actually timed out during a game,
     // allow the game to finish, then close the lobby.
     if (guid === lobby.hostGuid) {
@@ -952,8 +951,11 @@ io.on('connection', (socket) => {
           }
 
           // The participant did not reconnect within the silent period. Remove the slot.
+          const playerName = ggs.allParticipantNames[gameIndex];
           removePlayerFromLobby(lobby, playerGuid);
           ggs.shiftGameSlotsLeft(gameIndex);
+
+          addSystemChatMessage(lobbyId, `${playerName} disconnected and left the lobby.`);
 
           io.to(lobbyId).emit('lobbyData', lobby);
           io.to(lobbyId).emit('gameStateUpdate', ggs);
@@ -1550,6 +1552,8 @@ io.on('connection', (socket) => {
       ggs.shiftGameSlotsLeft(gameIndex);
     }
     console.log(`server.js: ${playerName} left lobby: ${lobbyId}, shifted CONN indices`);
+
+    addSystemChatMessage(lobbyId, `${removedPlayer.displayName} left the lobby.`);
 
     io.to(lobbyId).emit('lobbyData', lobby);
     io.emit('lobbiesList', getLobbiesList());

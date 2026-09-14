@@ -71,7 +71,7 @@ import { STICKS_BLINK_TIME, SHAKE_CUPS_TIME, GAME_PHASE, GetGamePhaseName } from
     const [countdownMessage, setCountdownMessage] = useState('');
     
     // chat related
-    const [showChat, setShowChat] = useState(false);
+    const [showChat, setShowChat] = useState(sessionStorage.getItem('showChat') === 'true');
     const [chatText, setChatText] = useState('');
     const [chatEntries, setChatEntries] = useState([]);
     const [chatRecipientGuid, setChatRecipientGuid] = useState('');
@@ -355,6 +355,13 @@ import { STICKS_BLINK_TIME, SHAKE_CUPS_TIME, GAME_PHASE, GetGamePhaseName } from
       };
     }, [socket, connected, lobbyId, navigate]);
   
+    //************************************************************
+    // useEffect: STORE SHOWCHAT STATE
+    //************************************************************
+    useEffect(() => {
+      sessionStorage.setItem('showChat', showChat ? 'true' : 'false');
+    }, [showChat]);
+
     //************************************************************
     // useEffect: SCROLL CHAT PROPERLY
     //************************************************************
@@ -1652,28 +1659,24 @@ useEffect(() => {
             }}
           >
             {chatEntries.map((entry, index) => (
-              <div key={index} style={{ marginBottom: '0.5rem' }}>
-                <span
-                  style={{
-                    fontSize: '0.75rem',
-                    opacity: 0.7,
-                    marginRight: '0.4rem'
-                  }}
-                >
+              <div
+                key={index}
+                className={entry.type === 'system' ? 'chat-system-message' : 'chat-message'}
+              >
+                <div className="chat-time">
                   {FormatLocalTime(entry.date, entry.time)}
-                </span>
-
+                </div>
 
                 {entry.type === 'system' ? (
-                  <span>{entry.text}</span>
+                  <div>{entry.text}</div>
                 ) : (
-                  <>
+                  <div>
                     <strong>
                       {entry.senderName}
                       {entry.recipientGuid ? ` to ${entry.recipientName}` : ''}:
                     </strong>{' '}
                     {entry.text}
-                  </>
+                  </div>
                 )}
               </div>
             ))}

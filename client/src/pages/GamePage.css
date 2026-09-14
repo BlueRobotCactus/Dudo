@@ -83,3 +83,34 @@
     width: 250px;
   }
 }
+
+@media (min-width: 600px) {
+  .game-chat-layout.chat-open .chat-panel {
+    margin-top: 0.4rem;
+    margin-bottom: 0.4rem;
+    margin-left: -0.25rem;
+    border: 2px solid white;
+  }
+}
+
+.chat-message {
+  background-color: #454b52;
+  border-radius: 6px;
+  padding: 0.4rem 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.chat-time {
+  font-size: 0.7rem;
+  opacity: 0.65;
+  margin-bottom: 0.1rem;
+}
+
+.chat-system-message {
+  font-size: 0.85rem;
+  font-style: italic;
+  opacity: 0.75;
+  padding: 0.25rem 0.3rem;
+  margin-bottom: 0.4rem;
+}
+
