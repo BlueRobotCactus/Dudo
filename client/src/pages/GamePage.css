@@ -31,7 +31,7 @@
   overflow: hidden;
   box-sizing: border-box;
 
-  background-color: black;
+  background-color: #343a40;
   color: white;
 }
 
@@ -43,6 +43,9 @@
   flex: 1 1 0;
   width: auto;
   padding: 0.5rem;
+
+  border: 2px solid #6c757d;
+  border-radius: 8px;
 }
 
 .tablegrid-modal {
@@ -63,8 +66,11 @@
 
   z-index: 1000;
 
-  background-color: black;
+  background-color: #343a40;
   color: white;
+
+  border: 2px solid #6c757d;
+  border-radius: 8px;
 }
 
 @media (max-width: 599px) {
