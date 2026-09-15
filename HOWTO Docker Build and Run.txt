@@ -158,6 +158,10 @@ docker ps
 cmd /c hash
 
 //---------------------------------------
-// GOOGLE CLOUD SQL
+// GOOGLE FIRESTORE
 //---------------------------------------
+cloud.google.com
+Go to my console
+search bar at top:  FIRESTORE
+click on "default" on the left  
 

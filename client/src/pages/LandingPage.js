@@ -19,6 +19,7 @@ function LandingPage({ playerName, setPlayerName }) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [isAdmin, setIsAdmin] = useState(false);
   const [authBusy, setAuthBusy] = useState(false);
   const [joinPermission, setJoinPermission] = useState(null);
           // join mode {choose, observer, resume, already_connected}
@@ -94,6 +95,7 @@ function LandingPage({ playerName, setPlayerName }) {
         if (res.ok && data.ok && data.player) {
           setLoggedIn(true);
           setPlayerName(data.player.username || '');
+          setIsAdmin(data.player.isAdmin === true);
 
           // If page loads and user is already logged in, refresh socket too,
           // so socket session and HTTP session stay aligned.
@@ -101,12 +103,14 @@ function LandingPage({ playerName, setPlayerName }) {
         } else {
           setLoggedIn(false);
           setPlayerName('');
+          setIsAdmin(false);
         }
       } catch (err) {
         console.error('LandingPage: auth check failed:', err);
         if (!cancelled) {
           setLoggedIn(false);
           setPlayerName('');
+          setIsAdmin(false);
         }
       } finally {
         if (!cancelled) {
@@ -198,6 +202,7 @@ function LandingPage({ playerName, setPlayerName }) {
 
       setLoggedIn(true);
       setPlayerName(data.player.username);
+      setIsAdmin(data.player.isAdmin === true);
 
       // *** CHANGED ***
       // Reconnect socket after successful login so server-side
@@ -271,6 +276,7 @@ function LandingPage({ playerName, setPlayerName }) {
 
       setLoggedIn(true);
       setPlayerName(loginData.player.username);
+      setIsAdmin(loginData.player.isAdmin === true);
 
       // Reconnect socket after auto-login too
       refreshSocketSession();
@@ -304,6 +310,7 @@ function LandingPage({ playerName, setPlayerName }) {
 
       setLoggedIn(false);
       setPlayerName('');
+      setIsAdmin(false);
       setAuthMode('');
       resetAuthForm();
 
@@ -344,7 +351,7 @@ function LandingPage({ playerName, setPlayerName }) {
       }
 
       navigate(`/game/${resp.lobbyId}`, {
-        state: { isHost: true, hostName: resp.hostName, playerName },
+        state: { isHost: true, hostName: resp.hostName, playerName, isAdmin },
       });
     });
   };
@@ -397,7 +404,8 @@ function LandingPage({ playerName, setPlayerName }) {
                 state: {
                   isHost: false,
                   hostName: lobbyData.host,
-                  playerName
+                  playerName,
+                  isAdmin
                 }
               });
             }
@@ -452,7 +460,7 @@ function LandingPage({ playerName, setPlayerName }) {
       closeJoinChoiceDlg();
 
       navigate(`/game/${lobbyId}`, {
-        state: { isHost: false, hostName: lobbyData.host, playerName },
+        state: { isHost: false, hostName: lobbyData.host, playerName, isAdmin },
       });
     });
   };
@@ -537,15 +545,17 @@ function LandingPage({ playerName, setPlayerName }) {
                   About
                 </button>
               </li>
-              <li>
-                <button
-                  className="dropdown-item"
-                  onClick={onOptAdmin}
-                  /* disabled={!authChecked} */
-                >
-                  Admin
-                </button>
-              </li>
+              {isAdmin && (
+                <li>
+                  <button
+                    className="dropdown-item"
+                    onClick={onOptAdmin}
+                    /* disabled={!authChecked} */
+                  >
+                    Admin
+                  </button>
+                </li>
+              )}
               <li>
                 <button
                   className="dropdown-item"

@@ -158,6 +158,44 @@ export default function AdminPage() {
     }
   };
 
+  //-----------------------------------
+  // change admin status
+  //-----------------------------------
+  const handleAdminChange = async (guid, username, isAdmin) => {
+
+    // confirm the change
+    const ok = window.confirm(isAdmin ? 
+      `Make "${username}" an administrator?` :
+      `Remove administrator rights from "${username}"?`
+    );
+    if (!ok) {
+      return;
+    }
+
+    // execute the change
+    try {
+      const res = await fetch(`/api/players/${guid}/admin`, {
+        method: 'PUT',
+        headers: {'Content-Type': 'application/json',},
+        body: JSON.stringify({isAdmin,}),
+      });
+
+      const data = await res.json();
+
+      if (data.ok) {
+        setPlayers(prev => prev.map(p =>p.guid === guid ? { ...p, isAdmin } : p));
+      } else {
+        alert(`Admin change failed: ${data.error}`);
+      }
+    } catch (err) {
+      console.error('Admin change failed:', err);
+      alert('Admin change failed.');
+    }
+  };
+
+  //-----------------------------------
+  // close it
+  //-----------------------------------
   const handleClose = () => {
     if (lobbyId) {
       navigate(`/game/${lobbyId}`);
@@ -235,6 +273,7 @@ export default function AdminPage() {
             <tr>
               <th>Username</th>
               <th>When created</th>
+              <th>Admin</th>
               <th>Actions</th>
             </tr>
           </thead>
@@ -244,6 +283,13 @@ export default function AdminPage() {
               <tr key={p.guid}>
                 <td>{p.username}</td>
                 <td>{p.created_at ? formatDateTimeLocal(p.created_at) : ''}</td>
+                <td style={{ textAlign: 'center' }}>
+                  <input
+                    type="checkbox"
+                    checked={p.isAdmin === true}
+                    onChange={(e) => handleAdminChange(p.guid, p.username, e.target.checked)}
+                  />
+                </td>
                 <td>
                   <button
                     className="btn btn-primary btn-sm me-2"

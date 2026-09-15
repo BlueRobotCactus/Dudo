@@ -49,6 +49,7 @@ import { STICKS_BLINK_TIME, SHAKE_CUPS_TIME, GAME_PHASE, GetGamePhaseName } from
     const playerName = location.state?.playerName || sessionStorage.getItem('playerName') || '';
 
     // state hooks
+    const [isAdmin, setIsAdmin] = useState(location.state?.isAdmin === true);
     const [gameState, setGameState] = useState({});
     const [lobby, setLobby] = useState({});
     const [lobbyHost, setLobbyHost] = useState('');
@@ -75,8 +76,8 @@ import { STICKS_BLINK_TIME, SHAKE_CUPS_TIME, GAME_PHASE, GetGamePhaseName } from
     const [chatText, setChatText] = useState('');
     const [chatEntries, setChatEntries] = useState([]);
     const [chatRecipientGuid, setChatRecipientGuid] = useState('');
-    const chatBottomRef = useRef(null);
-    
+    const chatMessagesRef = useRef(null);
+
     // Row2
     // game settings
     //const [row2NumSticks, setRow2NumSticks] = useState("3");
@@ -283,6 +284,32 @@ import { STICKS_BLINK_TIME, SHAKE_CUPS_TIME, GAME_PHASE, GetGamePhaseName } from
     }, [socket, gameState]);
 
     //************************************************************
+    // useEffect: GET ADMIN STATUS
+    //************************************************************
+    useEffect(() => {
+      const getAdminStatus = async () => {
+        try {
+          const res = await fetch('/api/auth/me', {
+            credentials: 'include',
+          });
+
+          const data = await res.json();
+
+          if (res.ok && data.ok && data.player) {
+            setIsAdmin(data.player.isAdmin === true);
+          } else {
+            setIsAdmin(false);
+          }
+        } catch (err) {
+          console.error('GamePage: auth check failed:', err);
+          setIsAdmin(false);
+        }
+      };
+
+      getAdminStatus();
+    }, []);
+    
+    //************************************************************
     // useEffect SESSION STORAGE [lobbyId, playerName]
     //           Store session values to survive refresh
     //************************************************************
@@ -366,7 +393,11 @@ import { STICKS_BLINK_TIME, SHAKE_CUPS_TIME, GAME_PHASE, GetGamePhaseName } from
     // useEffect: SCROLL CHAT PROPERLY
     //************************************************************
     useEffect(() => {
-      chatBottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+      const el = chatMessagesRef.current;
+
+      if (el) {
+        el.scrollTop = el.scrollHeight;
+      }
     }, [chatEntries]);
 
     //************************************************************
@@ -755,6 +786,10 @@ import { STICKS_BLINK_TIME, SHAKE_CUPS_TIME, GAME_PHASE, GetGamePhaseName } from
   const handleOptAbout = () => {
     navigate('/about', { state: { lobbyId } });
   }
+
+  const handleOptAdmin = () => {
+    navigate('/admin', { state: { lobbyId } });
+  };
 
   const handleOptHelp = () => {
 
@@ -1652,6 +1687,7 @@ useEffect(() => {
           }}
         >
           <div
+            ref={chatMessagesRef}
             style={{
               flex: 1,
               overflowY: 'auto',
@@ -1680,7 +1716,6 @@ useEffect(() => {
                 )}
               </div>
             ))}
-            <div ref={chatBottomRef} />
           </div>
 
           <div>
@@ -1831,7 +1866,7 @@ useEffect(() => {
               padding: '.5rem',
               ...backgroundStyle,
               boxSizing: 'border-box',
-              border: '2px solid red',
+              border: '2px solid black',
               position: 'relative',
             }}
           >
@@ -2143,6 +2178,17 @@ useEffect(() => {
               >
                 About</button>
               </li>
+
+              {isAdmin && (
+                <li>
+                  <button
+                    className="dropdown-item"
+                    onClick={handleOptAdmin}
+                  >
+                    Admin
+                  </button>
+                </li>
+              )}
 
               <li><button className="dropdown-item" 
                 onClick={handleOptHelp}

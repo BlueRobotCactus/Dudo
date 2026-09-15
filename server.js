@@ -2145,6 +2145,7 @@ app.post('/api/auth/login', async (req, res) => {
       id: player.guid,
       guid: player.guid,
       username: player.username,
+      isAdmin: player.isAdmin === true,
     };
 
     res.json({
@@ -2154,6 +2155,7 @@ app.post('/api/auth/login', async (req, res) => {
         guid: player.guid,
         username: player.username,
         created_at: player.created_at,
+        isAdmin: player.isAdmin === true,
       },
     });
   } catch (err) {
@@ -2184,6 +2186,7 @@ app.get('/api/players', async (req, res) => {
         created_at: data.created_at?.toDate
           ? data.created_at.toDate().toISOString()
           : data.created_at,
+        isAdmin: data.isAdmin === true,
       };
     });
 
@@ -2239,6 +2242,7 @@ app.post('/api/players', async (req, res) => {
         guid,
         username,
         created_at: createdAt.toISOString(),
+        isAdmin: false,
       },
     });
   } catch (err) {
@@ -2273,6 +2277,51 @@ app.delete('/api/players/:id', async (req, res) => {
   } catch (err) {
     console.error('Delete player failed:', err);
     res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+// ------------------------------
+// PLAYERS PUT: set Admin
+// ------------------------------
+app.put('/api/players/:guid/admin', async (req, res) => {
+  try {
+    // Only an administrator may change admin rights
+    if (req.session.player?.isAdmin !== true) {
+      return res.status(403).json({
+        ok: false,
+        error: 'Administrator access required',
+      });
+    }
+
+    const guid = req.params.guid;
+    const isAdmin = req.body.isAdmin === true;
+
+    const playerRef = playersRef.doc(guid);
+    const playerDoc = await playerRef.get();
+
+    if (!playerDoc.exists) {
+      return res.status(404).json({
+        ok: false,
+        error: 'Player not found',
+      });
+    }
+
+    await playerRef.update({
+      isAdmin,
+    });
+
+    res.json({
+      ok: true,
+      guid,
+      isAdmin,
+    });
+
+  } catch (err) {
+    console.error('Update admin status failed:', err);
+    res.status(500).json({
+      ok: false,
+      error: err.message,
+    });
   }
 });
 
