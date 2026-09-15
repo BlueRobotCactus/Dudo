@@ -107,9 +107,6 @@ import { STICKS_BLINK_TIME, SHAKE_CUPS_TIME, GAME_PHASE, GetGamePhaseName } from
     
     // Row3 (TableGrid)
     const tableGridRef = useRef(null);
-    const fixedRef = useRef(null);
-    const [availableHeight, setAvailableHeight] = useState(window.innerHeight);
-    //const [availableWidth, setAvailableWidth] = useState(window.innerWidth);
 
     // In / Out
     const [showInOutDlg, setShowInOutDlg] = useState(false);
@@ -741,7 +738,6 @@ import { STICKS_BLINK_TIME, SHAKE_CUPS_TIME, GAME_PHASE, GetGamePhaseName } from
       }
     }
     setShowObserversDlg(true);
-
     setOnObserversOkHandler(() => () => {
       setShowObserversDlg(false);
     });
@@ -1196,6 +1192,7 @@ import { STICKS_BLINK_TIME, SHAKE_CUPS_TIME, GAME_PHASE, GetGamePhaseName } from
   //************************************************************
   const getViewportHeight = () => {
     // visualWiewport for mobile
+    //return window.innerHeight;
     return window.visualViewport?.height || window.innerHeight;
   };
   const getViewportWidth = () => {
@@ -1210,10 +1207,10 @@ import { STICKS_BLINK_TIME, SHAKE_CUPS_TIME, GAME_PHASE, GetGamePhaseName } from
         height: getViewportHeight(),
       });
 
-      if (fixedRef.current) {
-        const fixedHeight = fixedRef.current.offsetHeight;
-        setAvailableHeight(getViewportHeight() - fixedHeight - 16);
-      }
+      //if (fixedRef.current) {
+      //  const fixedHeight = fixedRef.current.offsetHeight;
+      //  setAvailableHeight(getViewportHeight() - fixedHeight - 16);
+      //}
     };
 
     // Initial run
@@ -1345,19 +1342,6 @@ useEffect(() => {
 //************************************************************
 useEffect(() => {
   console.log("GamePage: useEffect DRAW");
-/*
-  // for debugging
-  if (prevReconnect.current) {
-    const p = prevReconnect.current;
-    if (p.gameState     !== gameState)    console.log ('DRAW: gameState changed', p.gameState, '→', gameState);
-    if (p.lobbyPlayers  !== lobbyPlayers) console.log ('DRAW: lobbyPlayers changed', p.lobbyPlayers, '→', lobbyPlayers);
-    if (p.isMyTurn      !== isMyTurn)     console.log ('DRAW: isMyTurn changed', p.isMyTurn, '→', isMyTurn);
-    if (p.screenSize    !== screenSize)   console.log ('DRAW: screenSize changed', p.screenSize, '→', screenSize);
-    if (p.imagesReady   !== imagesReady)  console.log ('DRAW: imagesReady changed', p.imagesReady, '→', imagesReady);
-    if (p.socketId      !== socketId)     console.log ('DRAW: socketId changed', p.socketId, '→', socketId);
-  }
-  prevReconnect.current = { gameState, lobbyPlayers, isMyTurn, screenSize, imagesReady, socketId };
-*/
 
   // wait for images to be loaded
   if (!imagesReady) {
@@ -1815,10 +1799,19 @@ useEffect(() => {
       <div className={`game-chat-layout ${showChat ? 'chat-open' : ''}`}>
         <div
           className="game-panel d-flex flex-column"
-          style={{ height: '100vh', overflow: 'hidden', margin: `${UIMargin}`}}
+
+          //&&&style={{ height: '100%', overflow: 'hidden', margin: `${UIMargin}`}}
+
+style={{
+  height: `calc(100% - 2 * ${UIMargin})`,
+  overflow: 'hidden',
+  margin: `${UIMargin}`
+}}
+
+
         >
         {/* Fixed Content: NavBar + Row1 + Row2 */}
-        <div ref={fixedRef}>
+        <div>
           {/* Navigation bar */}
           <div className="w-100">{RenderNavBar()}</div>
 
@@ -1861,7 +1854,8 @@ useEffect(() => {
           <div
             ref={tableGridRef}
             style={{
-              height: `${availableHeight}px`,
+              flex: '1 1 0',
+              minHeight: 0,
               overflow: 'hidden',
               padding: '.5rem',
               ...backgroundStyle,
