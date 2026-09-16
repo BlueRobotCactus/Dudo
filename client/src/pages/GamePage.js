@@ -21,6 +21,7 @@ import { ShowDoubtDlg } from '../Dialogs.js';
 import { BidHistoryDlg } from '../Dialogs.js';
 import { ObserversDlg } from '../Dialogs.js';
 import { SessionStatsDlg } from '../Dialogs.js';
+import { SessionLogDlg } from '../Dialogs.js';
 import { GameSettingsDlg } from '../Dialogs.js';
 import { SetGameParametersDlg } from '../Dialogs.js';
 import { BidDlg } from '../Dialogs.js';
@@ -167,6 +168,9 @@ import { STICKS_BLINK_TIME, SHAKE_CUPS_TIME, GAME_PHASE, GetGamePhaseName } from
     // Session Statistics
     const [showSessionStatsDlg, setShowSessionStatsDlg] = useState(false);
     const [onSessionStatsOkHandler, setOnSessionStatsOkHandler] = useState(() => () => {});    
+
+    // Session Log
+    const [showSessionLogDlg, setShowSessionLogDlg] = useState(false);
 
     // doubt result strings (used by Lift Cup and Show Doubt)
     const [doubtWhoDoubtedWhom, setDoubtWhoDoubtedWhom] = useState('');
@@ -749,6 +753,10 @@ import { STICKS_BLINK_TIME, SHAKE_CUPS_TIME, GAME_PHASE, GetGamePhaseName } from
     setOnSessionStatsOkHandler(() => () => {
       setShowSessionStatsDlg(false);
     });
+  };
+
+  const handleOptSessionLog = () => {
+    setShowSessionLogDlg(true);
   };
 
   const handleOptGameSettings = () => {
@@ -2067,6 +2075,13 @@ style={{
           />
         )}
 
+        <SessionLogDlg
+          show={showSessionLogDlg}
+          onOk={() => setShowSessionLogDlg(false)}
+          container={tableGridRef.current}
+          games={lobby?.lobbySession?.Games || []}
+        />
+
         {showSetGameParametersDlg && (
           <SetGameParametersDlg
             open={showSetGameParametersDlg}
@@ -2160,6 +2175,12 @@ style={{
                   Session Stats
                 </button>
               </li>
+
+              {isAdmin && (
+                <Dropdown.Item onClick={handleOptSessionLog}>
+                  Session Log
+                </Dropdown.Item>
+              )}
 
               <li><button className="dropdown-item" 
                 onClick={handleOptHowToPlay}

@@ -132,6 +132,9 @@ export function DirectionDlg({
   );
 }
 
+//************************************************************
+// BidDlg
+//************************************************************
 export function BidDlg({ 
   open, 
   onHide, 
@@ -767,9 +770,102 @@ export function SessionStatsDlg({
 }
 
 //************************************************************
+// SessionLogDlg
+//************************************************************
+export function SessionLogDlg({
+  show,
+  onOk,
+  container,
+  games = []
+}) {
+  return (
+    <Modal
+      show={show}
+      onHide={onOk}
+      centered
+      scrollable
+      container={container}
+      backdropClassName="tablegrid-modal-backdrop"
+      className="tablegrid-modal"
+    >
+      <Modal.Header
+        closeButton
+        closeVariant="white"
+        className="bg-primary text-white py-1 px-3"
+      >
+        <Modal.Title style={{ fontSize: '1rem' }}>
+          Session Log
+        </Modal.Title>
+      </Modal.Header>
+
+      <Modal.Body>
+        <div
+          style={{
+            maxHeight: '50vh',
+            overflowY: 'auto',
+          }}
+        >
+          {games.length === 0 ? (
+            <div className="text-center">
+              No games have been completed yet.
+            </div>
+          ) : (
+            <table className="table table-sm table-bordered mb-0">
+              <tbody>
+                {games.map((game, gameIndex) => (
+                  <React.Fragment key={gameIndex}>
+                    <tr className="table-secondary">
+                      <th>
+                        Game {gameIndex + 1}:&nbsp;&nbsp;
+                        {FormatLocalDateTime(game.startDate, game.startTime)}
+                      </th>
+                    </tr>
+
+                    {game.Rounds?.map((round, roundIndex) => (
+                      <React.Fragment key={roundIndex}>
+                        <tr>
+                          <td
+                            style={{
+                              paddingLeft: '1.5rem',
+                              fontWeight: 'bold'
+                            }}
+                          >
+                            Round {roundIndex + 1}:&nbsp;&nbsp;
+                            {FormatLocalDateTime(round.startDate, round.startTime)}
+                          </td>
+                        </tr>
+
+                        {round.Bids?.map((bid, bidIndex) => (
+                          <tr key={bidIndex}>
+                            <td style={{ paddingLeft: '3rem' }}>
+                              {FormatLocalDateTime(bid.date, bid.time)}
+                              &nbsp;&nbsp;
+                              {bid.playerName}: {bid.text}
+                            </td>
+                          </tr>
+                        ))}
+                      </React.Fragment>
+                    ))}
+                  </React.Fragment>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      </Modal.Body>
+
+      <Modal.Footer className="d-flex justify-content-center py-1">
+        <Button variant="primary" size="sm" onClick={onOk}>
+          OK
+        </Button>
+      </Modal.Footer>
+    </Modal>
+  );
+}
+
+//************************************************************
 // SetGameParametersDlg
 //************************************************************
-
 export function SetGameParametersDlg({ 
   open,
   container,
