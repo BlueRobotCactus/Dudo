@@ -413,6 +413,7 @@ io.on('connection', (socket) => {
 
       ggs.setGamePhase(GAME_PHASE.WAITING_TO_START);
 
+      ggs.setWhoWonGamePlayer();
       ggs.GetOrderOfFinish();
 
       const now = new Date();
@@ -678,9 +679,14 @@ io.on('connection', (socket) => {
 
     // Record this timeout as belonging to this round
     if (ggs.curRound) {
-        if (!ggs.curRound.timedoutPlayers.includes(gameIndex)) {
-            ggs.curRound.timedoutPlayers.push(gameIndex);
-        }
+      if (!ggs.curRound.timedoutPlayers.includes(gameIndex)) {
+          ggs.curRound.timedoutPlayers.push(gameIndex);
+      }
+      ggs.curRound.timedoutPlayerRefs.push({
+          index: gameIndex,
+          guid: ggs.allParticipantGuid[gameIndex],
+          name: ggs.allParticipantNames[gameIndex]
+      });
     }
 
     // remove player unless its time out deferred
@@ -743,6 +749,7 @@ io.on('connection', (socket) => {
         }
 
         // Finish game bookkeeping
+        ggs.setWhoWonGamePlayer();
         ggs.GetOrderOfFinish();
 
         const now = new Date();

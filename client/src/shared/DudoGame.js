@@ -164,7 +164,9 @@ export class DudoGame {
 
 	bWinnerRound;
 	bWinnerGame;
+
 	whoWonGame;
+	whoWonGamePlayer;
 	orderOfFinish = [];
 
 	bDisconnectPause;
@@ -220,7 +222,9 @@ export class DudoGame {
 
 		this.bWinnerRound = false;
 		this.bWinnerGame = false;
+
 		this.whoWonGame = undefined;
+		this.whoWonGamePlayer = undefined;
 		this.whosTurn = -1;
 
 		this.bDisconnectPause = false;
@@ -375,7 +379,10 @@ export class DudoGame {
 		
 		this.bWinnerRound = false;
 		this.bWinnerGame = false;
+
 		this.whoWonGame = undefined;
+		this.whoWonGamePlayer = undefined;
+
 		this.whosTurn = -1;
 
 		// chatgpt added these
@@ -474,8 +481,21 @@ export class DudoGame {
 	//************************************************************
 	getDoubtResult () {
 		this.curRound.doubtedText = this.curRound.Bids[this.curRound.numBids - 2].text;
+		
 		this.curRound.whoDoubted = this.curRound.Bids[this.curRound.numBids - 1].playerIndex;
+		this.curRound.whoDoubtedPlayer = {
+	    index: this.curRound.whoDoubted,
+  	  guid: this.allParticipantGuid[this.curRound.whoDoubted],
+    	name: this.allParticipantNames[this.curRound.whoDoubted]
+		};
+
 		this.curRound.whoGotDoubted = this.curRound.Bids[this.curRound.numBids - 2].playerIndex;
+		this.curRound.whoGotDoubtedPlayer = {
+				index: this.curRound.whoGotDoubted,
+				guid: this.allParticipantGuid[this.curRound.whoGotDoubted],
+				name: this.allParticipantNames[this.curRound.whoGotDoubted]
+		};
+
 		//--------------------------------------------------------
 		// doubted paso
 		//--------------------------------------------------------
@@ -514,6 +534,7 @@ export class DudoGame {
 				this.bWinnerGame = true;
 				this.whoWonGame = this.curRound.doubtWinner;
 			}
+			this.setDoubtWinnerLoserPlayers();
 			return;
 		}
 
@@ -627,6 +648,40 @@ export class DudoGame {
 			this.bWinnerGame = true;
 			this.whoWonGame = this.curRound.doubtWinner;
 		}
+		this.setDoubtWinnerLoserPlayers();
+	}
+
+	//************************************************************
+	// save stable player references for doubt winner and loser
+	// and game winner, if there is one
+	//************************************************************
+	setDoubtWinnerLoserPlayers() {
+			this.curRound.doubtLoserPlayer = {
+					index: this.curRound.doubtLoser,
+					guid: this.allParticipantGuid[this.curRound.doubtLoser],
+					name: this.allParticipantNames[this.curRound.doubtLoser]
+			};
+
+			this.curRound.doubtWinnerPlayer = {
+					index: this.curRound.doubtWinner,
+					guid: this.allParticipantGuid[this.curRound.doubtWinner],
+					name: this.allParticipantNames[this.curRound.doubtWinner]
+			};
+
+			if (this.bWinnerGame) {
+					this.setWhoWonGamePlayer();
+			}
+		}
+
+	//************************************************************
+	// save stable player reference for game winner
+	//************************************************************
+	setWhoWonGamePlayer() {
+			this.whoWonGamePlayer = {
+					index: this.whoWonGame,
+					guid: this.allParticipantGuid[this.whoWonGame],
+					name: this.allParticipantNames[this.whoWonGame]
+			};
 	}
 
 	//************************************************************
@@ -1331,42 +1386,49 @@ export class DudoGame {
 							this.orderOfFinish.push({ cc, guid, name, reason: 'doubt' }); 
 					}
 
-					// Players who timed out during this round 
-					if (round.timedoutPlayers) { 
-							for (const cc of round.timedoutPlayers) {
+					// Players who timed out during this round
+					if (round.timedoutPlayerRefs) {
+							for (const player of round.timedoutPlayerRefs) {
+
+									const cc = player.index;
 
 									// Special case: player timed out after already winning
 									// a game-ending doubt
-									if (this.bWinnerGame && cc === this.whoWonGame) { 
-											continue; 
-									} 
+									if (
+											this.bWinnerGame &&
+											player.guid === this.whoWonGamePlayer?.guid
+									) {
+											continue;
+									}
 
 									// If this player was knocked out by the doubt,
 									// don't also record them as a timeout
-									if (round.endRoundCause === ROUND_END_DOUBT && 
-											round.doubtLoserOut && 
-											cc === round.doubtLoser) { 
-											continue; 
-									} 
+									if (
+											round.endRoundCause === ROUND_END_DOUBT &&
+											round.doubtLoserOut &&
+											player.guid === round.doubtLoserPlayer?.guid
+									) {
+											continue;
+									}
 
-									const guid = this.allParticipantGuid[cc]; 
-									const name = this.allParticipantNames[cc]; 
 									this.orderOfFinish.push({
 											cc,
-											guid,
-											name,
+											guid: player.guid,
+											name: player.name,
 											reason: 'timeout'
-									}); 
-							} 
-					} 
+									});
+							}
+					}
 			} 
 	
-			// add the winner 
-			const cc = this.whoWonGame; 
-			const guid = this.allParticipantGuid[cc]; 
-			const name = this.allParticipantNames[cc]; 
-			this.orderOfFinish.push({ cc, guid, name }); 
-	
+			// add the winner
+			const player = this.whoWonGamePlayer;
+			this.orderOfFinish.push({
+					cc: player.index,
+					guid: player.guid,
+					name: player.name
+			});
+
 			// reverse so winner is first 
 			this.orderOfFinish.reverse(); 
 	}
@@ -1387,6 +1449,7 @@ export class DudoRound {
 	endTime = '';
 
 	timedoutPlayers = [];	// array of players that timeout during this round
+	timedoutPlayerRefs = []; // stable historical player references
 
 	whichDirection = undefined;          // 1 = left (clockwise); 2 = right (counter-clockwise)
 	startingPlayerIndex = -1;
@@ -1394,43 +1457,89 @@ export class DudoRound {
 	endRoundCause = undefined;					// ROUND_END_DOUBT or ROUND_END_TIMEOUT
 
 	doubtedText = undefined;
-	whoDoubted = undefined; 
-	whoGotDoubted = undefined;   
+
+// ...Player is an object which contains { index, guid, name}
+whoDoubted = undefined;              // player index used by game logic
+whoDoubtedPlayer = undefined;        // stable historical player reference
+
+whoGotDoubted = undefined;           // player index used by game logic
+whoGotDoubtedPlayer = undefined;     // stable historical player reference
+
+doubtLoser = undefined;              // player index used by game logic
+doubtLoserPlayer = undefined;        // stable historical player reference
+
+doubtWinner = undefined;             // player index used by game logic
+doubtWinnerPlayer = undefined;       // stable historical player reference
+
 	doubtHowMany = undefined;
 	doubtOfWhat = undefined;
 	doubtShowing = undefined;
 	doubtLookingFor = undefined;
-	doubtLoser = undefined;
-	doubtWinner = undefined;
+
 	doubtCount = undefined;
 	doubtLoserPaloFijo = undefined;
 	doubtLoserOut = undefined;
 	doubtWasPaso = undefined;
 	doubtPasoWasThere = undefined;
 
+	// constructor
   constructor() {
     this.curBid = new DudoBid();
   }
 
+	// init
 	init() {
 		this.whichDirection = undefined;
 		this.startingPlayerIndex = -1;
 		this.endRoundCause = undefined;
 
 		this.doubtedText = undefined;
-		this.whoDoubted = undefined;              
-		this.whoGotDoubted = undefined;           
+
+this.whoDoubted = undefined;              
+this.whoDoubtedPlayer = undefined;
+this.whoGotDoubted = undefined;           
+this.whoGotDoubtedPlayer = undefined;		
+
+this.doubtLoser = undefined;
+this.doubtLoserPlayer = undefined;
+this.doubtWinner = undefined;
+this.doubtWinnerPlayer = undefined;
+
 		this.doubtHowMany = undefined;
 		this.doubtOfWhat = undefined;
 		this.doubtShowing = undefined;
 		this.doubtLookingFor = undefined;
-		this.doubtLoser = undefined;
-		this.doubtWinner = undefined;
 		this.doubtCount = undefined;
 		this.doubtLoserPaloFijo = undefined;
 		this.doubtLoserOut = undefined;
 		this.doubtWasPaso = undefined;
 		this.doubtPasoWasThere = undefined;
+	}
+
+	// Get results of this round
+	GetRoundResults() {
+			const results = [];
+
+			// Doubt result
+			if (this.endRoundCause === ROUND_END_DOUBT) {
+					results.push({ type: 'doubt', playerIndex: this.doubtLoser,	out: this.doubtLoserOut	});
+			}
+
+			// Players who timed out during this round
+			for (const cc of this.timedoutPlayers || []) {
+					// If this player was already knocked out by the doubt,
+					// don't also record the player as a timeout.
+					if ( 
+							this.endRoundCause === ROUND_END_DOUBT &&
+							this.doubtLoserOut &&
+							cc === this.doubtLoser
+					) {
+							continue;
+					}
+
+					results.push({ type: 'timeout', playerIndex: cc, out: true });
+			}
+			return results;
 	}
 }
 

@@ -4,6 +4,7 @@ import Button from 'react-bootstrap/Button';
 import Dropdown from 'react-bootstrap/Dropdown';
 import BidGrid from './pages/BidGrid.js';
 import { FormatLocalDateTime } from './shared/DateTimeUtils.js';
+import { ROUND_END_DOUBT, ROUND_END_TIMEOUT } from './shared/DudoGame.js';
 
 //************************************************************
 // Shared Hook: useDraggableDialog
@@ -778,6 +779,44 @@ export function SessionLogDlg({
   container,
   games = []
 }) {
+  const getRoundResults = (game, round) => {
+
+    const results = [];
+
+    // Doubt result
+    if (round.endRoundCause === ROUND_END_DOUBT) {
+      const loserName =
+        game.allParticipantNames?.[round.doubtLoser] || 'Unknown';
+
+      if (round.doubtLoserOut) {
+        results.push(`${loserName} lost the doubt and is OUT.`);
+      } else {
+        results.push(`${loserName} lost the doubt and got a stick.`);
+      }
+    }
+
+    // Any players who timed out during this round
+    for (const cc of round.timedoutPlayers || []) {
+
+      // If this player was already knocked out by the doubt,
+      // don't report the same player again as a timeout.
+      if (
+        round.endRoundCause === ROUND_END_DOUBT &&
+        round.doubtLoserOut &&
+        cc === round.doubtLoser
+      ) {
+        continue;
+      }
+
+      const playerName =
+        game.allParticipantNames?.[cc] || 'Unknown';
+
+      results.push(`${playerName} timed out and is OUT.`);
+    }
+
+    return results;
+  };
+
   return (
     <Modal
       show={show}
@@ -841,6 +880,20 @@ export function SessionLogDlg({
                               {FormatLocalDateTime(bid.date, bid.time)}
                               &nbsp;&nbsp;
                               {bid.playerName}: {bid.text}
+                            </td>
+                          </tr>
+                        ))}
+                        
+                        {getRoundResults(game, round).map((result, resultIndex) => (
+                          <tr key={`result-${resultIndex}`}>
+                            <td
+                              style={{
+                                paddingLeft: '3rem',
+                                fontWeight: 'bold'
+                              }}
+                            >
+                              {resultIndex === 0 ? 'Result: ' : ''}
+                              {result}
                             </td>
                           </tr>
                         ))}
