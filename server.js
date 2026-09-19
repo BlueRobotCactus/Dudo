@@ -1185,7 +1185,6 @@ io.on('connection', (socket) => {
         ggs.allParticipantGuid[ptr] = authedPlayer.guid;
         ggs.allParticipantNames[ptr] = playerName;
         ggs.allConnectionID[ptr] = socket.id;
-        //&&&ggs.allConnectionStatus[ptr] = ggs.GAME_IN_PROGRESS ? CONN_OBSERVER : CONN_PLAYER_IN;
         ggs.allConnectionStatus[ptr] = joinAsObserver ? CONN_OBSERVER : CONN_PLAYER_IN;
       } else {
         // reconnect / duplicate-join by same authenticated player
@@ -1765,6 +1764,12 @@ io.on('connection', (socket) => {
     ggs.curRound.curBid.text = bidText;
     ggs.curRound.curBid.playerIndex = index;
     ggs.curRound.curBid.playerName = name;
+    ggs.curRound.curBid.bidPlayerInfo = {
+        index: index,
+        guid: ggs.allParticipantGuid[index],
+        name: ggs.allParticipantNames[index]
+    };
+
     if ((bidText !=="PASO") && (bidText !=="DOUBT")) {
       ggs.parseBid(bidText);
       ggs.curRound.curBid.howMany = ggs.parsedHowMany;
@@ -2498,9 +2503,9 @@ function StartRound (ggs) {
       ggs.setGamePhase(GAME_PHASE.BIDDING);
     }
 
-    ggs.doubtDidLiftCup = Array(MAX_CONNECTIONS).fill(false);  // &&& need this?
-    ggs.nextRoundMustSay = Array(MAX_CONNECTIONS).fill(false);       // &&& need this?
-    ggs.nextRoundDidSay = Array(MAX_CONNECTIONS).fill(false);       // &&& need this?
+    ggs.doubtDidLiftCup = Array(MAX_CONNECTIONS).fill(false);
+    ggs.nextRoundMustSay = Array(MAX_CONNECTIONS).fill(false);
+    ggs.nextRoundDidSay = Array(MAX_CONNECTIONS).fill(false);
     ggs.getNextRoundMustSay();
 
     //------------------------------------------------------------

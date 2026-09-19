@@ -253,8 +253,7 @@ import { STICKS_BLINK_TIME, SHAKE_CUPS_TIME, GAME_PHASE, GetGamePhaseName } from
     const narrowScreen = screenSize.width < 600;
 
     //************************************************************
-    // UseEffect CHECKBOX [selectedBid, CanShowShake] &&& old
-    // UseEffect CHECKBOX [selectedBid]
+    // UseEffect CHECKBOX [selectedBid, gameState, myIndex]
     //           track changes in checkbox
     //************************************************************
     useEffect(() => {
@@ -849,7 +848,7 @@ import { STICKS_BLINK_TIME, SHAKE_CUPS_TIME, GAME_PHASE, GetGamePhaseName } from
         // show previous bid
         let turnString = '';
         if (ggc.curRound.numBids > 0) {
-          const sName = ggc.curRound.Bids[ggc.curRound.numBids-1].playerName;
+          const sName = ggc.curRound.Bids[ggc.curRound.numBids-1].bidPlayerInfo.name;
           turnString = (`${sName} bid to you: ${ggc.GetBidString(ggc.curRound.numBids-1)}`);
         } else {
           turnString = 'You start the bidding.';
@@ -877,7 +876,8 @@ import { STICKS_BLINK_TIME, SHAKE_CUPS_TIME, GAME_PHASE, GetGamePhaseName } from
       if (ggc.curRound.numBids > 0) {
         // there is at least one bid
         const currentBid = ggc.curRound.Bids[ggc.curRound.numBids-1];
-        let s1= currentBid.playerName + " bid: " + ggc.GetBidString(ggc.curRound.numBids-1);
+        let s1 = currentBid.bidPlayerInfo.name + " bid: " + ggc.GetBidString(ggc.curRound.numBids-1);
+
         if (ggc.bPaloFijoRound) {
           s1 = "PALO FIJO: " + s1;
         }
@@ -1331,7 +1331,6 @@ useEffect(() => {
   console.log("Gamepage: useEffect: RECONNECT: socket ready, turn on 'connect' listener");
   socket.on('connect', handleReconnect);
 
-  // &&& comment out or not?
   // Call immediately if already connected (e.g. on refresh)
   if (socket.connected) {
     console.log("GamePage: socket already connected, calling handleReconnect immediately");
@@ -1557,7 +1556,7 @@ useEffect(() => {
 
     // add bids from scratch
     for (let i=0;  i<ggc.curRound.numBids; i++) {
-      bidHistoryRef.current.push({ Player: ggc.curRound.Bids[i].playerName,
+      bidHistoryRef.current.push({ Player: ggc.curRound.Bids[i].bidPlayerInfo.name,
                                    Bid: ggc.GetBidString(i)});
     }
   }
@@ -1807,16 +1806,11 @@ useEffect(() => {
       <div className={`game-chat-layout ${showChat ? 'chat-open' : ''}`}>
         <div
           className="game-panel d-flex flex-column"
-
-          //&&&style={{ height: '100%', overflow: 'hidden', margin: `${UIMargin}`}}
-
-style={{
-  height: `calc(100% - 2 * ${UIMargin})`,
-  overflow: 'hidden',
-  margin: `${UIMargin}`
-}}
-
-
+          style={{
+            height: `calc(100% - 2 * ${UIMargin})`,
+            overflow: 'hidden',
+            margin: `${UIMargin}`
+          }}
         >
         {/* Fixed Content: NavBar + Row1 + Row2 */}
         <div>

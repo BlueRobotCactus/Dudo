@@ -587,7 +587,7 @@ export function BidHistoryDlg({
             <tbody>
               {bids.map((bid, i) => (
                 <tr key={i}>
-                  <td>{bid.playerName}</td>
+                  <td>{bid.bidPlayerInfo.name}</td>
                   <td style={{ whiteSpace: 'nowrap' }}>{bid.text}</td>
                   <td style={{ borderRight: '1px solid lightgray' }}>
                     {bid.bShowShake ? bid.howManyShown : '-'}
@@ -847,7 +847,7 @@ export function SessionLogDlg({
                             <td style={{ paddingLeft: '3rem' }}>
                               {FormatLocalTime(bid.date, bid.time)}
                               &nbsp;&nbsp;
-                              {bid.playerName}: {bid.text}
+                              {bid.bidPlayerInfo.name}: {bid.text}
                             </td>
                           </tr>
                         ))}

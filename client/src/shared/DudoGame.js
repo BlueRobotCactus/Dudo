@@ -1,5 +1,4 @@
 // connectionStatus codes
-// &&& these are more like player status codes
 const MAX_CONNECTIONS = 10;
 const CONN_UNUSED = 0;
 const CONN_PLAYER_IN = 1;
@@ -400,7 +399,6 @@ export class DudoGame {
 
 		for (let i = 0; i < MAX_CONNECTIONS; i++) {
 			const status = this.allConnectionStatus[i];
-			//&&&if (status === CONN_PLAYER_IN || status === CONN_PLAYER_OUT || status === CONN_OBSERVER) {
 			if (status === CONN_PLAYER_IN || status === CONN_PLAYER_OUT) {
 				this.allConnectionStatus[i] = CONN_PLAYER_IN;
 			}
@@ -716,7 +714,6 @@ export class DudoGame {
 	getInOutMustSay () {
 		for (let i=0; i<MAX_CONNECTIONS; i++) {
 			let st = this.allConnectionStatus[i];
-			//&&&if (st === CONN_PLAYER_IN || st === CONN_PLAYER_OUT || st === CONN_OBSERVER) {
 			if (st === CONN_PLAYER_IN || st === CONN_PLAYER_OUT) {
 				this.inOutMustSay[i] = true;
 			} else {
@@ -1446,18 +1443,18 @@ export class DudoRound {
 
 	doubtedText = undefined;
 
-// ...Player is an object which contains { index, guid, name}
-whoDoubted = undefined;              // player index used by game logic
-whoDoubtedInfo = undefined;          // stable historical player reference
+	// ...Player is an object which contains { index, guid, name}
+	whoDoubted = undefined;              // player index used by game logic
+	whoDoubtedInfo = undefined;          // stable historical player reference
 
-whoGotDoubted = undefined;           // player index used by game logic
-whoGotDoubtedInfo = undefined;       // stable historical player reference
+	whoGotDoubted = undefined;           // player index used by game logic
+	whoGotDoubtedInfo = undefined;       // stable historical player reference
 
-doubtLoser = undefined;              // player index used by game logic
-doubtLoserInfo = undefined;          // stable historical player reference
+	doubtLoser = undefined;              // player index used by game logic
+	doubtLoserInfo = undefined;          // stable historical player reference
 
-doubtWinner = undefined;             // player index used by game logic
-doubtWinnerInfo = undefined;         // stable historical player reference
+	doubtWinner = undefined;             // player index used by game logic
+	doubtWinnerInfo = undefined;         // stable historical player reference
 
 	doubtHowMany = undefined;
 	doubtOfWhat = undefined;
@@ -1483,15 +1480,15 @@ doubtWinnerInfo = undefined;         // stable historical player reference
 
 		this.doubtedText = undefined;
 
-this.whoDoubted = undefined;              
-this.whoDoubtedInfo = undefined;
-this.whoGotDoubted = undefined;           
-this.whoGotDoubtedInfo = undefined;		
+		this.whoDoubted = undefined;              
+		this.whoDoubtedInfo = undefined;
+		this.whoGotDoubted = undefined;           
+		this.whoGotDoubtedInfo = undefined;		
 
-this.doubtLoser = undefined;
-this.doubtLoserInfo = undefined;
-this.doubtWinner = undefined;
-this.doubtWinnerInfo = undefined;
+		this.doubtLoser = undefined;
+		this.doubtLoserInfo = undefined;
+		this.doubtWinner = undefined;
+		this.doubtWinnerInfo = undefined;
 
 		this.doubtHowMany = undefined;
 		this.doubtOfWhat = undefined;
@@ -1547,9 +1544,11 @@ export class DudoBid {
 	time;
 	
   text;
-  playerIndex;
-  playerName;
-  howMany;
+
+	playerIndex;       // player index used by game logic
+	bidPlayerInfo;      // stable historical player reference { index, guid, name }
+
+	howMany;
   ofWhat;
   bPaso;
   bDudo;
@@ -1569,9 +1568,11 @@ export class DudoBid {
 		this.time = '';
 
     this.text = "";
+
     this.playerIndex = 0;
-    this.playerName = '';
-    this.howMany = -1;
+		this.bidPlayerInfo = undefined;
+		
+		this.howMany = -1;
     this.ofWhat = -1;
     this.bPaso = false;
     this.bDudo = false;
@@ -1594,7 +1595,6 @@ export class DudoBid {
 
     this.text = "";
     this.playerIndex = 0;
-    this.playerName = ''
     this.howMany = -1;
     this.ofWhat = -1;
     this.bPaso = false;
