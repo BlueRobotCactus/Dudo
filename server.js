@@ -413,7 +413,7 @@ io.on('connection', (socket) => {
 
       ggs.setGamePhase(GAME_PHASE.WAITING_TO_START);
 
-      ggs.setWhoWonGamePlayer();
+      ggs.setWhoWonGamePlayerInfo();
       ggs.GetOrderOfFinish();
 
       const now = new Date();
@@ -682,7 +682,7 @@ io.on('connection', (socket) => {
       if (!ggs.curRound.timedoutPlayers.includes(gameIndex)) {
           ggs.curRound.timedoutPlayers.push(gameIndex);
       }
-      ggs.curRound.timedoutPlayerRefs.push({
+      ggs.curRound.timedoutPlayerInfo.push({
           index: gameIndex,
           guid: ggs.allParticipantGuid[gameIndex],
           name: ggs.allParticipantNames[gameIndex]
@@ -749,7 +749,7 @@ io.on('connection', (socket) => {
         }
 
         // Finish game bookkeeping
-        ggs.setWhoWonGamePlayer();
+        ggs.setWhoWonGamePlayerInfo();
         ggs.GetOrderOfFinish();
 
         const now = new Date();
