@@ -1169,9 +1169,10 @@ import { STICKS_BLINK_TIME, SHAKE_CUPS_TIME, GAME_PHASE, GetGamePhaseName } from
     setShowOkDlg(true);
 
     // Auto-trigger leave after 15 seconds
+    const FORCE_LEAVE_CLOSE_LOBBY_SECONDS = 15;
     leaveLobbyTimerRef.current = setTimeout(() => {
       onOk();
-    }, 15000);
+    }, FORCE_LEAVE_CLOSE_LOBBY_SECONDS * 1000);
   };
 
   //************************************************************
@@ -1201,7 +1202,21 @@ import { STICKS_BLINK_TIME, SHAKE_CUPS_TIME, GAME_PHASE, GetGamePhaseName } from
     else {
       setCountdownMessage(`${playerName} left the lobby and is OUT.`);
     }
-    setTimeout(() => setShowCountdown(false), 3000);
+    const RECONNECT_MSG_SECONDS = 3;
+    setTimeout(() => setShowCountdown(false), RECONNECT_MSG_SECONDS * 1000);
+  };
+
+  //************************************************************
+  // function to handle game killed by host
+  //************************************************************
+  const handleGameKilled = ({ message }) => {
+    setCountdownMessage(message);
+    setShowCountdown(true);
+
+    const GAME_KILLED_MSG_SECONDS = 3;
+    setTimeout(() => {
+      setShowCountdown(false);
+    }, GAME_KILLED_MSG_SECONDS * 1000);
   };
 
   //************************************************************
@@ -1222,6 +1237,7 @@ import { STICKS_BLINK_TIME, SHAKE_CUPS_TIME, GAME_PHASE, GetGamePhaseName } from
     socket.on('disconnectCountdown', handleDisconnectCountdown);
     socket.on('disconnectCountdownEnded', handleDisconnectCountdownEnded);
     socket.on('chatMessage', handleChatMessage);
+    socket.on('gameKilled', handleGameKilled);
 
     return () => {
       socket.off('gameStateUpdate', handleGameStateUpdate);
@@ -1229,7 +1245,8 @@ import { STICKS_BLINK_TIME, SHAKE_CUPS_TIME, GAME_PHASE, GetGamePhaseName } from
       socket.off('forceLeaveLobby', handleForceLeaveLobby);
       socket.off('disconnectCountdown', handleDisconnectCountdown);
       socket.off('disconnectCountdownEnded', handleDisconnectCountdownEnded);
-      socket.off('chatMessage', handleChatMessage);      
+      socket.off('chatMessage', handleChatMessage);
+      socket.off('gameKilled', handleGameKilled);
     };
   }, [socket, connected]); 
 
@@ -2300,14 +2317,14 @@ useEffect(() => {
               Leave lobby
             </button>
           )}
-          {!showChat && (
-            <button
-              onClick={() => setShowChat(true)}
-              className="btn btn-primary btn-outline-light btn-sm ms-auto"
-            >
-              Open Chat
-            </button>
-          )}
+          <button
+            onClick={() => setShowChat(true)}
+            className="btn btn-primary btn-outline-light btn-sm ms-auto"
+            style={{ visibility: showChat ? 'hidden' : 'visible' }}
+            disabled={showChat}
+          >
+            Open Chat
+          </button>          
         </div>
       </nav>
     )

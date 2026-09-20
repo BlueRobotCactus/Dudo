@@ -74,7 +74,8 @@ export default function AdminPage() {
       if (data.ok) {
         setPlayers(prev => prev.filter(p => p.guid !== guid));
         setStatusMsg(`Deleted player "${username}"`);
-        setTimeout(() => setStatusMsg(''), 3000);
+        const ADMIN_DELETE_PLAYER_SECONDS = 3;
+        setTimeout(() => setStatusMsg(''), ADMIN_DELETE_PLAYER_SECONDS * 1000);
       } else {
         alert(`Delete failed: ${data.error}`);
       }
@@ -148,7 +149,8 @@ export default function AdminPage() {
 
       if (data.ok) {
         setStatusMsg(`Password reset for "${username}"`);
-        setTimeout(() => setStatusMsg(''), 3000);
+        const ADMIN_RESET_PASSWORD_SECONDS = 3;
+        setTimeout(() => setStatusMsg(''), ADMIN_RESET_PASSWORD_SECONDS * 1000);
       } else {
         alert(`Reset password failed: ${data.error}`);
       }

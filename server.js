@@ -1538,6 +1538,12 @@ io.on('connection', (socket) => {
     ggs.PrepareNextGame();
 
     //--------------------------------------------------
+    // Tell everyone the game was cancelled
+    //--------------------------------------------------
+    addSystemChatMessage( lobbyId, 'The lobby host has cancelled the current game.' );
+    io.to(lobbyId).emit('gameKilled', { message: 'The lobby host has cancelled the current game.'});
+
+    //--------------------------------------------------
     // Broadcast clean state
     //--------------------------------------------------
     io.to(lobbyId).emit('lobbyData', lobby);
@@ -2063,7 +2069,7 @@ io.on('connection', (socket) => {
         bCountDown = true;
 
         // Freeze the game immediately during the silent reconnect period.
-        turnPauseON(ggs, removedPlayer.displayName, COUNTDOWN_SILENT_SECONDS * 1000);
+        turnPauseON(ggs, removedPlayer.displayName, COUNTDOWN_SILENT_SECONDS);
       }
 
       ggs.allConnectionStatus[gameIndex] = disconnectStatus(status);
