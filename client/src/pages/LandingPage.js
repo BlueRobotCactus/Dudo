@@ -700,7 +700,7 @@ function LandingPage({ playerName, setPlayerName }) {
             <ul>
               {lobbies.map((lobby) => (
                 <li key={lobby.id}>
-                  <strong>{lobby.host}</strong>'s lobby ({lobby.playerCount} players)
+                  <strong>{lobby.host}</strong>'s lobby ({lobby.playerCount} players, {lobby.observerCount} observers)
                   &nbsp;
                   <button
                     className="btn btn-primary btn-sm"

@@ -63,7 +63,7 @@ import { STICKS_BLINK_TIME, SHAKE_CUPS_TIME, GAME_PHASE, GetGamePhaseName } from
     const [possibleBids, setPossibleBids] = useState([]);
     const [bidMatrix, setBidMatrix] = useState([]);
 
-    const [myIndex, setMyIndex] = useState(0);
+    const [myIndex, setMyIndex] = useState(-1);
     const [myName, setMyName] = useState('');
     const [isMyTurn, setIsMyTurn] = useState(false);
     const [whosTurnName, setWhosTurnName] = useState('');
@@ -363,7 +363,15 @@ import { STICKS_BLINK_TIME, SHAKE_CUPS_TIME, GAME_PHASE, GetGamePhaseName } from
           }
           setWhosTurnName(ggc.allParticipantNames[ggc.whosTurn] || '' );
         } else {
-          navigate('/'); // lobby doesn't exist
+          //&&&navigate('/'); // lobby doesn't exist
+
+  const msg = `DEBUG: getLobbyData failed - NOT navigating. error=${data?.error || 'no data'}`;
+  console.log(msg, data);
+  socket.emit('chatMessage', { lobbyId, recipientGuid: '', text: msg });
+
+
+
+
         }
       });
       // Listen for lobby data updates
@@ -1276,7 +1284,12 @@ useEffect(() => {
         return;
       }
 
-      // Normal navigation into GamePage: participant is already connected. Do nothing.
+      if (permission.joinMode === 'timed_out') {
+          console.log('handleRECONNECT: player previously timed out');
+          navigate('/');
+          return;
+      }
+
       if (permission.joinMode !== 'resume') {
         console.log('handleRECONNECT: no rejoin needed:', permission.joinMode);
         return;
