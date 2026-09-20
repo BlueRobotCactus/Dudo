@@ -1477,6 +1477,74 @@ io.on('connection', (socket) => {
     io.to(lobbyId).emit('gameStateUpdate', lobby.game);
   });
 
+
+  //************************************************************
+  // socket.on
+  // KILL CURRENT GAME
+  // Host only.  Discard game completely; do not save in session.
+  //************************************************************
+  socket.on('killGame', (lobbyId) => {
+
+    const authedPlayer = getAuthedPlayer(socket);
+    if (!authedPlayer) { return; }
+    const lobby = lobbies[lobbyId];
+    if (!lobby) { return; }
+
+    // Host only
+    if (authedPlayer.guid !== lobby.hostGuid) {
+      console.log(`server.js: killGame rejected - requester is not host`);
+      return;
+    }
+
+    const ggs = lobby.game;
+
+    const canKillGame =
+      ggs.gamePhase === GAME_PHASE.ASKING_IN_OUT ||
+      ggs.gamePhase === GAME_PHASE.CHOOSING_DIRECTION ||
+      ggs.gamePhase === GAME_PHASE.BIDDING;
+
+    if (!canKillGame) {
+      // Nothing to kill
+      console.log(
+        `server.js: killGame rejected - game phase is ${ggs.gamePhase}`
+      );
+      return;
+    }
+
+    console.log(`server.js: Host killed current game in lobby ${lobbyId}`);
+
+    //--------------------------------------------------
+    // Cancel any disconnect countdown timers
+    //--------------------------------------------------
+    const lobbyTimers = disconnectTimers[lobbyId];
+    if (lobbyTimers) {
+      for (const timer of Object.values(lobbyTimers)) {
+        clearInterval(timer.intervalId);
+      }
+      delete disconnectTimers[lobbyId];
+    }
+
+    //--------------------------------------------------
+    // Remove any timed-out players from the lobby/game
+    //--------------------------------------------------
+    GarbageCollection(lobby);
+
+    //--------------------------------------------------
+    // Discard current game and prepare for another
+    //
+    // IMPORTANT:
+    // Do NOT put this game in lobby.lobbySession.Games.
+    //--------------------------------------------------
+    ggs.PrepareNextGame();
+
+    //--------------------------------------------------
+    // Broadcast clean state
+    //--------------------------------------------------
+    io.to(lobbyId).emit('lobbyData', lobby);
+    io.emit('lobbiesList', getLobbiesList());
+    io.to(lobbyId).emit('gameStateUpdate', ggs);
+  });
+
   //************************************************************
   // socket.on
   // LEAVE LOBBY

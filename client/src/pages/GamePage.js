@@ -468,6 +468,7 @@ import { STICKS_BLINK_TIME, SHAKE_CUPS_TIME, GAME_PHASE, GetGamePhaseName } from
     // selectively close down dialogs
     if (data.gamePhase === GAME_PHASE.WAITING_TO_START) {
       setShowInOutDlg(false);
+      setShowDirectionDlg(false);
       setShowLiftCupDlg (false);
       setShowShowDoubtDlg(false);
       winnerConfettiShownRef.current = false;
@@ -475,7 +476,6 @@ import { STICKS_BLINK_TIME, SHAKE_CUPS_TIME, GAME_PHASE, GetGamePhaseName } from
     if (data.gamePhase === GAME_PHASE.CHOOSING_DIRECTION) {
       setShowLiftCupDlg (false);
       setShowShowDoubtDlg(false);
-
     }    
     if (data.gamePhase === GAME_PHASE.BIDDING) {
       setShowLiftCupDlg (false);
@@ -805,6 +805,36 @@ import { STICKS_BLINK_TIME, SHAKE_CUPS_TIME, GAME_PHASE, GetGamePhaseName } from
   const handleOptHelp = () => {
 
   }
+
+  const handleOptKillGame = () => {
+    setYesNoTitle("Kill Game");
+    setYesNoMessage(
+      "Are you sure you want to kill the current game?\n\n" +
+      "The game and all of its results will be discarded."
+    );
+
+    setYesText("Yes");
+    setNoText("No");
+
+    setYesShowButton(true);
+    setNoShowButton(true);
+    setXShowButton(false);
+
+    setOnYesHandler(() => () => {
+      setShowYesNoDlg(false);
+
+      if (connected) {
+        socket.emit('killGame', lobbyId);
+        console.log('GamePage: emitting "killGame"');
+      }
+    });
+
+    setOnNoHandler(() => () => {
+      setShowYesNoDlg(false);
+    });
+
+    setShowYesNoDlg(true);
+  };
 
   //************************************************************
   // function to say whether they can show/shake 
@@ -2159,6 +2189,22 @@ useEffect(() => {
               >
                 Game Settings</button>
               </li>
+
+              {lobby.hostGuid === myGuidRef.current && (
+                <li>
+                  <button
+                    className="dropdown-item"
+                    onClick={handleOptKillGame}
+                    disabled={
+                      ggc.gamePhase !== GAME_PHASE.ASKING_IN_OUT &&
+                      ggc.gamePhase !== GAME_PHASE.CHOOSING_DIRECTION &&
+                      ggc.gamePhase !== GAME_PHASE.BIDDING
+                    }
+                  >
+                    Kill Game
+                  </button>
+                </li>
+              )}
 
               <li><button className="dropdown-item" 
                 onClick={handleOptBidUIDropdown}
