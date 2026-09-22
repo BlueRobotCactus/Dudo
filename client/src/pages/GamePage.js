@@ -1146,6 +1146,9 @@ import { STICKS_BLINK_TIME, SHAKE_CUPS_TIME, GAME_PHASE, GetGamePhaseName } from
   // (host has left, the lobby is about to be deleted)
   //************************************************************
   const handleForceLeaveLobby = () => {
+    setShowCountdown(false);
+    setCountdownMessage('');
+
     setOkMessage("The host has closed the lobby.");
     setOkTitle("Closing lobby");
 
@@ -1168,8 +1171,8 @@ import { STICKS_BLINK_TIME, SHAKE_CUPS_TIME, GAME_PHASE, GetGamePhaseName } from
     setOnOkHandler(() => onOk);
     setShowOkDlg(true);
 
-    // Auto-trigger leave after 15 seconds
-    const FORCE_LEAVE_CLOSE_LOBBY_SECONDS = 15;
+    // Auto-trigger leave after 5 seconds
+    const FORCE_LEAVE_CLOSE_LOBBY_SECONDS = 5;
     leaveLobbyTimerRef.current = setTimeout(() => {
       onOk();
     }, FORCE_LEAVE_CLOSE_LOBBY_SECONDS * 1000);
@@ -1951,6 +1954,22 @@ useEffect(() => {
                 }}
               >
                 Bid History
+              </button>
+            )}
+            {ggc.allConnectionStatus.some(
+              status => status === CONN_OBSERVER
+            ) && (
+              <button
+                onClick={handleOptObservers}
+                className="btn btn-primary btn-sm"
+                style={{
+                  position: 'absolute',
+                  top: '8px',
+                  right: '8px',
+                  zIndex: 10,
+                }}
+              >
+                Observers
               </button>
             )}
             {showBidDlg && (

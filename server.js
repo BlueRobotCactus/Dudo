@@ -666,8 +666,18 @@ io.on('connection', (socket) => {
 
     addSystemChatMessage(lobbyId, `${playerName} timed out and left the lobby.`);
 
-    // If game not in progress, just leave them disconnected/out of lobby state
+    //---------------------------------------
+    // Game is not in progress 
+    //---------------------------------------
     if (!ggs.GAME_IN_PROGRESS) {
+      // host timed out, there is nobody left who can control this lobby. Close it.
+      if (guid === lobby.hostGuid) {
+        console.log(`server.js: Host timed out. Closing lobby: ${lobbyId}`);
+        closeLobby(lobbyId);
+        return;
+      }
+
+      // Non-host timed out, leave them disconnected/out of lobby state
       io.to(lobbyId).emit('disconnectCountdownEnded', 
         { playerName, reason: 'timed_out', phaseAtTimeout, gameOver: ggs.GetNumberPlayersStillIn() < 2 });
       io.to(lobbyId).emit('lobbyData', lobby);
@@ -680,8 +690,7 @@ io.on('connection', (socket) => {
     //---------------------------------------
     // Game is in progress 
     //---------------------------------------
-    // If the host actually timed out during a game,
-    // allow the game to finish, then close the lobby.
+    // host timed out during a game, allow the game to finish, then close the lobby.
     if (guid === lobby.hostGuid) {
         lobby.closeWhenGameEnds = true;
     }
@@ -2056,12 +2065,16 @@ io.on('connection', (socket) => {
 
     if (status === CONN_OBSERVER || status === CONN_PLAYER_OUT ||
        (!ggs.GAME_IN_PROGRESS && status === CONN_PLAYER_IN)) {      
-      // Keep the slot temporarily so a refresh or brief
-      // connection loss can restore the same role.
+      // Keep the slot temporarily so a refresh or brief connection loss can restore the same role.
       ggs.allConnectionID[gameIndex] = '';
       const disconnectedStatus = disconnectStatus(status);
       ggs.allConnectionStatus[gameIndex] = disconnectedStatus;
 
+      // Any player who disconnects while waiting to start a game gets the silent reconnect period.
+      // After that, a non-host is removed; the host gets the visible countdown.
+      if (!ggs.GAME_IN_PROGRESS && status === CONN_PLAYER_IN) {
+        bCountDown = true;
+      }
     } else {
       ggs.allConnectionID[gameIndex] = '';
 
@@ -2093,6 +2106,21 @@ io.on('connection', (socket) => {
         // If the player has already reconnected, their socket ID
         // will have been restored. Do not start the countdown.
         if (gameNow.allConnectionID[indexNow]) {
+          return;
+        }
+
+        // No game in progress, and this is not the host:
+        // the silent reconnect period has expired, so remove them.
+        if (!gameNow.GAME_IN_PROGRESS &&
+            removedPlayer.guid !== lobbyNow.hostGuid) {
+
+          removePlayerFromLobby(lobbyNow, removedPlayer.guid);
+          gameNow.shiftGameSlotsLeft(indexNow);
+
+          io.to(lobbyId).emit('lobbyData', lobbyNow);
+          io.emit('lobbiesList', getLobbiesList());
+          io.to(lobbyId).emit('gameStateUpdate', gameNow);
+
           return;
         }
 
