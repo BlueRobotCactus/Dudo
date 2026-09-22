@@ -1790,14 +1790,18 @@ io.on('connection', (socket) => {
   //************************************************************
   socket.on('bid', ({ lobbyId, bidText, bidShowShake, index, name }) => {
     const authedPlayer = getAuthedPlayer(socket);
-    if (!authedPlayer) {
-      return;
-    }
+    if (!authedPlayer) { return; }
 
     const lobby = lobbies[lobbyId];
-    if (!lobby) return;
+    if (!lobby) { return };
     const ggs = lobby.game;
-    if (ggs.bDisconnectPause) return;
+    if (ggs.bDisconnectPause) { return; }
+
+    // Bids are only valid during the BIDDING phase.
+    if (ggs.gamePhase !== GAME_PHASE.BIDDING) {
+      console.log(`server.js: bid ignored - game phase is ${ggs.gamePhase}`);
+      return;
+    }
 
     //-------------------------------------------------
     // add this bid to the bid array

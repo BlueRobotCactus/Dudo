@@ -903,8 +903,8 @@ import { STICKS_BLINK_TIME, SHAKE_CUPS_TIME, GAME_PHASE, GetGamePhaseName } from
         //setShowBidPanel(true);
       }
 
-      if (ggc.allBidUIMode[myIndex] === 1) {
-        setShowBidDlg (true);
+      if (ggc.allBidUIMode[myIndex] === 1 && ggc.gamePhase === GAME_PHASE.BIDDING) {
+        setShowBidDlg(true);
       }
 
     } else {
@@ -1897,8 +1897,8 @@ useEffect(() => {
 
               {/* {ggc.gamePhase === GAME_PHASE.ASKING_IN_OUT && RenderInOut()} */}
 
-              {isMyTurn && ggc.allBidUIMode[myIndex] === 0 && RenderBid()}
-              {/* isMyTurn && ggc.allBidUIMode[myIndex] === 1 && RenderGridBid() */}
+              {/*isMyTurn && ggc.allBidUIMode[myIndex] === 0 && RenderBid()*/}
+              {isMyTurn && ggc.allBidUIMode[myIndex] === 0 && ggc.gamePhase === GAME_PHASE.BIDDING && RenderBid()}
 
               {!isMyTurn && (
                 <div className="border border-primary rounded p-1">
