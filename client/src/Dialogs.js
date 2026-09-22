@@ -679,6 +679,237 @@ export function ObserversDlg({
   );
 }
 
+  //************************************************************
+  // SessionDetailsDlg
+  //************************************************************
+  export function SessionDetailsDlg({
+    open,
+    container,
+    games,
+    currentGame,
+    onOk
+  }) {
+    const [openGames, setOpenGames] = React.useState({});
+    const [openRounds, setOpenRounds] = React.useState({});
+
+    const toggleGame = (gameIndex) => {
+      setOpenGames(prev => ({
+        ...prev,
+        [gameIndex]: !prev[gameIndex]
+      }));
+    };
+
+    const toggleRound = (gameIndex, roundIndex) => {
+      const key = `${gameIndex}-${roundIndex}`;
+
+      setOpenRounds(prev => ({
+        ...prev,
+        [key]: !prev[key]
+      }));
+    };
+
+    const getRoundSummary = (round) => {
+      if (!round) return '';
+
+      const parts = [];
+
+      // Doubt result
+      if (round.endRoundCause === 1 && round.doubtLoserInfo) {
+        let s = `${round.doubtLoserInfo.name} lost the doubt`;
+
+        if (round.doubtLoserOut) {
+          s += ' and was out';
+        }
+
+        parts.push(s);
+      }
+
+      // Timeouts
+      for (const player of round.timedoutPlayerInfo || []) {
+
+        // Don't list the same player twice if the doubt
+        // already knocked that player out.
+        if (
+          round.endRoundCause === 1 &&
+          round.doubtLoserOut &&
+          player.guid === round.doubtLoserInfo?.guid
+        ) {
+          continue;
+        }
+
+        parts.push(`${player.name} timed out`);
+      }
+
+      return parts.join('; ');
+    };
+
+    const allGames = [...(games || [])];
+
+    // Include the game currently being played.
+    if (currentGame?.GAME_IN_PROGRESS) {
+      allGames.push(currentGame);
+    }
+
+    return (
+      <Modal
+        show={open}
+        onHide={onOk}
+        centered
+        scrollable
+        container={container}
+        backdropClassName="tablegrid-modal-backdrop"
+        className="tablegrid-modal"
+      >
+
+        <Modal.Header
+          closeButton
+          closeVariant="white"
+          className="bg-primary text-white py-1 px-3"
+        >
+          <Modal.Title style={{ fontSize: '1rem' }}>
+            Session Details
+          </Modal.Title>
+        </Modal.Header>
+
+        <Modal.Body>
+          <div
+            style={{
+              maxHeight: '50vh',
+              overflowY: 'auto',
+            }}
+          >
+            {allGames.length === 0 ? (
+              <div className="text-center">
+                No games have been played yet.
+              </div>
+            ) : (
+              <table className="table table-sm table-bordered mb-0">
+                <tbody>
+
+                  {allGames.map((game, gameIndex) => {
+                    const isCurrent =
+                      currentGame?.GAME_IN_PROGRESS &&
+                      gameIndex === allGames.length - 1 &&
+                      game === currentGame;
+
+                    const rounds = game.Rounds || [];
+
+                    return (
+                      <React.Fragment key={gameIndex}>
+
+                        {/* Game row */}
+                        <tr
+                          className="table-secondary"
+                          style={{ cursor: 'pointer' }}
+                          onClick={() => toggleGame(gameIndex)}
+                        >
+                          <th>
+                            {openGames[gameIndex] ? '▼' : '▶'}{' '}
+                            Game {gameIndex + 1}
+                            {isCurrent ? ' — In progress' : ''}
+                          </th>
+                        </tr>
+
+                        {openGames[gameIndex] && (
+                          <>
+                            {/* Order of Finish */}
+                            {game.orderOfFinish?.length > 0 && (
+                              <>
+                                <tr>
+                                  <td
+                                    style={{
+                                      paddingLeft: '1.5rem',
+                                      fontWeight: 'bold'
+                                    }}
+                                  >
+                                    Order of Finish:
+                                  </td>
+                                </tr>
+
+                                {game.orderOfFinish.map((player, finishIndex) => (
+                                  <tr key={player.guid || finishIndex}>
+                                    <td style={{ paddingLeft: '3rem' }}>
+                                      {finishIndex + 1}. {player.name}
+                                      {player.reason === 'timeout'
+                                        ? ' (disconnected)'
+                                        : ''}
+                                    </td>
+                                  </tr>
+                                ))}
+                              </>
+                            )}
+
+                            {/* Rounds */}
+                            {rounds.map((round, roundIndex) => {
+                              const key = `${gameIndex}-${roundIndex}`;
+                              const bids = round.Bids || [];
+                              const summary = getRoundSummary(round);
+
+                              return (
+                                <React.Fragment key={roundIndex}>
+
+                                  {/* Round row */}
+                                  <tr>
+                                    <td
+                                      style={{
+                                        paddingLeft: '1.5rem',
+                                        fontWeight: 'bold',
+                                        cursor: 'pointer'
+                                      }}
+                                      onClick={() =>
+                                        toggleRound(gameIndex, roundIndex)
+                                      }
+                                    >
+                                      {openRounds[key] ? '▼' : '▶'}{' '}
+                                      Round {roundIndex + 1}
+                                      {summary && ` — ${summary}`}
+                                    </td>
+                                  </tr>
+
+                                  {/* Bid rows */}
+                                  {openRounds[key] &&
+                                    bids.map((bid, bidIndex) => (
+                                      <tr key={bidIndex}>
+                                        <td style={{ paddingLeft: '3rem' }}>
+                                          {FormatLocalTime(bid.date, bid.time)}
+                                          &nbsp;&nbsp;
+                                          {bid.bidPlayerInfo?.name}: {bid.text}
+                                        </td>
+                                      </tr>
+                                    ))
+                                  }
+
+                                </React.Fragment>
+                              );
+                            })}
+
+                          </>
+                        )}
+
+                      </React.Fragment>
+                    );
+                  })}
+
+                </tbody>
+              </table>
+            )}
+          </div>
+        </Modal.Body>
+
+        <Modal.Footer className="d-flex justify-content-center py-1">
+          <Button
+            variant="primary"
+            size="sm"
+            onClick={onOk}
+          >
+            OK
+          </Button>
+        </Modal.Footer>
+
+      </Modal>
+    );
+  }
+
 //************************************************************
 // SessionStatsDlg
 //************************************************************

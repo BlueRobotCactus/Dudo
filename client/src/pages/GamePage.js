@@ -22,6 +22,7 @@ import { BidHistoryDlg } from '../Dialogs.js';
 import { ObserversDlg } from '../Dialogs.js';
 import { SessionStatsDlg } from '../Dialogs.js';
 import { SessionLogDlg } from '../Dialogs.js';
+import { SessionDetailsDlg } from '../Dialogs.js';
 import { GameSettingsDlg } from '../Dialogs.js';
 import { SetGameParametersDlg } from '../Dialogs.js';
 import { BidDlg } from '../Dialogs.js';
@@ -171,7 +172,8 @@ import { STICKS_BLINK_TIME, SHAKE_CUPS_TIME, GAME_PHASE, GetGamePhaseName } from
 
     // Session Log
     const [showSessionLogDlg, setShowSessionLogDlg] = useState(false);
-
+    const [showSessionDetailsDlg, setShowSessionDetailsDlg] = useState(false);
+    
     // doubt result strings (used by Lift Cup and Show Doubt)
     const [doubtWhoDoubtedWhom, setDoubtWhoDoubtedWhom] = useState('');
     const [doubtDoubtedBid, setDoubtDoubtedBid] = useState('');
@@ -2139,6 +2141,16 @@ useEffect(() => {
           />
         )}
 
+        {showSessionDetailsDlg && (
+          <SessionDetailsDlg
+            open={showSessionDetailsDlg}
+            container={tableGridRef.current}
+            games={lobby?.lobbySession?.Games || []}
+            currentGame={ggc}
+            onOk={() => setShowSessionDetailsDlg(false)}
+          />
+        )}
+
         {showSessionStatsDlg && (
           <SessionStatsDlg
             open={showSessionStatsDlg}
@@ -2254,6 +2266,15 @@ useEffect(() => {
                 disabled={!ggc.GAME_IN_PROGRESS}
               >
                 Bid UI: grid</button>
+              </li>
+
+              <li>
+                <button
+                  className="dropdown-item"
+                  onClick={() => setShowSessionDetailsDlg(true)}
+                >
+                  Session Details
+                </button>
               </li>
 
               <li>
