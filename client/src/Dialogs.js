@@ -743,12 +743,27 @@ export function ObserversDlg({
       return parts.join('; ');
     };
 
-    const allGames = [...(games || [])];
+    const getGameSummary = (game) => {
+      if (!game) return '';
 
-    // Include the game currently being played.
-    if (currentGame?.GAME_IN_PROGRESS) {
-      allGames.push(currentGame);
-    }
+      const sticks = game.maxSticks;
+      const pasoText = game.bPasoAllowed
+        ? 'paso allowed'
+        : 'paso not allowed';
+
+      // Palo Fijo is irrelevant in a 1-stick game.
+      if (sticks === 1) {
+        return `1 stick, ${pasoText}`;
+      }
+
+      const paloFijoText = game.bPaloFijoAllowed
+        ? 'with palofijo'
+        : 'no palofijo';
+
+      return `${sticks} sticks (${paloFijoText}), ${pasoText}`;
+    };
+
+    const allGames = [...(games || [])];
 
     return (
       <Modal
@@ -787,11 +802,6 @@ export function ObserversDlg({
                 <tbody>
 
                   {allGames.map((game, gameIndex) => {
-                    const isCurrent =
-                      currentGame?.GAME_IN_PROGRESS &&
-                      gameIndex === allGames.length - 1 &&
-                      game === currentGame;
-
                     const rounds = game.Rounds || [];
 
                     return (
@@ -806,7 +816,8 @@ export function ObserversDlg({
                           <th>
                             {openGames[gameIndex] ? '▼' : '▶'}{' '}
                             Game {gameIndex + 1}
-                            {isCurrent ? ' — In progress' : ''}
+                            {':  '}
+                            {getGameSummary(game)}
                           </th>
                         </tr>
 
@@ -1133,6 +1144,7 @@ export function SetGameParametersDlg({
   sticks,
   paso,
   palofijo,
+  numPlayersIn,
   onSave = () => {},
   onCancel = () => {},
   onHide={onCancel},
@@ -1141,6 +1153,7 @@ export function SetGameParametersDlg({
   const [localSticks, setLocalSticks] = useState(sticks);
   const [localPaso, setLocalPaso] = useState(paso);
   const [localPalofijo, setLocalPalofijo] = useState(palofijo);
+  const palofijoDisabled = (localSticks === 1 || numPlayersIn <= 2);
 
   return (
     <Modal
@@ -1231,8 +1244,9 @@ export function SetGameParametersDlg({
                 type="checkbox"
                 className="form-check-input"
                 id="palofijoAllowedCheckbox"
-                checked={localPalofijo}
-                onChange={(e) => setLocalPalofijo(e.target.checked)}                
+                checked={palofijoDisabled ? false : localPalofijo}
+                disabled={palofijoDisabled}
+                onChange={(e) => setLocalPalofijo(e.target.checked)}
               />
             </div>
           </div>
@@ -1243,7 +1257,7 @@ export function SetGameParametersDlg({
         <div className="col-3 d-flex justify-content-end">
           {/* Save button */}
           <button
-            onClick={() => onSave(localSticks, localPaso, localPalofijo)}
+            onClick={() => onSave(localSticks, localPaso, palofijoDisabled ? false : localPalofijo)}
             className="btn btn-primary btn-sm me-2"
           >
           {mode === 'navbar' ? 'Save' : 'Start Game'} 

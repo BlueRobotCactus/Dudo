@@ -2174,6 +2174,7 @@ useEffect(() => {
             sticks={gameParametersSticks}
             paso={gameParametersPaso}
             palofijo={gameParametersPalofijo}
+            numPlayersIn={ggc.GetNumberPlayersStillIn()}
             onSave={onGameParametersSaveHandler}
             onCancel={onGameParametersCancelHandler}
             mode={gameParametersMode}
