@@ -4,7 +4,7 @@ import Button from 'react-bootstrap/Button';
 import Dropdown from 'react-bootstrap/Dropdown';
 import BidGrid from './pages/BidGrid.js';
 import { FormatLocalDateTime, FormatLocalTime } from './shared/DateTimeUtils.js';
-import { DudoRound } from './shared/DudoGame.js';
+import { DudoRound, ROUND_END_DOUBT, ROUND_END_TIMEOUT } from './shared/DudoGame.js';
 
 //************************************************************
 // Shared Hook: useDraggableDialog
@@ -679,358 +679,110 @@ export function ObserversDlg({
   );
 }
 
-  //************************************************************
-  // SessionDetailsDlg
-  //************************************************************
-  export function SessionDetailsDlg({
-    open,
-    container,
-    games,
-    currentGame,
-    onOk
-  }) {
-    const [openGames, setOpenGames] = React.useState({});
-    const [openRounds, setOpenRounds] = React.useState({});
-
-    const toggleGame = (gameIndex) => {
-      setOpenGames(prev => ({
-        ...prev,
-        [gameIndex]: !prev[gameIndex]
-      }));
-    };
-
-    const toggleRound = (gameIndex, roundIndex) => {
-      const key = `${gameIndex}-${roundIndex}`;
-
-      setOpenRounds(prev => ({
-        ...prev,
-        [key]: !prev[key]
-      }));
-    };
-
-    const getRoundSummary = (round) => {
-      if (!round) return '';
-
-      const parts = [];
-
-      // Doubt result
-      if (round.endRoundCause === 1 && round.doubtLoserInfo) {
-        let s = `${round.doubtLoserInfo.name} lost the doubt`;
-
-        if (round.doubtLoserOut) {
-          s += ' and was out';
-        }
-
-        parts.push(s);
-      }
-
-      // Timeouts
-      for (const player of round.timedoutPlayerInfo || []) {
-
-        // Don't list the same player twice if the doubt
-        // already knocked that player out.
-        if (
-          round.endRoundCause === 1 &&
-          round.doubtLoserOut &&
-          player.guid === round.doubtLoserInfo?.guid
-        ) {
-          continue;
-        }
-
-        parts.push(`${player.name} timed out`);
-      }
-
-      return parts.join('; ');
-    };
-
-    const getGameSummary = (game) => {
-      if (!game) return '';
-
-      const sticks = game.maxSticks;
-      const pasoText = game.bPasoAllowed
-        ? 'paso allowed'
-        : 'paso not allowed';
-
-      // Palo Fijo is irrelevant in a 1-stick game.
-      if (sticks === 1) {
-        return `1 stick, ${pasoText}`;
-      }
-
-      const paloFijoText = game.bPaloFijoAllowed
-        ? 'with palofijo'
-        : 'no palofijo';
-
-      return `${sticks} sticks (${paloFijoText}), ${pasoText}`;
-    };
-
-    const allGames = [...(games || [])];
-
-    return (
-      <Modal
-        show={open}
-        onHide={onOk}
-        centered
-        scrollable
-        container={container}
-        backdropClassName="tablegrid-modal-backdrop"
-        className="tablegrid-modal"
-      >
-
-        <Modal.Header
-          closeButton
-          closeVariant="white"
-          className="bg-primary text-white py-1 px-3"
-        >
-          <Modal.Title style={{ fontSize: '1rem' }}>
-            Session Details
-          </Modal.Title>
-        </Modal.Header>
-
-        <Modal.Body>
-          <div
-            style={{
-              maxHeight: '50vh',
-              overflowY: 'auto',
-            }}
-          >
-            {allGames.length === 0 ? (
-              <div className="text-center">
-                No games have been played yet.
-              </div>
-            ) : (
-              <table className="table table-sm table-bordered mb-0">
-                <tbody>
-
-                  {allGames.map((game, gameIndex) => {
-                    const rounds = game.Rounds || [];
-
-                    return (
-                      <React.Fragment key={gameIndex}>
-
-                        {/* Game row */}
-                        <tr
-                          className="table-secondary"
-                          style={{ cursor: 'pointer' }}
-                          onClick={() => toggleGame(gameIndex)}
-                        >
-                          <th>
-                            {openGames[gameIndex] ? '▼' : '▶'}{' '}
-                            Game {gameIndex + 1}
-                            {':  '}
-                            {getGameSummary(game)}
-                          </th>
-                        </tr>
-
-                        {openGames[gameIndex] && (
-                          <>
-                            {/* Order of Finish */}
-                            {game.orderOfFinish?.length > 0 && (
-                              <>
-                                <tr>
-                                  <td
-                                    style={{
-                                      paddingLeft: '1.5rem',
-                                      fontWeight: 'bold'
-                                    }}
-                                  >
-                                    Order of Finish:
-                                  </td>
-                                </tr>
-
-                                {game.orderOfFinish.map((player, finishIndex) => (
-                                  <tr key={player.guid || finishIndex}>
-                                    <td style={{ paddingLeft: '3rem' }}>
-                                      {finishIndex + 1}. {player.name}
-                                      {player.reason === 'timeout'
-                                        ? ' (disconnected)'
-                                        : ''}
-                                    </td>
-                                  </tr>
-                                ))}
-                              </>
-                            )}
-
-                            {/* Rounds */}
-                            {rounds.map((round, roundIndex) => {
-                              const key = `${gameIndex}-${roundIndex}`;
-                              const bids = round.Bids || [];
-                              const summary = getRoundSummary(round);
-
-                              return (
-                                <React.Fragment key={roundIndex}>
-
-                                  {/* Round row */}
-                                  <tr>
-                                    <td
-                                      style={{
-                                        paddingLeft: '1.5rem',
-                                        fontWeight: 'bold',
-                                        cursor: 'pointer'
-                                      }}
-                                      onClick={() =>
-                                        toggleRound(gameIndex, roundIndex)
-                                      }
-                                    >
-                                      {openRounds[key] ? '▼' : '▶'}{' '}
-                                      Round {roundIndex + 1}
-                                      {summary && ` — ${summary}`}
-                                    </td>
-                                  </tr>
-
-                                  {/* Bid rows */}
-                                  {openRounds[key] &&
-                                    bids.map((bid, bidIndex) => (
-                                      <tr key={bidIndex}>
-                                        <td style={{ paddingLeft: '3rem' }}>
-                                          {FormatLocalTime(bid.date, bid.time)}
-                                          &nbsp;&nbsp;
-                                          {bid.bidPlayerInfo?.name}: {bid.text}
-                                        </td>
-                                      </tr>
-                                    ))
-                                  }
-
-                                </React.Fragment>
-                              );
-                            })}
-
-                          </>
-                        )}
-
-                      </React.Fragment>
-                    );
-                  })}
-
-                </tbody>
-              </table>
-            )}
-          </div>
-        </Modal.Body>
-
-        <Modal.Footer className="d-flex justify-content-center py-1">
-          <Button
-            variant="primary"
-            size="sm"
-            onClick={onOk}
-          >
-            OK
-          </Button>
-        </Modal.Footer>
-
-      </Modal>
-    );
-  }
-
 //************************************************************
 // SessionStatsDlg
 //************************************************************
 export function SessionStatsDlg({
   open,
   container,
-  games = [],
-  onOk = () => {},
-  onHide = onOk
+  games,
+  currentGame,
+  onOk
 }) {
-
   const places = [
     '1st', '2nd', '3rd', '4th',
     '5th', '6th', '7th', '8th'
   ];
+  const [openGames, setOpenGames] = React.useState(() => {
+    const initial = {};
+    (games || []).forEach((game, gameIndex) => {
+      initial[gameIndex] = true;
+    });
+    return initial;
+  });
+  const [openRounds, setOpenRounds] = React.useState({});
 
+  const toggleGame = (gameIndex) => {
+    setOpenGames(prev => ({
+      ...prev,
+      [gameIndex]: !prev[gameIndex]
+    }));
+  };
+
+  const toggleRound = (gameIndex, roundIndex) => {
+    const key = `${gameIndex}-${roundIndex}`;
+
+    setOpenRounds(prev => ({
+      ...prev,
+      [key]: !prev[key]
+    }));
+  };
+
+  //--------------------------
+  // GetRoundSummary
+  //--------------------------
+  const getRoundSummary = (round) => {
+    if (!round) return '';
+
+    const parts = [];
+
+    // Normal round ending in a doubt
+    if (round.endRoundCause === ROUND_END_DOUBT && round.doubtLoserInfo) {
+      let s = `${round.doubtLoserInfo.name} lost the doubt`;
+      if (round.doubtLoserOut) {
+        s += ' and was out';
+      }
+      parts.push(s);
+    }
+
+    // Players who timed out during the round
+    for (const player of round.timedoutPlayerInfo || []) {
+      // Don't list the same player twice if the doubt
+      // already knocked that player out.
+      if (
+        round.endRoundCause === ROUND_END_DOUBT &&
+        round.doubtLoserOut &&
+        player.guid === round.doubtLoserInfo?.guid
+      ) {
+        continue;
+      }
+      parts.push(`${player.name} disconnected`);
+    }
+
+    // A timeout during BIDDING aborts the round.
+    if (round.endRoundCause === ROUND_END_TIMEOUT) {
+      parts.push('round aborted');
+    }
+
+    return parts.join('; ');
+  };
+
+  //--------------------------
+  // GetRoundSummary
+  //--------------------------
+  const getGameSummary = (game) => {
+    if (!game) return '';
+
+    const sticks = game.maxSticks;
+    const pasoText = game.bPasoAllowed ? 'paso allowed' : 'paso not allowed';
+
+    // Palo Fijo is irrelevant in a 1-stick game.
+    if (sticks === 1) {
+      return `(1 stick, ${pasoText})`;
+    }
+    const paloFijoText = game.bPaloFijoAllowed ? 'with palofijo' : 'no palofijo';
+
+    return `(${sticks} sticks, ${paloFijoText}, ${pasoText})`;
+  };
+
+  const allGames = [...(games || [])];
+
+  //--------------------------
+  // return
+  //--------------------------
   return (
     <Modal
       show={open}
-      onHide={onHide}
-      centered
-      scrollable
-      container={container}
-      backdropClassName="tablegrid-modal-backdrop"
-      className="tablegrid-modal"      
-    >
-      <Modal.Header
-        closeButton
-        closeVariant="white"
-        className="bg-primary text-white py-1 px-3"
-      >
-        <Modal.Title style={{ fontSize: '1rem' }}>
-          Session Statistics
-        </Modal.Title>
-      </Modal.Header>
-
-      <Modal.Body>
-        <div
-          style={{
-            maxHeight: '50vh',
-            overflowY: 'auto',
-          }}
-        >
-          {games.length === 0 ? (
-            <div className="text-center">
-              No games have been completed yet.
-            </div>
-          ) : (
-            <table className="table table-sm table-bordered text-center align-middle mb-0">
-              <tbody>
-                {games.map((game, gameIndex) => (
-                  <React.Fragment key={gameIndex}>
-
-                    <tr className="table-secondary">
-                      <th colSpan="2">
-                        Game {gameIndex + 1}:&nbsp;&nbsp;
-                        {FormatLocalDateTime(game.startDate, game.startTime)}
-                      </th>
-                    </tr>
-                    {game.orderOfFinish?.map((player, placeIndex) => (
-                      <tr key={placeIndex}>
-                        <td style={{ width: '60px' }}>
-                          {places[placeIndex]}
-                        </td>
-
-                        <td>
-                          {player.name}
-                          {player.reason === 'timeout'
-                            ? ' (disconnected)'
-                            : ''}
-                        </td>
-                      </tr>
-                    ))}
-
-                  </React.Fragment>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </div>
-      </Modal.Body>
-
-      <Modal.Footer className="d-flex justify-content-center py-1">
-        <Button variant="primary" size="sm" onClick={onOk}>
-          OK
-        </Button>
-      </Modal.Footer>
-    </Modal>
-  );
-}
-
-//************************************************************
-// SessionLogDlg
-//************************************************************
-export function SessionLogDlg({
-  show,
-  onOk,
-  container,
-  games = []
-}) {
-  const getRoundResults = (round) => {
-      const dudoRound = new DudoRound();
-      Object.assign(dudoRound, round);
-
-      return dudoRound.GetRoundResults();
-  };
-
-  return (
-    <Modal
-      show={show}
       onHide={onOk}
       centered
       scrollable
@@ -1038,13 +790,14 @@ export function SessionLogDlg({
       backdropClassName="tablegrid-modal-backdrop"
       className="tablegrid-modal"
     >
+
       <Modal.Header
         closeButton
         closeVariant="white"
         className="bg-primary text-white py-1 px-3"
       >
         <Modal.Title style={{ fontSize: '1rem' }}>
-          Session Log
+          Session Stats
         </Modal.Title>
       </Modal.Header>
 
@@ -1055,71 +808,113 @@ export function SessionLogDlg({
             overflowY: 'auto',
           }}
         >
-          {games.length === 0 ? (
+          {allGames.length === 0 ? (
             <div className="text-center">
-              No games have been completed yet.
+              No games have been played yet.
             </div>
           ) : (
             <table className="table table-sm table-bordered mb-0">
               <tbody>
-                {games.map((game, gameIndex) => (
-                  <React.Fragment key={gameIndex}>
-                    <tr className="table-secondary">
-                      <th>
-                        Game {gameIndex + 1}:&nbsp;&nbsp;
-                        {FormatLocalDateTime(game.startDate, game.startTime)}
-                      </th>
-                    </tr>
 
-                    {game.Rounds?.map((round, roundIndex) => (
-                      <React.Fragment key={roundIndex}>
-                        <tr>
-                          <td
-                            style={{
-                              paddingLeft: '1.5rem',
-                              fontWeight: 'bold'
-                            }}
-                          >
-                            Round {roundIndex + 1}:&nbsp;&nbsp;
-                          </td>
-                        </tr>
+                {allGames.map((game, gameIndex) => {
+                  const rounds = game.Rounds || [];
 
-                        {round.Bids?.map((bid, bidIndex) => (
-                          <tr key={bidIndex}>
-                            <td style={{ paddingLeft: '3rem' }}>
-                              {FormatLocalTime(bid.date, bid.time)}
-                              &nbsp;&nbsp;
-                              {bid.bidPlayerInfo.name}: {bid.text}
-                            </td>
-                          </tr>
-                        ))}
+                  return (
+                    <React.Fragment key={gameIndex}>
 
-                        {getRoundResults(round).map((result, resultIndex) => (
-                          <tr key={`result-${resultIndex}`}>
-                            <td
-                              style={{
-                                paddingLeft: '3rem',
-                                fontStyle: 'italic'
-                              }}
-                            >
-                              {resultIndex === 0 ? 'Result: ' : ''}
+                      {/* Game row */}
+                      <tr
+                        className="table-secondary"
+                        style={{ cursor: 'pointer' }}
+                        onClick={() => toggleGame(gameIndex)}
+                      >
+                        <th>
+                          {openGames[gameIndex] ? '▼' : '▶'}{' '}
+                          Game {gameIndex + 1}
+                          {':  '}
+                          {getGameSummary(game)}
+                        </th>
+                      </tr>
 
-                              {result.type === 'doubt' && (
-                                result.out
-                                  ? `${result.player?.name || 'Unknown'} lost the doubt and is OUT.`
-                                  : `${result.player?.name || 'Unknown'} lost the doubt and got a stick.`
-                              )}
+                      {openGames[gameIndex] && (
+                        <>
+                          {/* Order of Finish */}
+                          {game.orderOfFinish?.length > 0 && (
+                            <>
+                              <tr>
+                                <td
+                                  style={{
+                                    paddingLeft: '1.5rem',
+                                    fontWeight: 'bold'
+                                  }}
+                                >
+                                  Order of Finish:
+                                </td>
+                              </tr>
 
-                              {result.type === 'timeout' && (
-                                `${result.player?.name || 'Unknown'} timed out and is OUT.`
-                              )}
-                            </td>
-                          </tr>
-                        ))}
-                      </React.Fragment>
-                    ))}
-                  </React.Fragment>
-                ))}
+                              {game.orderOfFinish.map((player, finishIndex) => (
+                                <tr key={player.guid || finishIndex}>
+                                  <td style={{ paddingLeft: '3rem' }}>
+                                    {places[finishIndex]}: {player.name}
+                                    {player.reason === 'timeout'
+                                      ? ' (disconnected)'
+                                      : ''}
+                                  </td>
+                                </tr>
+                              ))}
+                            </>
+                          )}
+
+                          {/* Rounds */}
+                          {rounds.map((round, roundIndex) => {
+                            const key = `${gameIndex}-${roundIndex}`;
+                            const bids = round.Bids || [];
+                            const summary = getRoundSummary(round);
+
+                            return (
+                              <React.Fragment key={roundIndex}>
+
+                                {/* Round row */}
+                                <tr>
+                                  <td
+                                    style={{
+                                      paddingLeft: '1.5rem',
+                                      fontWeight: 'bold',
+                                      cursor: 'pointer'
+                                    }}
+                                    onClick={() =>
+                                      toggleRound(gameIndex, roundIndex)
+                                    }
+                                  >
+                                    {openRounds[key] ? '▼' : '▶'}{' '}
+                                    Round {roundIndex + 1}
+                                    {summary && ` — ${summary}`}
+                                  </td>
+                                </tr>
+
+                                {/* Bid rows */}
+                                {openRounds[key] &&
+                                  bids.map((bid, bidIndex) => (
+                                    <tr key={bidIndex}>
+                                      <td style={{ paddingLeft: '3rem' }}>
+                                        Bid {bidIndex + 1}:&nbsp;&nbsp;
+                                        {bid.bidPlayerInfo?.name}: {bid.text}
+                                      </td>
+                                    </tr>
+                                  ))
+                                }
+
+                              </React.Fragment>
+                            );
+                          })}
+
+                        </>
+                      )}
+
+                    </React.Fragment>
+                  );
+                })}
+
               </tbody>
             </table>
           )}
@@ -1127,10 +922,15 @@ export function SessionLogDlg({
       </Modal.Body>
 
       <Modal.Footer className="d-flex justify-content-center py-1">
-        <Button variant="primary" size="sm" onClick={onOk}>
+        <Button
+          variant="primary"
+          size="sm"
+          onClick={onOk}
+        >
           OK
         </Button>
       </Modal.Footer>
+
     </Modal>
   );
 }

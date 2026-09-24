@@ -21,8 +21,6 @@ import { ShowDoubtDlg } from '../Dialogs.js';
 import { BidHistoryDlg } from '../Dialogs.js';
 import { ObserversDlg } from '../Dialogs.js';
 import { SessionStatsDlg } from '../Dialogs.js';
-import { SessionLogDlg } from '../Dialogs.js';
-import { SessionDetailsDlg } from '../Dialogs.js';
 import { GameSettingsDlg } from '../Dialogs.js';
 import { SetGameParametersDlg } from '../Dialogs.js';
 import { BidDlg } from '../Dialogs.js';
@@ -166,14 +164,9 @@ import { STICKS_BLINK_TIME, SHAKE_CUPS_TIME, GAME_PHASE, GetGamePhaseName } from
     const [showObserversDlg, setShowObserversDlg] = useState(false);
     const [onObserversOkHandler, setOnObserversOkHandler] = useState(() => () => {});
 
-    // Session Statistics
+    // Session stats
     const [showSessionStatsDlg, setShowSessionStatsDlg] = useState(false);
-    const [onSessionStatsOkHandler, setOnSessionStatsOkHandler] = useState(() => () => {});    
 
-    // Session Log
-    const [showSessionLogDlg, setShowSessionLogDlg] = useState(false);
-    const [showSessionDetailsDlg, setShowSessionDetailsDlg] = useState(false);
-    
     // doubt result strings (used by Lift Cup and Show Doubt)
     const [doubtWhoDoubtedWhom, setDoubtWhoDoubtedWhom] = useState('');
     const [doubtDoubtedBid, setDoubtDoubtedBid] = useState('');
@@ -755,18 +748,6 @@ import { STICKS_BLINK_TIME, SHAKE_CUPS_TIME, GAME_PHASE, GetGamePhaseName } from
       setShowObserversDlg(false);
     });
   }
-
-  const handleOptSessionStats = () => {
-    setShowSessionStatsDlg(true);
-
-    setOnSessionStatsOkHandler(() => () => {
-      setShowSessionStatsDlg(false);
-    });
-  };
-
-  const handleOptSessionLog = () => {
-    setShowSessionLogDlg(true);
-  };
 
   const handleOptGameSettings = () => {
     setShowGameSettingsDlg(true);
@@ -2141,31 +2122,15 @@ useEffect(() => {
           />
         )}
 
-        {showSessionDetailsDlg && (
-          <SessionDetailsDlg
-            open={showSessionDetailsDlg}
-            container={tableGridRef.current}
-            games={lobby?.lobbySession?.Games || []}
-            currentGame={ggc}
-            onOk={() => setShowSessionDetailsDlg(false)}
-          />
-        )}
-
         {showSessionStatsDlg && (
           <SessionStatsDlg
             open={showSessionStatsDlg}
             container={tableGridRef.current}
             games={lobby?.lobbySession?.Games || []}
-            onOk={onSessionStatsOkHandler}
+            currentGame={ggc}
+            onOk={() => setShowSessionStatsDlg(false)}
           />
         )}
-
-        <SessionLogDlg
-          show={showSessionLogDlg}
-          onOk={() => setShowSessionLogDlg(false)}
-          container={tableGridRef.current}
-          games={lobby?.lobbySession?.Games || []}
-        />
 
         {showSetGameParametersDlg && (
           <SetGameParametersDlg
@@ -2272,26 +2237,11 @@ useEffect(() => {
               <li>
                 <button
                   className="dropdown-item"
-                  onClick={() => setShowSessionDetailsDlg(true)}
-                >
-                  Session Details
-                </button>
-              </li>
-
-              <li>
-                <button
-                  className="dropdown-item"
-                  onClick={handleOptSessionStats}
+                  onClick={() => setShowSessionStatsDlg(true)}
                 >
                   Session Stats
                 </button>
               </li>
-
-              {isAdmin && (
-                <Dropdown.Item onClick={handleOptSessionLog}>
-                  Session Log
-                </Dropdown.Item>
-              )}
 
               <li><button className="dropdown-item" 
                 onClick={handleOptHowToPlay}
