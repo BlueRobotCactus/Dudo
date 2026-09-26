@@ -5,7 +5,7 @@ import { SocketContext } from '../SocketContext.js';
 import { ImageRefsContext } from '../ImageRefsContext.js';
 import { MAX_CONNECTIONS, CONN_PLAYER_IN, CONN_PLAYER_OUT,
          CONN_PLAYER_IN_DISCONN, CONN_PLAYER_OUT_DISCONN, CONN_PLAYER_TIMED_OUT_DEFER } from '../shared/DudoGame.js';
-import { STICKS_BLINK_TIME, SHOWN_DICE_BLINK_TIME, SHAKE_CUPS_TIME, GAME_PHASE } from '../shared/DudoGame.js';
+import { STICKS_BLINK_SECONDS, SHOWN_DICE_BLINK_SECONDS, SHAKE_CUPS_SECONDS, GAME_PHASE } from '../shared/DudoGame.js';
 
 //************************************************************
 // PlayerGrid (placed inside TableGrid)
@@ -89,31 +89,12 @@ export function PlayerGrid({ lobbyId, ggc, myIndex, cc, showWinnerStars }) {
   //             [ggc.GAME_IN_PROGRESS, ggc.curRound.numBids, ggc.firstRound]
   //*****************************************************************
   useEffect(() => {
-    if (bBlinkSticks) {
-      //-------------------------------------------------
-      // somebody got a stick, blink their sticks
-      //-------------------------------------------------
-      setBBlinkSticks(false);
-      triggerSticksBlinking();
-      // wait for sticks, then shake cup
-      setTimeout(() => {
-        if (ggc.ShouldAllRollDice()) {
-          if (ggc.allConnectionStatus[cc] === CONN_PLAYER_IN) {
-            triggerCupShaking(0);
-          }
-        }
-      }, STICKS_BLINK_TIME);
-    } else {
-      //-------------------------------------------------
-      // all shake to start round
-      //-------------------------------------------------
-      if (ggc.ShouldAllRollDice()) {
-        if (ggc.allConnectionStatus[cc] === CONN_PLAYER_IN) {
-          triggerCupShaking(0);
-        }
+    if (ggc.gamePhase === GAME_PHASE.SHAKE_CUPS) {
+      if (ggc.allConnectionStatus[cc] === CONN_PLAYER_IN) {
+        triggerCupShaking(0);
       }
     }
-  }, [ggc.GAME_IN_PROGRESS, ggc.curRound?.numBids, ggc.firstRound]);
+  }, [ggc.gamePhase]);
 
   //*****************************************************************
   // useEffect:  THIS PLAYER SHOW/SHAKE:  blink shown dice, shake cup 
@@ -129,13 +110,13 @@ export function PlayerGrid({ lobbyId, ggc, myIndex, cc, showWinnerStars }) {
         // Enable blinking
         setDiceBlinking(true);
         setTimeout(() => {
-          setDiceBlinking(false); // Stop blinking after SHOWN_DICE_BLINK_TIME
+          setDiceBlinking(false);
           if (!ggc.PlayerShowingAllDice(cc)) {
             // get how many shaken and re-rolled
             triggerCupShaking(lastBid.howManyShaken);      // Start cup shake after that
    					socket.emit('UIShaking', lobbyId);
           }
-        }, SHOWN_DICE_BLINK_TIME);
+        }, SHOWN_DICE_BLINK_SECONDS * 1000);
       }
     }
   }, [ggc.curRound?.numBids, ggc.GAME_IN_PROGRESS, ggc.curRound?.Bids, cc]);
@@ -390,7 +371,7 @@ export function PlayerGrid({ lobbyId, ggc, myIndex, cc, showWinnerStars }) {
           RollSoundArray[howMany].play();
         }
       }
-    }, SHAKE_CUPS_TIME);
+    }, SHAKE_CUPS_SECONDS * 1000);
   }
   //********************************************************
   //  function to shake sticks
@@ -399,7 +380,7 @@ export function PlayerGrid({ lobbyId, ggc, myIndex, cc, showWinnerStars }) {
     if (blinkSticksPlayer === cc) {
       console.log("triggerSticksBlinking - starting animation");
       setSticksBlinking(true);
-      setTimeout(() => setSticksBlinking(false), STICKS_BLINK_TIME);
+      setTimeout(() => setSticksBlinking(false), STICKS_BLINK_SECONDS*1000);
     }
   }
 

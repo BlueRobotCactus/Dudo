@@ -2,7 +2,7 @@ import { LobbySession, LobbyChatEntry, DudoGame, DudoRound, DudoBid } from './cl
 
 import { MAX_CONNECTIONS, CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYER_TIMED_OUT, CONN_PLAYER_TIMED_OUT_DEFER,
          CONN_PLAYER_IN_DISCONN, CONN_PLAYER_OUT_DISCONN, CONN_OBSERVER_DISCONN, GAME_PHASE,
-         ROUND_END_DOUBT, ROUND_END_TIMEOUT, SHAKE_CUPS_TIME } from './client/src/shared/DudoGame.js';
+         ROUND_END_DOUBT, ROUND_END_TIMEOUT, SHAKE_CUPS_SECONDS } from './client/src/shared/DudoGame.js';
 
 import express from 'express';
 import path from 'path';
@@ -83,8 +83,11 @@ const disconnectTimers = {};
     }
   };
 */
+
+// timing constants
 const COUNTDOWN_SILENT_SECONDS = 3;
 const COUNTDOWN_VISIBLE_SECONDS = 30;
+const GOES_FIRST_SECONDS = 3;
 
 //---------------------------------------
 // Finalize deferred time outs
@@ -523,13 +526,17 @@ io.on('connection', (socket) => {
   //---------------------------------------
   function startShakeCupsTimer(lobbyId, ggs) {
 
+    ggs.shakeCupsTimerExpired = false;
+
     setTimeout(() => {
       // Make sure we're still in this phase
       if (ggs.gamePhase !== GAME_PHASE.SHAKE_CUPS) { return; }
 
+      ggs.shakeCupsTimerExpired = true;
+
       continueAfterShakeCups(lobbyId, ggs);
 
-    }, SHAKE_CUPS_TIME);
+    }, SHAKE_CUPS_SECONDS * 1000);
   }
 
   //---------------------------------------
@@ -539,6 +546,9 @@ io.on('connection', (socket) => {
 
     const lobby = lobbies[lobbyId];
     if (!lobby) return;
+
+    // Still waiting for a disconnected player
+    if (ggs.bDisconnectPause) { return; }
 
     // Make sure we're still in this phase
     if (ggs.gamePhase !== GAME_PHASE.SHAKE_CUPS) { return; }
@@ -563,8 +573,6 @@ io.on('connection', (socket) => {
   // Start WHO_GOES_FIRST timer
   //---------------------------------------
   function startWhoGoesFirstTimer(lobbyId, ggs) {
-    const GOES_FIRST_SECONDS = 3;
-
     ggs.whoGoesFirstTimerExpired = false;
     setTimeout(() => {
       // This timer may belong to an old WHO_GOES_FIRST
@@ -648,11 +656,6 @@ io.on('connection', (socket) => {
     ggs.curRound.endTime = GetTime(now);
     ggs.Rounds.push(ggs.curRound);
 
-    // This was a real round, even though it was aborted.
-    if (ggs.firstRound) {
-      ggs.firstRound = false;
-    }
-
     // Start a completely fresh round with the surviving players.
     StartRound(ggs);
 
@@ -725,8 +728,6 @@ io.on('connection', (socket) => {
       if (ggs.bWinnerGame) {
         processEndOfGame(lobbyId, ggs, 'normal');      
       } else {
-        ggs.setGamePhase(GAME_PHASE.BETWEEN_ROUNDS);
-        
         StartRound(lobby.game);
 
         if (ggs.gamePhase === GAME_PHASE.SHAKE_CUPS) {
@@ -841,6 +842,7 @@ io.on('connection', (socket) => {
 
       switch (ggs.gamePhase) {
       case GAME_PHASE.ASKING_IN_OUT:
+      case GAME_PHASE.SHAKE_CUPS:
       case GAME_PHASE.WHO_GOES_FIRST:
       case GAME_PHASE.CHOOSING_DIRECTION:
         GarbageCollection(lobby);
@@ -916,8 +918,6 @@ io.on('connection', (socket) => {
         ggs.resetNextRoundDidSay();
         continueAfterShowResult(lobbyId, ggs);
         break;
-      case GAME_PHASE.BETWEEN_ROUNDS:
-        break;
       default:
         break;
       }
@@ -930,6 +930,8 @@ io.on('connection', (socket) => {
       switch (ggs.gamePhase) {
       case GAME_PHASE.ASKING_IN_OUT:
         continueAfterInOut(lobbyId, ggs);
+        break;
+      case GAME_PHASE.SHAKE_CUPS:
         break;
       case GAME_PHASE.WHO_GOES_FIRST:
         if (timedOutPlayerWasWhosTurn) {
@@ -961,8 +963,6 @@ io.on('connection', (socket) => {
         ggs.resetNextRoundDidSay();
         continueAfterShowResult(lobbyId, ggs);
         break;
-      case GAME_PHASE.BETWEEN_ROUNDS:
-        break;
       default:
         break;
       }
@@ -977,6 +977,25 @@ io.on('connection', (socket) => {
     io.emit('lobbiesList', getLobbiesList());
 
     turnPauseOFF(ggs);
+
+    // Continue SHAKE_CUPS after timeout
+    if (ggs.gamePhase === GAME_PHASE.SHAKE_CUPS) {
+
+      if (phaseAtTimeout === GAME_PHASE.SHAKE_CUPS) {
+        //--------------------------------------------------------
+        // Timeout happened during the shake.
+        // Dice were already rolled and shaken, so move on.
+        //--------------------------------------------------------
+        continueAfterShakeCups(lobbyId, ggs);
+      }
+      else {
+        //--------------------------------------------------------
+        // A new round was started while handling the timeout.
+        // These are newly rolled dice, so do the normal shake.
+        //--------------------------------------------------------
+        startShakeCupsTimer(lobbyId, ggs);
+      }
+    }
 
     // Continue WHO_GOES_FIRST after a player times out
     if (ggs.gamePhase === GAME_PHASE.WHO_GOES_FIRST) {
@@ -1643,6 +1662,7 @@ io.on('connection', (socket) => {
 
     const canKillGame =
       ggs.gamePhase === GAME_PHASE.ASKING_IN_OUT ||
+      ggs.gamePhase === GAME_PHASE.SHAKE_CUPS ||
       ggs.gamePhase === GAME_PHASE.WHO_GOES_FIRST ||
       ggs.gamePhase === GAME_PHASE.CHOOSING_DIRECTION ||
       ggs.gamePhase === GAME_PHASE.BIDDING;
@@ -1861,14 +1881,20 @@ io.on('connection', (socket) => {
 
       turnPauseOFF(ggs);
 
+      //-------------------------------------------------
+      // If we were paused during SHAKE_CUPS, the
+      // original shake timer has already expired.
+      // Continue from SHAKE_CUPS now.
+      //-------------------------------------------------
+      if (ggs.gamePhase === GAME_PHASE.SHAKE_CUPS && ggs.shakeCupsTimerExpired) {
+        continueAfterShakeCups(lobbyId, ggs);
+      }
+
       // If the WHO_GOES_FIRST timer already expired while
       // this player was disconnected, continue the game now.
-      if (
-        ggs.gamePhase === GAME_PHASE.WHO_GOES_FIRST &&
-        ggs.whoGoesFirstTimerExpired
-      ) {
+      else if (ggs.gamePhase === GAME_PHASE.WHO_GOES_FIRST && ggs.whoGoesFirstTimerExpired) {
         continueAfterWhoGoesFirst(lobbyId, ggs);
-      }      
+      }
     }
 
     //-------------------------------------------------

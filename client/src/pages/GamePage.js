@@ -26,7 +26,13 @@ import { SetGameParametersDlg } from '../Dialogs.js';
 import { BidDlg } from '../Dialogs.js';
 
 import { MAX_CONNECTIONS, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, } from '../shared/DudoGame.js';
-import { STICKS_BLINK_TIME, SHAKE_CUPS_TIME, GAME_PHASE, GetGamePhaseName } from '../shared/DudoGame.js';
+import { STICKS_BLINK_SECONDS, GAME_PHASE, GetGamePhaseName } from '../shared/DudoGame.js';
+
+  // timing constants
+  const WINNER_STARS_SECONDS = 5;
+  const FORCE_LEAVE_CLOSE_LOBBY_SECONDS = 5;
+  const RECONNECT_MSG_SECONDS = 3;
+  const GAME_KILLED_MSG_SECONDS = 3;
 
   //************************************************************
   // GamePage function
@@ -584,7 +590,6 @@ import { STICKS_BLINK_TIME, SHAKE_CUPS_TIME, GAME_PHASE, GetGamePhaseName } from
       }
 
       // winner stars blink also
-      const WINNER_STARS_SECONDS = 5;
       setTimeout(() => { setShowWinnerDecoration(false); }, WINNER_STARS_SECONDS * 1000);
     }
 
@@ -1175,7 +1180,6 @@ import { STICKS_BLINK_TIME, SHAKE_CUPS_TIME, GAME_PHASE, GetGamePhaseName } from
     setShowOkDlg(true);
 
     // Auto-trigger leave after 5 seconds
-    const FORCE_LEAVE_CLOSE_LOBBY_SECONDS = 5;
     leaveLobbyTimerRef.current = setTimeout(() => {
       onOk();
     }, FORCE_LEAVE_CLOSE_LOBBY_SECONDS * 1000);
@@ -1220,7 +1224,6 @@ import { STICKS_BLINK_TIME, SHAKE_CUPS_TIME, GAME_PHASE, GetGamePhaseName } from
         `This round is cancelled. A new round will begin.`
       );
 
-      const RECONNECT_MSG_SECONDS = 3;
       setTimeout(() => setShowCountdown(false), RECONNECT_MSG_SECONDS * 1000);
       return;
     }
@@ -1237,7 +1240,6 @@ import { STICKS_BLINK_TIME, SHAKE_CUPS_TIME, GAME_PHASE, GetGamePhaseName } from
     setCountdownMessage(message);
     setShowCountdown(true);
 
-    const GAME_KILLED_MSG_SECONDS = 3;
     setTimeout(() => {
       setShowCountdown(false);
     }, GAME_KILLED_MSG_SECONDS * 1000);
@@ -1706,7 +1708,7 @@ useEffect(() => {
     if (ggc.SomebodyGotStick()) {
       // &&& never hits!
       console.log('Gamepage.js: delaying bid, SomebodyGotStick');
-      delay += STICKS_BLINK_TIME;
+      delay += STICKS_BLINK_SECONDS*1000;
     }
     // apply delay, if any
     if (delay > 0) {

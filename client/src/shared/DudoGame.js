@@ -15,21 +15,20 @@ const ROUND_END_TIMEOUT = 2;
 
 const MAX_PLAYERS = 8;
 
-// UI constants (milliseconds)
-const STICKS_BLINK_TIME = 2000;
-const SHOWN_DICE_BLINK_TIME = 4000;
-const SHAKE_CUPS_TIME = 2000;	
+// timing constants (ms)
+const STICKS_BLINK_SECONDS = 2;
+const SHOWN_DICE_BLINK_SECONDS = 4;
+const SHAKE_CUPS_SECONDS = 2;	
 
 const GAME_PHASE = {
   WAITING_TO_START: 0,
   ASKING_IN_OUT: 1,
-	SHAKE_CUPS: 8,
-	WHO_GOES_FIRST: 7,
-  CHOOSING_DIRECTION: 2,
-  BIDDING: 3,
-  DOUBT_LIFT_CUPS: 4,
-  DOUBT_SHOW_RESULT: 5,
-  BETWEEN_ROUNDS: 6,
+	SHAKE_CUPS: 2,
+	WHO_GOES_FIRST: 3,
+  CHOOSING_DIRECTION: 4,
+  BIDDING: 5,
+  DOUBT_LIFT_CUPS: 6,
+  DOUBT_SHOW_RESULT: 7,
 };
 
 //****************************************************************
@@ -176,6 +175,7 @@ export class DudoGame {
 
 	whoGoesFirstTimerSequence;
 	whoGoesFirstTimerExpired;
+	shakeCupsTimerExpired;
 
 	//****************************************************************
 	// constructor
@@ -237,6 +237,7 @@ export class DudoGame {
 
 		this.whoGoesFirstTimerSequence = 0;
 		this.whoGoesFirstTimerExpired = false;
+		this.shakeCupsTimerExpired = false;
 	}
 
 	//****************************************************************
@@ -393,6 +394,7 @@ export class DudoGame {
 		this.whosTurn = -1;
 		this.whoGoesFirstTimerSequence = 0;
 		this.whoGoesFirstTimerExpired = false;
+		this.shakeCupsTimerExpired = false;
 
 		// chatgpt added these
 		this.inOutMustSay = Array(MAX_CONNECTIONS).fill(false);
@@ -441,8 +443,7 @@ export class DudoGame {
 			phase === GAME_PHASE.CHOOSING_DIRECTION ||
 			phase === GAME_PHASE.BIDDING ||
 			phase === GAME_PHASE.DOUBT_LIFT_CUPS ||
-			phase === GAME_PHASE.DOUBT_SHOW_RESULT ||
-			phase === GAME_PHASE.BETWEEN_ROUNDS
+			phase === GAME_PHASE.DOUBT_SHOW_RESULT
 		) {
 			this.GAME_IN_PROGRESS = true;
 		} else {
@@ -1348,13 +1349,6 @@ export class DudoGame {
 	}
 
 	//****************************************************************
-	// Should all players roll? (starting round)
-	//****************************************************************
-	ShouldAllRollDice () {
-			return this.GAME_IN_PROGRESS && this.curRound?.numBids === 0;
-	}
-
-	//****************************************************************
 	// Get bid string
 	//****************************************************************
 	GetBidString(idx) {
@@ -1630,7 +1624,7 @@ export {
 	MAX_CONNECTIONS,
 	CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYER_TIMED_OUT, CONN_PLAYER_TIMED_OUT_DEFER,
   CONN_PLAYER_IN_DISCONN, CONN_PLAYER_OUT_DISCONN, CONN_OBSERVER_DISCONN,
-	STICKS_BLINK_TIME, SHOWN_DICE_BLINK_TIME, SHAKE_CUPS_TIME,
+	STICKS_BLINK_SECONDS, SHOWN_DICE_BLINK_SECONDS, SHAKE_CUPS_SECONDS,
 	GAME_PHASE, GetGamePhaseName,
 	ROUND_END_DOUBT, ROUND_END_TIMEOUT,
 };
