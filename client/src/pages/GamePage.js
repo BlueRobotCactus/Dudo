@@ -1466,7 +1466,10 @@ useEffect(() => {
   if (ggc.gamePhase === GAME_PHASE.WHO_GOES_FIRST) {
     DrawWhoGoesFirst();
   }
-  else if (ggc.gamePhase === GAME_PHASE.CHOOSING_DIRECTION || ggc.gamePhase === GAME_PHASE.BIDDING) {
+  else if (ggc.gamePhase === GAME_PHASE.CHOOSING_DIRECTION) {
+    DrawChooseDirection();
+  }
+  else if (ggc.gamePhase === GAME_PHASE.BIDDING) {
     DrawProcessBid();
   }
   else if (ggc.gamePhase === GAME_PHASE.WAITING_TO_START) {
@@ -1649,6 +1652,50 @@ useEffect(() => {
   }
   
   //************************************************************
+  //  function Draw Choose Direction
+  //************************************************************
+  function DrawChooseDirection() {
+
+    if (ggc.bDisconnectPause) { return; }
+
+    // only the player whose turn it is chooses
+    if (!isMyTurn) { return; }
+
+    let cc = ggc.getPlayerToLeft(myIndex);
+    setLeftTextDirection("to " + ggc.allParticipantNames[cc]);
+
+    cc = ggc.getPlayerToRight(myIndex);
+    setRightTextDirection("to " + ggc.allParticipantNames[cc]);
+
+    setOnLeftHandler(() => () => {
+      setShowDirectionDlg(false);
+      socket.emit('direction', {
+        lobbyId,
+        index: myIndex,
+        direction: 1
+      });
+    });
+
+    setOnRightHandler(() => () => {
+      setShowDirectionDlg(false);
+      socket.emit('direction', {
+        lobbyId,
+        index: myIndex,
+        direction: 2
+      });
+    });
+
+    let title = 'Choose Direction';
+
+    if (ggc.bPaloFijoRound) {
+      title += ' (PALO FIJO)';
+    }
+
+    setTitleDirection(title);
+    setShowDirectionDlg(true);
+  }
+
+  //************************************************************
   //  function Draw and process the bid
   //************************************************************
   function DrawProcessBid() {
@@ -1670,62 +1717,30 @@ useEffect(() => {
       DoProcessBid();
     }
   }
-    function DoProcessBid() {
-      if (ggc.bDisconnectPause) {
-        return;
-      }
 
-      if (isMyTurn) {
-        // my turn
-        // populate the bid list
-        if (ggc.bPaloFijoRound) {
-          ggc.PopulateBidListPaloFijo();
-        } else {
-          ggc.PopulateBidListRegular();
-        }
-        ggc.PopulateBidListTrim();
-        setPossibleBids(ggc.possibleBids || []);
-        ggc.PopulateBidMatrix();
-        setBidMatrix(ggc.BidMatrix);
+  function DoProcessBid() {
 
-        // show dialog, handle responses
-        if (ggc.curRound.whichDirection === undefined) {
-          //---------------------------------------------
-          // choose direction if starting a round
-          //---------------------------------------------
-          setTimeout(() => {
-            // wait until dice are shaken
-            let cc = ggc.getPlayerToLeft(myIndex);
-            setLeftTextDirection("to " + ggc.allParticipantNames[cc]);
-            cc = ggc.getPlayerToRight(myIndex);
-            setRightTextDirection("to " + ggc.allParticipantNames[cc]);
-            setOnLeftHandler(() => () => {
-              setShowDirectionDlg(false);
-              socket.emit('direction', { lobbyId, index: myIndex, direction: 1 })
-              PrepareBidUI();
-            });
-            setOnRightHandler(() => () => {
-              setShowDirectionDlg(false);
-              socket.emit('direction', { lobbyId, index: myIndex, direction: 2 })
-              PrepareBidUI();
-            });
-            let title = 'Choose Direction';
-            if (ggc.bPaloFijoRound) {
-              title += ' (PALO FIJO)';
-            }
-            setTitleDirection (title);
-            setShowDirectionDlg(true);
-          }, SHAKE_CUPS_TIME);
-        } else {
-          PrepareBidUI();
-        }
+    if (ggc.bDisconnectPause) { return; }
+
+    if (isMyTurn) {
+
+      // populate the bid list
+      if (ggc.bPaloFijoRound) {
+        ggc.PopulateBidListPaloFijo();
       } else {
-        // not my turn
-        // show current bid
-        PrepareBidUI();
+        ggc.PopulateBidListRegular();
       }
+
+      ggc.PopulateBidListTrim();
+      setPossibleBids(ggc.possibleBids || []);
+
+      ggc.PopulateBidMatrix();
+      setBidMatrix(ggc.BidMatrix);
     }
-  }, [gameState, lobbyPlayers, isMyTurn, screenSize, imagesReady, socketId]);
+
+    PrepareBidUI();
+  }    
+}, [gameState, lobbyPlayers, isMyTurn, screenSize, imagesReady, socketId]);
 
   //************************************************************
   //  function Draw Waiting for host to start the game

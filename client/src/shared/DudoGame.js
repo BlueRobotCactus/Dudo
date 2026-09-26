@@ -23,6 +23,7 @@ const SHAKE_CUPS_TIME = 2000;
 const GAME_PHASE = {
   WAITING_TO_START: 0,
   ASKING_IN_OUT: 1,
+	SHAKE_CUPS: 8,
 	WHO_GOES_FIRST: 7,
   CHOOSING_DIRECTION: 2,
   BIDDING: 3,
@@ -435,6 +436,7 @@ export class DudoGame {
 
 		if (
 			phase === GAME_PHASE.ASKING_IN_OUT ||
+			phase === GAME_PHASE.SHAKE_CUPS ||
 			phase === GAME_PHASE.WHO_GOES_FIRST ||
 			phase === GAME_PHASE.CHOOSING_DIRECTION ||
 			phase === GAME_PHASE.BIDDING ||

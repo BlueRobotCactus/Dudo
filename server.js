@@ -2,7 +2,7 @@ import { LobbySession, LobbyChatEntry, DudoGame, DudoRound, DudoBid } from './cl
 
 import { MAX_CONNECTIONS, CONN_UNUSED, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, CONN_PLAYER_TIMED_OUT, CONN_PLAYER_TIMED_OUT_DEFER,
          CONN_PLAYER_IN_DISCONN, CONN_PLAYER_OUT_DISCONN, CONN_OBSERVER_DISCONN, GAME_PHASE,
-         ROUND_END_DOUBT, ROUND_END_TIMEOUT } from './client/src/shared/DudoGame.js';
+         ROUND_END_DOUBT, ROUND_END_TIMEOUT, SHAKE_CUPS_TIME } from './client/src/shared/DudoGame.js';
 
 import express from 'express';
 import path from 'path';
@@ -509,15 +509,54 @@ io.on('connection', (socket) => {
 
         StartGame(ggs);
 
-        //------------------------------------------------------------
-        // First round pauses briefly while choosing who goes first
-        //------------------------------------------------------------
-        if (ggs.gamePhase === GAME_PHASE.WHO_GOES_FIRST) {
-          startWhoGoesFirstTimer(lobbyId, ggs);
+        // start the cup-shaking phase
+        if (ggs.gamePhase === GAME_PHASE.SHAKE_CUPS) {
+          startShakeCupsTimer(lobbyId, ggs);
         }
       }
     }
     io.to(lobbyId).emit('gameStateUpdate', lobby.game);
+  }
+
+  //---------------------------------------
+  // Start SHAKE_CUPS timer
+  //---------------------------------------
+  function startShakeCupsTimer(lobbyId, ggs) {
+
+    setTimeout(() => {
+      // Make sure we're still in this phase
+      if (ggs.gamePhase !== GAME_PHASE.SHAKE_CUPS) { return; }
+
+      continueAfterShakeCups(lobbyId, ggs);
+
+    }, SHAKE_CUPS_TIME);
+  }
+
+  //---------------------------------------
+  // Continue after SHAKE_CUPS
+  //---------------------------------------
+  function continueAfterShakeCups(lobbyId, ggs) {
+
+    const lobby = lobbies[lobbyId];
+    if (!lobby) return;
+
+    // Make sure we're still in this phase
+    if (ggs.gamePhase !== GAME_PHASE.SHAKE_CUPS) { return; }
+
+    // first round: choose who goes first
+    if (ggs.firstRound) {
+      ggs.whoGoesFirstTimerExpired = false;
+      ggs.setGamePhase(GAME_PHASE.WHO_GOES_FIRST);
+
+      startWhoGoesFirstTimer(lobbyId, ggs);
+    }
+
+    // subsequent rounds: go directly to bidding
+    else {
+      ggs.setGamePhase(GAME_PHASE.BIDDING);
+    }
+
+    io.to(lobbyId).emit('gameStateUpdate', ggs);
   }
 
   //---------------------------------------
@@ -687,7 +726,12 @@ io.on('connection', (socket) => {
         processEndOfGame(lobbyId, ggs, 'normal');      
       } else {
         ggs.setGamePhase(GAME_PHASE.BETWEEN_ROUNDS);
+        
         StartRound(lobby.game);
+
+        if (ggs.gamePhase === GAME_PHASE.SHAKE_CUPS) {
+          startShakeCupsTimer(lobbyId, ggs);
+        }        
       }
     }
 
@@ -2699,18 +2743,8 @@ function StartRound (ggs) {
     ggs.curRound.startDate = GetDate(now);
     ggs.curRound.startTime = GetTime(now);    
 
-    // set the game phase
-    if (ggs.firstRound) {
-      ggs.curRound.whichDirection = undefined;
-      ggs.whoGoesFirstTimerExpired = false;
-      ggs.setGamePhase(GAME_PHASE.WHO_GOES_FIRST);
-    } else if (ggs.GetNumberPlayersStillIn() > 2) {
-      ggs.curRound.whichDirection = undefined;
-      ggs.setGamePhase(GAME_PHASE.CHOOSING_DIRECTION);
-    } else {
-      ggs.curRound.whichDirection = 0;
-      ggs.setGamePhase(GAME_PHASE.BIDDING);
-    }
+    // every round begins by shaking the cups
+    ggs.setGamePhase(GAME_PHASE.SHAKE_CUPS);
 
     ggs.doubtDidLiftCup = Array(MAX_CONNECTIONS).fill(false);
     ggs.nextRoundMustSay = Array(MAX_CONNECTIONS).fill(false);
