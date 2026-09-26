@@ -23,6 +23,7 @@ const SHAKE_CUPS_TIME = 2000;
 const GAME_PHASE = {
   WAITING_TO_START: 0,
   ASKING_IN_OUT: 1,
+	WHO_GOES_FIRST: 7,
   CHOOSING_DIRECTION: 2,
   BIDDING: 3,
   DOUBT_LIFT_CUPS: 4,
@@ -172,6 +173,9 @@ export class DudoGame {
 	disconnectPausedPlayerName;
 	disconnectSecondsRemaining;
 
+	whoGoesFirstTimerSequence;
+	whoGoesFirstTimerExpired;
+
 	//****************************************************************
 	// constructor
 	//****************************************************************
@@ -228,7 +232,10 @@ export class DudoGame {
 
 		this.bDisconnectPause = false;
 		this.disconnectPausedPlayerName = '';
-		this.disconnectSecondsRemaining = 0;		
+		this.disconnectSecondsRemaining = 0;
+
+		this.whoGoesFirstTimerSequence = 0;
+		this.whoGoesFirstTimerExpired = false;
 	}
 
 	//****************************************************************
@@ -383,6 +390,8 @@ export class DudoGame {
 		this.whoWonGamePlayerInfo = undefined;
 
 		this.whosTurn = -1;
+		this.whoGoesFirstTimerSequence = 0;
+		this.whoGoesFirstTimerExpired = false;
 
 		// chatgpt added these
 		this.inOutMustSay = Array(MAX_CONNECTIONS).fill(false);
@@ -418,13 +427,15 @@ export class DudoGame {
 	}
 
 	//************************************************************
-	// set the game phase parameters
+	// set GAME_IN_PROGRESS according to the game phase
+	// true, except for WAITING_TO_START
 	//************************************************************
 	setGamePhase(phase) {
 		this.gamePhase = phase;
 
 		if (
 			phase === GAME_PHASE.ASKING_IN_OUT ||
+			phase === GAME_PHASE.WHO_GOES_FIRST ||
 			phase === GAME_PHASE.CHOOSING_DIRECTION ||
 			phase === GAME_PHASE.BIDDING ||
 			phase === GAME_PHASE.DOUBT_LIFT_CUPS ||

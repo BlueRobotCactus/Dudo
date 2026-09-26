@@ -494,23 +494,77 @@ io.on('connection', (socket) => {
     }
 
     if (okToGo) {
-      // what phase are we in?
-      // depends how many players said they're in
       let players = ggs.GetNumberPlayersStillIn();
-      if (players < 2)   { ggs.setGamePhase(GAME_PHASE.WAITING_TO_START); }
-      if (players === 2) { ggs.setGamePhase(GAME_PHASE.BIDDING); }
-      if (players > 2)   { ggs.setGamePhase(GAME_PHASE.CHOOSING_DIRECTION); };
+
+      // only one player - cannot start
+      if (players < 2) {
+        ggs.setGamePhase(GAME_PHASE.WAITING_TO_START);
+      }
 
       // start the game with at least 2 players
       if (players > 1) {
-        ggs.whosTurn = 0; //&&& need this?
-
         ggs.GAME_IN_PROGRESS = true;
+
         io.emit('lobbiesList', getLobbiesList());
+
         StartGame(ggs);
+
+        //------------------------------------------------------------
+        // First round pauses briefly while choosing who goes first
+        //------------------------------------------------------------
+        if (ggs.gamePhase === GAME_PHASE.WHO_GOES_FIRST) {
+          startWhoGoesFirstTimer(lobbyId, ggs);
+        }
       }
     }
-    io.to(lobbyId).emit('gameStateUpdate', lobby.game);    
+    io.to(lobbyId).emit('gameStateUpdate', lobby.game);
+  }
+
+  //---------------------------------------
+  // Start WHO_GOES_FIRST timer
+  //---------------------------------------
+  function startWhoGoesFirstTimer(lobbyId, ggs) {
+    const GOES_FIRST_SECONDS = 3;
+
+    ggs.whoGoesFirstTimerExpired = false;
+    setTimeout(() => {
+      // This timer may belong to an old WHO_GOES_FIRST
+      // selection that has since been replaced.
+      if (ggs.gamePhase !== GAME_PHASE.WHO_GOES_FIRST) {
+        return;
+      }
+      ggs.whoGoesFirstTimerExpired = true;
+
+      continueAfterWhoGoesFirst(lobbyId, ggs);
+
+    }, GOES_FIRST_SECONDS * 1000);
+  }
+
+  //---------------------------------------
+  // continue after WHO_GOES_FIRST
+  // called from:
+  // handleDisconnectTimeout
+  //---------------------------------------
+  function continueAfterWhoGoesFirst(lobbyId, ggs) {
+
+    const lobby = lobbies[lobbyId];
+    if (!lobby) return;
+
+    // Still waiting for a disconnected player
+    if (ggs.bDisconnectPause) { return; }
+
+    // Make sure we're still in this phase
+    if (ggs.gamePhase !== GAME_PHASE.WHO_GOES_FIRST) { return; }
+
+    if (ggs.GetNumberPlayersStillIn() > 2) {
+      ggs.curRound.whichDirection = undefined;
+      ggs.setGamePhase(GAME_PHASE.CHOOSING_DIRECTION);
+    } else {
+      ggs.curRound.whichDirection = 0;
+      ggs.setGamePhase(GAME_PHASE.BIDDING);
+    }
+
+    io.to(lobbyId).emit('gameStateUpdate', ggs);
   }
 
   //---------------------------------------
@@ -709,17 +763,19 @@ io.on('connection', (socket) => {
 
     // remove player unless its time out deferred
     const deferTimeout =
-        ggs.gamePhase === GAME_PHASE.DOUBT_LIFT_CUPS ||
-        ggs.gamePhase === GAME_PHASE.DOUBT_SHOW_RESULT;
+      ggs.gamePhase === GAME_PHASE.DOUBT_LIFT_CUPS ||
+      ggs.gamePhase === GAME_PHASE.DOUBT_SHOW_RESULT;
 
+    let timedOutPlayerWasWhosTurn = false;
     if (deferTimeout) {
-        ggs.allConnectionID[gameIndex] = '';
-        ggs.allConnectionStatus[gameIndex] = CONN_PLAYER_TIMED_OUT_DEFER;
-        ggs.doubtDidLiftCup[gameIndex] = true;
-        ggs.nextRoundDidSay[gameIndex] = true;
+      ggs.allConnectionID[gameIndex] = '';
+      ggs.allConnectionStatus[gameIndex] = CONN_PLAYER_TIMED_OUT_DEFER;
+      ggs.doubtDidLiftCup[gameIndex] = true;
+      ggs.nextRoundDidSay[gameIndex] = true;
     }
     else {
-        removeActivePlayerFromGame(ggs, gameIndex);
+      timedOutPlayerWasWhosTurn = (ggs.whosTurn === gameIndex);
+      removeActivePlayerFromGame(ggs, gameIndex);
     }
 
     //---------------------------------------
@@ -741,9 +797,7 @@ io.on('connection', (socket) => {
 
       switch (ggs.gamePhase) {
       case GAME_PHASE.ASKING_IN_OUT:
-        GarbageCollection(lobby);
-        ggs.PrepareNextGame();
-        break;
+      case GAME_PHASE.WHO_GOES_FIRST:
       case GAME_PHASE.CHOOSING_DIRECTION:
         GarbageCollection(lobby);
         ggs.PrepareNextGame();
@@ -833,8 +887,22 @@ io.on('connection', (socket) => {
       case GAME_PHASE.ASKING_IN_OUT:
         continueAfterInOut(lobbyId, ggs);
         break;
+      case GAME_PHASE.WHO_GOES_FIRST:
+        if (timedOutPlayerWasWhosTurn) {
+          chooseRandomPlayer(ggs);
+          ggs.whoGoesFirstTimerExpired = false;
+        }
+        break;
       case GAME_PHASE.CHOOSING_DIRECTION:
-        continueAfterChoosingDirection(lobbyId, ggs);
+        if (timedOutPlayerWasWhosTurn) {
+          chooseRandomPlayer(ggs);
+          ggs.whoGoesFirstTimerExpired = false;
+          ggs.curRound.whichDirection = undefined;
+          ggs.setGamePhase(GAME_PHASE.WHO_GOES_FIRST);
+        }
+        else {
+          continueAfterChoosingDirection(lobbyId, ggs);
+        }
         break;
       case GAME_PHASE.BIDDING:
         continueAfterBiddingTimeout(lobbyId, ggs, gameIndex);
@@ -863,7 +931,29 @@ io.on('connection', (socket) => {
       { playerName, reason: 'timed_out', phaseAtTimeout, gameOver: ggs.GetNumberPlayersStillIn() < 2 });
     io.to(lobbyId).emit('lobbyData', lobby);
     io.emit('lobbiesList', getLobbiesList());
+
     turnPauseOFF(ggs);
+
+    // Continue WHO_GOES_FIRST after a player times out
+    if (ggs.gamePhase === GAME_PHASE.WHO_GOES_FIRST) {
+
+      if (
+        phaseAtTimeout === GAME_PHASE.WHO_GOES_FIRST &&
+        !timedOutPlayerWasWhosTurn
+      ) {
+        // Original chosen player is still here.
+        // The original WHO_GOES_FIRST timer already expired
+        // during the disconnect pause.
+        continueAfterWhoGoesFirst(lobbyId, ggs);
+      }
+      else {
+        // Either the original chosen player timed out during
+        // WHO_GOES_FIRST, or the direction chooser timed out.
+        // Run a fresh WHO_GOES_FIRST animation.
+        startWhoGoesFirstTimer(lobbyId, ggs);
+      }
+    }
+
     io.to(lobbyId).emit('gameStateUpdate', ggs);
   }
 
@@ -1509,6 +1599,7 @@ io.on('connection', (socket) => {
 
     const canKillGame =
       ggs.gamePhase === GAME_PHASE.ASKING_IN_OUT ||
+      ggs.gamePhase === GAME_PHASE.WHO_GOES_FIRST ||
       ggs.gamePhase === GAME_PHASE.CHOOSING_DIRECTION ||
       ggs.gamePhase === GAME_PHASE.BIDDING;
 
@@ -1725,6 +1816,15 @@ io.on('connection', (socket) => {
       io.to(lobbyId).emit('disconnectCountdownEnded', {playerName, reason: 'reconnected'});
 
       turnPauseOFF(ggs);
+
+      // If the WHO_GOES_FIRST timer already expired while
+      // this player was disconnected, continue the game now.
+      if (
+        ggs.gamePhase === GAME_PHASE.WHO_GOES_FIRST &&
+        ggs.whoGoesFirstTimerExpired
+      ) {
+        continueAfterWhoGoesFirst(lobbyId, ggs);
+      }      
     }
 
     //-------------------------------------------------
@@ -2540,6 +2640,22 @@ server.listen(PORT, () => {
   console.log(`Server listening on port ${PORT}`);
 });
 
+//****************************************************************
+// Randomly choose an active player
+//****************************************************************
+function chooseRandomPlayer(ggs) {
+  const random = Math.floor(Math.random() * ggs.GetNumberPlayersStillIn());
+  let temp = 0;
+  for (let cc = 0; cc < MAX_CONNECTIONS; cc++) {
+    if (ggs.allConnectionStatus[cc] === CONN_PLAYER_IN) {
+      if (random === temp) {
+        ggs.whosTurn = cc;
+        return;
+      }
+      temp++;
+    }
+  }
+}
 
 //****************************************************************
 // Start the game 
@@ -2583,7 +2699,12 @@ function StartRound (ggs) {
     ggs.curRound.startDate = GetDate(now);
     ggs.curRound.startTime = GetTime(now);    
 
-    if (ggs.GetNumberPlayersStillIn() > 2) {
+    // set the game phase
+    if (ggs.firstRound) {
+      ggs.curRound.whichDirection = undefined;
+      ggs.whoGoesFirstTimerExpired = false;
+      ggs.setGamePhase(GAME_PHASE.WHO_GOES_FIRST);
+    } else if (ggs.GetNumberPlayersStillIn() > 2) {
       ggs.curRound.whichDirection = undefined;
       ggs.setGamePhase(GAME_PHASE.CHOOSING_DIRECTION);
     } else {
@@ -2601,18 +2722,8 @@ function StartRound (ggs) {
     // (otherwise determined in PostRound())
     //------------------------------------------------------------
     if (ggs.firstRound) {
-        const random = Math.floor(Math.random() * ggs.GetNumberPlayersStillIn());
-        let temp = 0;
-        for (let cc = 0; cc < MAX_CONNECTIONS; cc++) {
-            if (ggs.allConnectionStatus[cc] === CONN_PLAYER_IN) {
-                if (random === temp) {
-                    ggs.whosTurn = cc;
-                    console.log ('server.js: StartRound: randomly picked whosTurn = ' + cc);
-                    break;
-                }
-                temp++;
-            }
-        }
+        chooseRandomPlayer(ggs);
+        console.log('server.js: StartRound: randomly picked whosTurn = ' + ggs.whosTurn);
     }
     ggs.curRound.startingPlayerIndex = ggs.whosTurn; 
 

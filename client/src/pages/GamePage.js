@@ -125,6 +125,8 @@ import { STICKS_BLINK_TIME, SHAKE_CUPS_TIME, GAME_PHASE, GetGamePhaseName } from
     const [onRightHandler, setOnRightHandler] = useState(() => () => {});
 
     // Bid
+    const [showYourTurn, setShowYourTurn] = useState(false);
+    const [whoGoesFirstDice, setWhoGoesFirstDice] = useState([1, 1]);
     const [showBidDlg, setShowBidDlg] = useState(false);
 
     // OKhistShowingyPosIncr
@@ -358,15 +360,9 @@ import { STICKS_BLINK_TIME, SHAKE_CUPS_TIME, GAME_PHASE, GetGamePhaseName } from
           }
           setWhosTurnName(ggc.allParticipantNames[ggc.whosTurn] || '' );
         } else {
-          //&&&navigate('/'); // lobby doesn't exist
-
-  const msg = `DEBUG: getLobbyData failed - NOT navigating. error=${data?.error || 'no data'}`;
-  console.log(msg, data);
-  socket.emit('chatMessage', { lobbyId, recipientGuid: '', text: msg });
-
-
-
-
+          const msg = `DEBUG: getLobbyData failed - NOT navigating. error=${data?.error || 'no data'}`;
+          console.log(msg, data);
+          socket.emit('chatMessage', { lobbyId, recipientGuid: '', text: msg });
         }
       });
       // Listen for lobby data updates
@@ -385,6 +381,30 @@ import { STICKS_BLINK_TIME, SHAKE_CUPS_TIME, GAME_PHASE, GetGamePhaseName } from
       };
     }, [socket, connected, lobbyId, navigate]);
   
+    //************************************************************
+    // useEffect: WHO GOES FIRST
+    //************************************************************
+    useEffect(() => {
+      if (gameState?.gamePhase !== GAME_PHASE.WHO_GOES_FIRST) { return; }
+
+      const timer = setInterval(() => {
+        setWhoGoesFirstDice([
+          Math.floor(Math.random() * 6) + 1,
+          Math.floor(Math.random() * 6) + 1
+        ]);
+      }, 120);
+      return () => clearInterval(timer);
+    }, [gameState?.gamePhase, gameState?.whoGoesFirstTimerSequence]);
+
+    //************************************************************
+    // useEffect: YOUR TURN MESSAGE
+    //************************************************************
+    useEffect(() => {
+      const shouldShow = isMyTurn && ggc.gamePhase === GAME_PHASE.BIDDING;
+      setShowYourTurn(shouldShow);
+
+    }, [isMyTurn, gameState]);
+
     //************************************************************
     // useEffect: STORE SHOWCHAT STATE
     //************************************************************
@@ -1170,26 +1190,44 @@ import { STICKS_BLINK_TIME, SHAKE_CUPS_TIME, GAME_PHASE, GetGamePhaseName } from
     setShowCountdown(true);
   };
 
-  const handleDisconnectCountdownEnded = ({ playerName, reason, phaseAtTimeout, gameOver}) => {
-    console.log(`Countdown for ${playerName} ended: reason=${reason}, phaseAtTimeout=${phaseAtTimeout}`);
+  const handleDisconnectCountdownEnded = ({
+    playerName,
+    reason,
+    phaseAtTimeout,
+    gameOver
+  }) => {
+    console.log(
+      `Countdown for ${playerName} ended: reason=${reason}, phaseAtTimeout=${phaseAtTimeout}`
+    );
 
+    // Silent reconnect -- nothing to display.
     if (reason === 'reconnected') {
-      setCountdownMessage(`${playerName} reconnected.`);
-    }
-    else if (gameOver) {
       setShowCountdown(false);
       return;
     }
-    else if (phaseAtTimeout === GAME_PHASE.BIDDING) {
-      setCountdownMessage(`${playerName} left the lobby and is OUT.\n` +
+
+    // Game is over -- nothing to display here.
+    if (gameOver) {
+      setShowCountdown(false);
+      return;
+    }
+
+    // BIDDING is special because the players need to know
+    // that the current round was cancelled.
+    if (phaseAtTimeout === GAME_PHASE.BIDDING) {
+      setCountdownMessage(
+        `${playerName} left the lobby and is OUT.\n` +
         `This round is cancelled. A new round will begin.`
       );
+
+      const RECONNECT_MSG_SECONDS = 3;
+      setTimeout(() => setShowCountdown(false), RECONNECT_MSG_SECONDS * 1000);
+      return;
     }
-    else {
-      setCountdownMessage(`${playerName} left the lobby and is OUT.`);
-    }
-    const RECONNECT_MSG_SECONDS = 3;
-    setTimeout(() => setShowCountdown(false), RECONNECT_MSG_SECONDS * 1000);
+
+    // For all other phases, the player's disappearance from
+    // the table and the system chat message are sufficient.
+    setShowCountdown(false);
   };
 
   //************************************************************
@@ -1425,7 +1463,10 @@ useEffect(() => {
   //DrawObserverNames (yPos);
 
   // Draw bid status
-  if (ggc.gamePhase === GAME_PHASE.CHOOSING_DIRECTION || ggc.gamePhase === GAME_PHASE.BIDDING) {
+  if (ggc.gamePhase === GAME_PHASE.WHO_GOES_FIRST) {
+    DrawWhoGoesFirst();
+  }
+  else if (ggc.gamePhase === GAME_PHASE.CHOOSING_DIRECTION || ggc.gamePhase === GAME_PHASE.BIDDING) {
     DrawProcessBid();
   }
   else if (ggc.gamePhase === GAME_PHASE.WAITING_TO_START) {
@@ -1629,64 +1670,62 @@ useEffect(() => {
       DoProcessBid();
     }
   }
-
-  function DoProcessBid() {
-    if (ggc.bDisconnectPause) {
-      return;
-    }
-
-    if (isMyTurn) {
-      // my turn
-      // populate the bid list
-      if (ggc.bPaloFijoRound) {
-        ggc.PopulateBidListPaloFijo();
-      } else {
-        ggc.PopulateBidListRegular();
+    function DoProcessBid() {
+      if (ggc.bDisconnectPause) {
+        return;
       }
-      ggc.PopulateBidListTrim();
-      setPossibleBids(ggc.possibleBids || []);
-      ggc.PopulateBidMatrix();
-      setBidMatrix(ggc.BidMatrix);
 
-      // show dialog, handle responses
-      if (ggc.curRound.whichDirection === undefined) {
-        //---------------------------------------------
-        // choose direction if starting a round
-        //---------------------------------------------
-        setTimeout(() => {
-          // wait until dice are shaken
-          let cc = ggc.getPlayerToLeft(myIndex);
-          setLeftTextDirection("to " + ggc.allParticipantNames[cc]);
-          cc = ggc.getPlayerToRight(myIndex);
-          setRightTextDirection("to " + ggc.allParticipantNames[cc]);
-          setOnLeftHandler(() => () => {
-            setShowDirectionDlg(false);
-            socket.emit('direction', { lobbyId, index: myIndex, direction: 1 })
-            PrepareBidUI();
-          });
-          setOnRightHandler(() => () => {
-            setShowDirectionDlg(false);
-            socket.emit('direction', { lobbyId, index: myIndex, direction: 2 })
-            PrepareBidUI();
-          });
-          let title = 'Choose Direction';
-          if (ggc.bPaloFijoRound) {
-            title += ' (PALO FIJO)';
-          }
-          setTitleDirection (title);
-          setShowDirectionDlg(true);
-        }, SHAKE_CUPS_TIME);
+      if (isMyTurn) {
+        // my turn
+        // populate the bid list
+        if (ggc.bPaloFijoRound) {
+          ggc.PopulateBidListPaloFijo();
+        } else {
+          ggc.PopulateBidListRegular();
+        }
+        ggc.PopulateBidListTrim();
+        setPossibleBids(ggc.possibleBids || []);
+        ggc.PopulateBidMatrix();
+        setBidMatrix(ggc.BidMatrix);
+
+        // show dialog, handle responses
+        if (ggc.curRound.whichDirection === undefined) {
+          //---------------------------------------------
+          // choose direction if starting a round
+          //---------------------------------------------
+          setTimeout(() => {
+            // wait until dice are shaken
+            let cc = ggc.getPlayerToLeft(myIndex);
+            setLeftTextDirection("to " + ggc.allParticipantNames[cc]);
+            cc = ggc.getPlayerToRight(myIndex);
+            setRightTextDirection("to " + ggc.allParticipantNames[cc]);
+            setOnLeftHandler(() => () => {
+              setShowDirectionDlg(false);
+              socket.emit('direction', { lobbyId, index: myIndex, direction: 1 })
+              PrepareBidUI();
+            });
+            setOnRightHandler(() => () => {
+              setShowDirectionDlg(false);
+              socket.emit('direction', { lobbyId, index: myIndex, direction: 2 })
+              PrepareBidUI();
+            });
+            let title = 'Choose Direction';
+            if (ggc.bPaloFijoRound) {
+              title += ' (PALO FIJO)';
+            }
+            setTitleDirection (title);
+            setShowDirectionDlg(true);
+          }, SHAKE_CUPS_TIME);
+        } else {
+          PrepareBidUI();
+        }
       } else {
+        // not my turn
+        // show current bid
         PrepareBidUI();
       }
-    } else {
-      // not my turn
-      // show current bid
-      PrepareBidUI();
     }
-  }
-
-}, [gameState, lobbyPlayers, isMyTurn, screenSize, imagesReady, socketId]);
+  }, [gameState, lobbyPlayers, isMyTurn, screenSize, imagesReady, socketId]);
 
   //************************************************************
   //  function Draw Waiting for host to start the game
@@ -1699,6 +1738,14 @@ useEffect(() => {
                         'Waiting for YOU to start the game...' :
                         `Waiting for ${lobbyHost} to start the game...`);
     }
+    setRow2BidToWhom('');
+  }
+
+  //************************************************************
+  // Draw WHO_GOES_FIRST
+  //************************************************************
+  function DrawWhoGoesFirst() {
+    setRow2CurrentBid('Choosing who goes first...');
     setRow2BidToWhom('');
   }
 
@@ -1830,7 +1877,8 @@ useEffect(() => {
   return (
     <>
         {/* Show game phase for DEBUGGING */} 
-        {/*}
+
+        
         <div
           style={{
             position: 'fixed',
@@ -1848,7 +1896,8 @@ useEffect(() => {
           Phase: {GetGamePhaseName(gameState?.gamePhase)}
           , Game in progress: {ggc.GAME_IN_PROGRESS ? 'YES' : 'NO'} 
         </div>
-        */}
+        
+
       <div className={`game-chat-layout ${showChat ? 'chat-open' : ''}`}>
         <div
           className="game-panel d-flex flex-column"
@@ -1883,8 +1932,8 @@ useEffect(() => {
               {/*isMyTurn && ggc.allBidUIMode[myIndex] === 0 && RenderBid()*/}
               {isMyTurn && ggc.allBidUIMode[myIndex] === 0 && ggc.gamePhase === GAME_PHASE.BIDDING && RenderBid()}
 
-              {!isMyTurn && (
-                <div className="border border-primary rounded p-1">
+              {(!isMyTurn || ggc.gamePhase === GAME_PHASE.WHO_GOES_FIRST) && (
+                  <div className="border border-primary rounded p-1">
                   <div className="fw-bold text-center">
                     <div>{row2CurrentBid}</div>
                     <div>{row2BidToWhom}</div>
@@ -1939,6 +1988,59 @@ useEffect(() => {
                 Bid History
               </button>
             )}
+
+{ggc.gamePhase === GAME_PHASE.WHO_GOES_FIRST && (
+  <div
+    style={{
+      position: 'absolute',
+      top: '50%',
+      left: '50%',
+      transform: 'translate(-50%, -50%)',
+      zIndex: 20,
+      textAlign: 'center',
+      color: 'white',
+      fontWeight: 'bold',
+      textShadow: '2px 2px 4px black',
+      pointerEvents: 'none',
+    }}
+  >
+    <div
+      style={{
+        fontSize: '4rem',
+        lineHeight: 1,
+        marginBottom: '15px',
+      }}
+    >
+      {['⚀','⚁','⚂','⚃','⚄','⚅'][whoGoesFirstDice[0] - 1]}
+      {' '}
+      {['⚀','⚁','⚂','⚃','⚄','⚅'][whoGoesFirstDice[1] - 1]}
+    </div>
+
+    <div style={{ fontSize: '1.5rem' }}>
+      Choosing who goes first...
+      <br />
+      TEST: {ggc.allParticipantNames[ggc.whosTurn]}      
+    </div>
+  </div>
+)}
+
+{showYourTurn && (
+  <div
+    style={{
+      position: 'absolute',
+      bottom: '8px',
+      left: '50%',
+      transform: 'translateX(-50%)',
+      fontSize: '1.5rem',
+      fontWeight: 'bold',
+      color: 'white',
+      zIndex: 10,
+    }}
+  >
+    Your Turn
+  </div>
+)}
+
             {ggc.allConnectionStatus.some(
               status => status === CONN_OBSERVER
             ) && (
