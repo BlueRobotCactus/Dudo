@@ -12,7 +12,7 @@ import { STICKS_BLINK_SECONDS, SHOWN_DICE_BLINK_SECONDS, SHAKE_CUPS_SECONDS, GAM
 // ggc = DudoGame object
 // cc = connection number of this player
 //************************************************************
-export function PlayerGrid({ lobbyId, ggc, myIndex, cc, showWinnerStars }) {
+export function PlayerGrid({ lobbyId, ggc, myIndex, cc, showWinnerStars, whoGoesFirstSpinPlayer }) {
 
   console.log ("ENTERING PlayerGrid, myIndex=", myIndex, " cc=", cc, "name=", ggc.allParticipantNames[cc]);
 
@@ -265,12 +265,19 @@ export function PlayerGrid({ lobbyId, ggc, myIndex, cc, showWinnerStars }) {
     }
   }
 
+  // spinning (see show goes first)
+  if (ggc.gamePhase === GAME_PHASE.WHO_GOES_FIRST && cc === whoGoesFirstSpinPlayer) {
+    bgColor = 'aliceblue';
+  }
+
   // deferred timed-out player overrides normal color
   if (ggc.allConnectionStatus[cc] === CONN_PLAYER_TIMED_OUT_DEFER) {
     bgColor = 'white';
   }  
 
+  //--------------------------------------------------------
   // line color in background color
+  //--------------------------------------------------------
   switch (bgColor) {
     case 'white':
     case 'gray':
@@ -490,8 +497,21 @@ export function PlayerGrid({ lobbyId, ggc, myIndex, cc, showWinnerStars }) {
             gridColumn: '1 / span 7',
             padding: '0.25rem',
             boxSizing: 'border-box',
-            border: ggc.GAME_IN_PROGRESS && cc === ggc.whosTurn ? '3px solid red' : '1px solid black',
-            zIndex: 3,
+            border:
+              ggc.gamePhase === GAME_PHASE.SHAKE_CUPS
+                ? '1px solid black'
+                : ggc.gamePhase === GAME_PHASE.WHO_GOES_FIRST
+                  ? (
+                      cc === whoGoesFirstSpinPlayer
+                        ? '3px solid lightblue'
+                        : '1px solid black'
+                    )
+                  : (
+                      ggc.GAME_IN_PROGRESS && cc === ggc.whosTurn
+                        ? '3px solid red'
+                        : '1px solid black'
+                    ),
+             zIndex: 3,
           }}
         />
 
@@ -585,7 +605,7 @@ export function PlayerGrid({ lobbyId, ggc, myIndex, cc, showWinnerStars }) {
           >
             {ggc.allParticipantNames[cc]}
           </div>
-          {/* red X through the name rectanble if time-out-deferred */}
+          {/* red X through the name rectangle if time-out-deferred */}
           {ggc.allConnectionStatus[cc] === CONN_PLAYER_TIMED_OUT_DEFER && (
             <>
               <div

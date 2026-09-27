@@ -33,6 +33,7 @@ import { STICKS_BLINK_SECONDS, GAME_PHASE, GetGamePhaseName } from '../shared/Du
   const FORCE_LEAVE_CLOSE_LOBBY_SECONDS = 5;
   const RECONNECT_MSG_SECONDS = 3;
   const GAME_KILLED_MSG_SECONDS = 3;
+  const SPINNER_INTERVAL_MS = 125;
 
   //************************************************************
   // GamePage function
@@ -121,6 +122,9 @@ import { STICKS_BLINK_SECONDS, GAME_PHASE, GetGamePhaseName } from '../shared/Du
     const [inOutPaloFijo, SetInOutPaloFijo] = useState(false);
     const [onInHandler, setOnInHandler] = useState(() => () => {});  // default no-op
     const [onOutHandler, setOnOutHandler] = useState(() => () => {});  // default no-op
+
+    // who goes first
+    const [whoGoesFirstSpinPlayer, setWhoGoesFirstSpinPlayer] = useState(-1);
 
     // choose direction
     const [showDirectionDlg, setShowDirectionDlg] = useState(false);
@@ -391,14 +395,35 @@ import { STICKS_BLINK_SECONDS, GAME_PHASE, GetGamePhaseName } from '../shared/Du
     // useEffect: WHO GOES FIRST
     //************************************************************
     useEffect(() => {
-      if (gameState?.gamePhase !== GAME_PHASE.WHO_GOES_FIRST) { return; }
+      if (gameState?.gamePhase !== GAME_PHASE.WHO_GOES_FIRST) {
+        setWhoGoesFirstSpinPlayer(-1);
+        return;
+      }
 
       const timer = setInterval(() => {
+        //----------------------------------------------------------
+        // animate the dice
+        //----------------------------------------------------------
         setWhoGoesFirstDice([
           Math.floor(Math.random() * 6) + 1,
           Math.floor(Math.random() * 6) + 1
         ]);
-      }, 120);
+
+        //----------------------------------------------------------
+        // move the highlight to the next active player
+        //----------------------------------------------------------
+        setWhoGoesFirstSpinPlayer(prev => {
+          let next = prev;
+          for (let i = 0; i < MAX_CONNECTIONS; i++) {
+            next = (next + 1) % MAX_CONNECTIONS;
+            if (ggc.allConnectionStatus[next] === CONN_PLAYER_IN) {
+              return next;
+            }
+          }
+          return -1;
+        });
+
+      }, SPINNER_INTERVAL_MS);
       return () => clearInterval(timer);
     }, [gameState?.gamePhase, gameState?.whoGoesFirstTimerSequence]);
 
@@ -1464,8 +1489,11 @@ useEffect(() => {
   yPos += 20;
   //DrawObserverNames (yPos);
 
-  // Draw bid status
-  if (ggc.gamePhase === GAME_PHASE.WHO_GOES_FIRST) {
+  // Draw according to game phase
+  if (ggc.gamePhase === GAME_PHASE.SHAKE_CUPS) {
+    DrawShakeCups();
+  } 
+  else if (ggc.gamePhase === GAME_PHASE.WHO_GOES_FIRST) {
     DrawWhoGoesFirst();
   }
   else if (ggc.gamePhase === GAME_PHASE.CHOOSING_DIRECTION) {
@@ -1759,6 +1787,24 @@ useEffect(() => {
   }
 
   //************************************************************
+  // function SHAKE_CUPS
+  //************************************************************
+  function DrawShakeCups() {
+
+    console.log(
+      "DrawShakeCups:",
+      "myName =", myName,
+      "phase =", ggc.gamePhase,
+      "row2CurrentBid before =", row2CurrentBid
+    );
+
+    setRow2YourTurnString('');
+    setRow2SpecialPasoString('');
+    setRow2CurrentBid('Shaking and rolling the dice...');
+    setRow2BidToWhom('');
+  }
+
+  //************************************************************
   // Draw WHO_GOES_FIRST
   //************************************************************
   function DrawWhoGoesFirst() {
@@ -2006,41 +2052,6 @@ useEffect(() => {
               </button>
             )}
 
-{ggc.gamePhase === GAME_PHASE.WHO_GOES_FIRST && (
-  <div
-    style={{
-      position: 'absolute',
-      top: '50%',
-      left: '50%',
-      transform: 'translate(-50%, -50%)',
-      zIndex: 20,
-      textAlign: 'center',
-      color: 'white',
-      fontWeight: 'bold',
-      textShadow: '2px 2px 4px black',
-      pointerEvents: 'none',
-    }}
-  >
-    <div
-      style={{
-        fontSize: '4rem',
-        lineHeight: 1,
-        marginBottom: '15px',
-      }}
-    >
-      {['⚀','⚁','⚂','⚃','⚄','⚅'][whoGoesFirstDice[0] - 1]}
-      {' '}
-      {['⚀','⚁','⚂','⚃','⚄','⚅'][whoGoesFirstDice[1] - 1]}
-    </div>
-
-    <div style={{ fontSize: '1.5rem' }}>
-      Choosing who goes first...
-      <br />
-      TEST: {ggc.allParticipantNames[ggc.whosTurn]}      
-    </div>
-  </div>
-)}
-
 {showYourTurn && (
   <div
     style={{
@@ -2100,6 +2111,8 @@ useEffect(() => {
                 backgroundColor="transparent"
                 showWinnerDecoration={showWinnerDecoration}
                 winnerIndex={winnerIndex}
+                whoGoesFirstSpinPlayer={whoGoesFirstSpinPlayer}
+                whoGoesFirstDice={whoGoesFirstDice}
               />
               {narrowScreen && showChat && RenderChatPanel(true)}
             </div>

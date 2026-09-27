@@ -6,14 +6,23 @@ import PlayerGrid from './PlayerGrid';
 
 import { MAX_CONNECTIONS, CONN_PLAYER_IN, CONN_PLAYER_OUT, 
          CONN_PLAYER_IN_DISCONN, CONN_PLAYER_OUT_DISCONN, 
-         CONN_PLAYER_TIMED_OUT_DEFER} 
+         CONN_PLAYER_TIMED_OUT_DEFER, GAME_PHASE} 
          from '../shared/DudoGame.js';
 
 //************************************************************
 // TableGrid (PlayerCards placed within it)
 // ggc = DudoGame object
 //************************************************************
-export function TableGrid({lobbyId, ggc, myIndex, backgroundColor, showWinnerDecoration, winnerIndex}) {
+export function TableGrid({
+  lobbyId, 
+  ggc, 
+  myIndex, 
+  backgroundColor, 
+  showWinnerDecoration, 
+  winnerIndex, 
+  whoGoesFirstSpinPlayer,
+  whoGoesFirstDice
+  }) {
   console.log("TableGrid: entering TableGrid ()");
 
   const [isNarrow, setIsNarrow] = useState(window.innerWidth < 500);
@@ -32,6 +41,7 @@ export function TableGrid({lobbyId, ggc, myIndex, backgroundColor, showWinnerDec
     const {
       directionLeftImageRef,
       directionRightImageRef,
+      diceImagesRef
     } = useContext(ImageRefsContext);
   
   // -----------------------------------------------
@@ -98,7 +108,7 @@ export function TableGrid({lobbyId, ggc, myIndex, backgroundColor, showWinnerDec
   const DirectionArrowList = [
     [], // index 0 unused
     [], // index 1 no arrow
-    [], // index 2 no arrow
+    [[4, 5], [2, 2]],    // 2 (used for WHO_GOES_FIRST dice only)
     [[3, 5],    [2, 2]], // 3
     [[5, 5],    [2, 2]], // 4
     [[5, 5],    [3, 4]], // 5
@@ -172,13 +182,63 @@ export function TableGrid({lobbyId, ggc, myIndex, backgroundColor, showWinnerDec
             cc={ccList[index]}
             myIndex={myIndex}
             showWinnerStars={showWinnerDecoration && (ccList[index] === winnerIndex)}
+            whoGoesFirstSpinPlayer={whoGoesFirstSpinPlayer}
           />
         </div>
         </div>
         </div>
       ))}
 
-      {DirectionArrowList[numPlayers] &&
+      {/*--------------------------------------------------------
+          WHO GOES FIRST - rolling dice
+      --------------------------------------------------------*/}
+      {ggc.gamePhase === GAME_PHASE.WHO_GOES_FIRST &&
+        DirectionArrowList[numPlayers] &&
+        DirectionArrowList[numPlayers].length > 0 &&
+        (() => {
+
+          const [startRow, startCol] = DirectionArrowList[numPlayers][0];
+          const [rowSpan, colSpan] = DirectionArrowList[numPlayers][1];
+
+          return (
+            <div
+              style={{
+                gridRow: `${startRow + 1} / span ${rowSpan}`,
+                gridColumn: `${startCol + 1} / span ${colSpan}`,
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                gap: '8px',
+                zIndex: 2,
+              }}
+            >
+              <img
+                src={diceImagesRef.current[whoGoesFirstDice[0]].src}
+                alt="die 1"
+                style={{
+                  width: '40px',
+                  height: '40px',
+                }}
+              />
+
+              <img
+                src={diceImagesRef.current[whoGoesFirstDice[1]].src}
+                alt="die 2"
+                style={{
+                  width: '40px',
+                  height: '40px',
+                }}
+              />
+            </div>
+          );
+        })()
+      }
+
+      {/*--------------------------------------------------------
+          direction arrow
+      --------------------------------------------------------*/}
+      {numPlayers >=3 &&
+        DirectionArrowList[numPlayers] &&
         DirectionArrowList[numPlayers].length > 0 &&
         (ggc.curRound?.whichDirection === 1 || ggc.curRound?.whichDirection === 2) &&
         (() => {
