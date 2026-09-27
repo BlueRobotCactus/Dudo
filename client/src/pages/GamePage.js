@@ -1470,6 +1470,18 @@ useEffect(() => {
   // Make sure we have the latest game state
   ggc.AssignGameState(gameState);
 
+
+
+console.log(
+  "DEBUGG DRAW PHASE:",
+  "myName =", myName,
+  "gameState.gamePhase =", gameState?.gamePhase,
+  "ggc.gamePhase =", ggc.gamePhase
+);
+
+
+
+
   // Start drawing
   //DrawSomeText ();
 

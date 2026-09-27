@@ -201,35 +201,49 @@ export function TableGrid({
           const [rowSpan, colSpan] = DirectionArrowList[numPlayers][1];
 
           return (
-            <div
-              style={{
-                gridRow: `${startRow + 1} / span ${rowSpan}`,
-                gridColumn: `${startCol + 1} / span ${colSpan}`,
-                display: 'flex',
-                justifyContent: 'center',
-                alignItems: 'center',
-                gap: '8px',
-                zIndex: 2,
-              }}
-            >
-              <img
-                src={diceImagesRef.current[whoGoesFirstDice[0]].src}
-                alt="die 1"
-                style={{
-                  width: '40px',
-                  height: '40px',
-                }}
-              />
 
-              <img
-                src={diceImagesRef.current[whoGoesFirstDice[1]].src}
-                alt="die 2"
-                style={{
-                  width: '40px',
-                  height: '40px',
-                }}
-              />
-            </div>
+
+<div
+  style={{
+    gridRow: `${startRow + 1} / span ${rowSpan}`,
+    gridColumn: `${startCol + 1} / span ${colSpan}`,
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: '4px',
+    zIndex: 2,
+  }}
+>
+  <div
+    style={{
+      display: 'flex',
+      gap: '4px',
+      padding: '3px',
+      backgroundColor: 'white',
+      borderRadius: '6px',
+    }}
+  >
+    <img
+      src={diceImagesRef.current[whoGoesFirstDice[0]].src}
+      alt="die 1"
+      style={{
+        width: '40px',
+        height: '40px',
+      }}
+    />
+
+    <img
+      src={diceImagesRef.current[whoGoesFirstDice[1]].src}
+      alt="die 2"
+      style={{
+        width: '40px',
+        height: '40px',
+      }}
+    />
+  </div>
+</div>
+
+
           );
         })()
       }
