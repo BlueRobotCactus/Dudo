@@ -24,6 +24,7 @@ import { SessionStatsDlg } from '../Dialogs.js';
 import { GameSettingsDlg } from '../Dialogs.js';
 import { SetGameParametersDlg } from '../Dialogs.js';
 import { BidDlg } from '../Dialogs.js';
+import { BidDropdownDlg } from '../Dialogs.js';
 
 import { MAX_CONNECTIONS, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, } from '../shared/DudoGame.js';
 import { STICKS_BLINK_SECONDS, GAME_PHASE, GetGamePhaseName } from '../shared/DudoGame.js';
@@ -138,6 +139,7 @@ import { STICKS_BLINK_SECONDS, GAME_PHASE, GetGamePhaseName } from '../shared/Du
     const [showYourTurn, setShowYourTurn] = useState(false);
     const [whoGoesFirstDice, setWhoGoesFirstDice] = useState([1, 1]);
     const [showBidDlg, setShowBidDlg] = useState(false);
+    const [showBidDropdownDlg, setShowBidDropdownDlg] = useState(false);
 
     // OKhistShowingyPosIncr
     const [showOkDlg, setShowOkDlg] = useState(false);
@@ -758,8 +760,8 @@ import { STICKS_BLINK_SECONDS, GAME_PHASE, GetGamePhaseName } from '../shared/Du
     }
 
     myShowShakeRef.current = bShowShake;
-    setShowBidDlg(false); // in case we're using it
-    //setShowBidPanel(false);
+    setShowBidDlg(false);
+    setShowBidDropdownDlg(false);
 
     // prepare to confirm the bid using YesNoDlg
     if (bid === "PASO" || bid === "DOUBT") {
@@ -936,8 +938,13 @@ import { STICKS_BLINK_SECONDS, GAME_PHASE, GetGamePhaseName } from '../shared/Du
         //setShowBidPanel(true);
       }
 
-      if (ggc.allBidUIMode[myIndex] === 1 && ggc.gamePhase === GAME_PHASE.BIDDING) {
-        setShowBidDlg(true);
+      if (ggc.gamePhase === GAME_PHASE.BIDDING) {
+        if (ggc.allBidUIMode[myIndex] === 0) {
+          setShowBidDropdownDlg(true);
+        }
+        if (ggc.allBidUIMode[myIndex] === 1) {
+          setShowBidDlg(true);
+        }
       }
 
     } else {
@@ -2097,6 +2104,24 @@ console.log(
                 Observers
               </button>
             )}
+
+            {showBidDropdownDlg && (
+              <BidDropdownDlg
+                open={showBidDropdownDlg}
+                possibleBids={possibleBids}
+                selectedBid={selectedBid}
+                setSelectedBid={setSelectedBid}
+                canShowShake={canShowShake}
+                bidShowShake={bidShowShake}
+                setBidShowShake={setBidShowShake}
+                yourTurnString={row2YourTurnString}
+                specialPasoString={row2SpecialPasoString}
+                onBidHistory={handleOptBidHistory}
+                ggc={ggc}
+                onSubmit={handleBidOK}
+              />
+            )}
+
             {showBidDlg && (
               <BidDlg
                 open={showBidDlg}
@@ -2104,6 +2129,7 @@ console.log(
                 bidMatrix={bidMatrix}
                 yourTurnString={row2YourTurnString}
                 specialPasoString={row2SpecialPasoString}
+                onBidHistory={handleOptBidHistory}
                 ggc={ggc}
                 myIndex={myIndex}
                 onSubmit={handleBidOK}

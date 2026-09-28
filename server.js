@@ -2783,7 +2783,6 @@ function StartRound (ggs) {
     //------------------------------------------------------------
     if (ggs.firstRound) {
         chooseRandomPlayer(ggs);
-        console.log('server.js: StartRound: randomly picked whosTurn = ' + ggs.whosTurn);
     }
     ggs.curRound.startingPlayerIndex = ggs.whosTurn; 
 
