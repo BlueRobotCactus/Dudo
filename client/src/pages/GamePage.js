@@ -106,11 +106,6 @@ import { STICKS_BLINK_SECONDS, GAME_PHASE, GetGamePhaseName } from '../shared/Du
 
     // choose direction
     const [showDirectionDlg, setShowDirectionDlg] = useState(false);
-    const [titleDirection, setTitleDirection] = useState('');
-    const [leftTextDirection, setLeftTextDirection] = useState(false);
-    const [rightTextDirection, setRightTextDirection] = useState(false);
-    const [onLeftHandler, setOnLeftHandler] = useState(() => () => {});
-    const [onRightHandler, setOnRightHandler] = useState(() => () => {});
 
     // Bid
     const [showYourTurn, setShowYourTurn] = useState(false);
@@ -496,6 +491,8 @@ import { STICKS_BLINK_SECONDS, GAME_PHASE, GetGamePhaseName } from '../shared/Du
       setShowDirectionDlg(false);
       setShowLiftCupDlg (false);
       setShowShowDoubtDlg(false);
+      setShowBidGridDlg(false);
+      setShowBidListDlg(false);
       winnerConfettiShownRef.current = false;
     }    
     if (data.gamePhase === GAME_PHASE.CHOOSING_DIRECTION) {
@@ -755,6 +752,20 @@ import { STICKS_BLINK_SECONDS, GAME_PHASE, GetGamePhaseName } from '../shared/Du
   };
 
   //************************************************************
+  // handle direction choice
+  //************************************************************
+  function handleDirection(direction) {
+
+    setShowDirectionDlg(false);
+
+    socket.emit('direction', {
+      lobbyId,
+      index: myIndex,
+      direction
+    });
+  }
+
+  //************************************************************
   //  functions to handle Options menu
   //************************************************************
   const handleOptBidHistory = () => {
@@ -903,7 +914,7 @@ import { STICKS_BLINK_SECONDS, GAME_PHASE, GetGamePhaseName } from '../shared/Du
         break;
 
       case GAME_PHASE.SHAKE_CUPS:
-        statusText = 'Shaking and rolling the dice...';
+        statusText = 'Get ready!';
         break;
 
       case GAME_PHASE.WHO_GOES_FIRST:
@@ -912,7 +923,7 @@ import { STICKS_BLINK_SECONDS, GAME_PHASE, GetGamePhaseName } from '../shared/Du
 
       case GAME_PHASE.CHOOSING_DIRECTION:
         if (isMyTurn) {
-          statusText = 'You choose the direction';
+          statusText = 'Which way?';
         } else {
           statusText = `Waiting for ${whosTurnName} to choose the direction...`;
         }
@@ -1715,36 +1726,6 @@ useEffect(() => {
     // only proceed if this player is choosing
     if (ggc.bDisconnectPause || !isMyTurn) { return; }
 
-    const left = ggc.getPlayerToLeft(myIndex);
-    const right = ggc.getPlayerToRight(myIndex);
-
-    setLeftTextDirection("to " + ggc.allParticipantNames[left]);
-    setRightTextDirection("to " + ggc.allParticipantNames[right]);
-
-    setOnLeftHandler(() => () => {
-      setShowDirectionDlg(false);
-      socket.emit('direction', {
-        lobbyId,
-        index: myIndex,
-        direction: 1
-      });
-    });
-
-    setOnRightHandler(() => () => {
-      setShowDirectionDlg(false);
-      socket.emit('direction', {
-        lobbyId,
-        index: myIndex,
-        direction: 2
-      });
-    });
-
-    setTitleDirection(
-      ggc.bPaloFijoRound
-        ? 'Choose Direction (PALO FIJO)'
-        : 'Choose Direction'
-    );
-
     setShowDirectionDlg(true);
   }
 
@@ -2000,56 +1981,41 @@ useEffect(() => {
                 zIndex: 4000
               }}
             />
-            {ggc.GAME_IN_PROGRESS &&
-            ggc.curRound &&
-            ggc.curRound.numBids > 0 && (
-              <button
-                onClick={handleOptBidHistory}
-                className="btn btn-primary btn-sm"
-                style={{
-                  position: 'absolute',
-                  top: '8px',
-                  left: '8px',
-                  zIndex: 10,
-                }}
-              >
-                Bid History
-              </button>
-            )}
 
-{/*showYourTurn && (
-  <div
-    style={{
-      position: 'absolute',
-      bottom: '8px',
-      left: '50%',
-      transform: 'translateX(-50%)',
-      fontSize: '1.5rem',
-      fontWeight: 'bold',
-      color: 'white',
-      zIndex: 10,
-    }}
-  >
-    Your Turn
-  </div>
-)*/}
+            {/* Bid History / Observers buttons */}
+            <div
+              style={{
+                position: 'absolute',
+                top: '8px',
+                left: '50%',
+                transform: 'translateX(-50%)',
+                display: 'flex',
+                gap: '8px',
+                zIndex: 10,
+              }}
+            >
+              {ggc.GAME_IN_PROGRESS &&
+              ggc.curRound &&
+              ggc.curRound.numBids > 0 && (
+                <button
+                  onClick={handleOptBidHistory}
+                  className="btn btn-primary btn-sm"
+                >
+                  Bid History
+                </button>
+              )}
 
-            {ggc.allConnectionStatus.some(
-              status => status === CONN_OBSERVER
-            ) && (
-              <button
-                onClick={handleOptObservers}
-                className="btn btn-primary btn-sm"
-                style={{
-                  position: 'absolute',
-                  top: '8px',
-                  right: '8px',
-                  zIndex: 10,
-                }}
-              >
-                Observers
-              </button>
-            )}
+              {ggc.allConnectionStatus.some(
+                status => status === CONN_OBSERVER
+              ) && (
+                <button
+                  onClick={handleOptObservers}
+                  className="btn btn-primary btn-sm"
+                >
+                  Observers
+                </button>
+              )}
+            </div>
 
             {showBidListDlg && (
               <BidListDlg
@@ -2157,11 +2123,11 @@ useEffect(() => {
           <DirectionDlg
             open={showDirectionDlg}
             container={tableGridRef.current}
-            title={titleDirection}
-            leftText={leftTextDirection}
-            rightText={rightTextDirection}
-            onLeft={onLeftHandler}
-            onRight={onRightHandler}
+            title={ggc.bPaloFijoRound ? 'Choose Direction (PALO FIJO)' : 'Choose Direction'}
+            leftText={"to " + ggc.allParticipantNames[ggc.getPlayerToLeft(myIndex)]}
+            rightText={"to " + ggc.allParticipantNames[ggc.getPlayerToRight(myIndex)]}
+            onLeft={() => handleDirection(1)}
+            onRight={() => handleDirection(2)}
           />
         )}
 

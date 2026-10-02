@@ -561,9 +561,17 @@ io.on('connection', (socket) => {
       startWhoGoesFirstTimer(lobbyId, ggs);
     }
 
-    // subsequent rounds: go directly to bidding
+    // subsequent rounds:
+    // choose direction with 3 or more players
+    // otherwise go directly to bidding
     else {
-      ggs.setGamePhase(GAME_PHASE.BIDDING);
+      if (ggs.GetNumberPlayersStillIn() > 2) {
+        ggs.curRound.whichDirection = undefined;
+        ggs.setGamePhase(GAME_PHASE.CHOOSING_DIRECTION);
+      } else {
+        ggs.curRound.whichDirection = 0;
+        ggs.setGamePhase(GAME_PHASE.BIDDING);
+      }
     }
 
     io.to(lobbyId).emit('gameStateUpdate', ggs);
