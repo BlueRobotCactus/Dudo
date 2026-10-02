@@ -1249,7 +1249,8 @@ export class DudoGame {
 			return false;
 		}
 		// can't paso on first bid
-		if (this.curRound.numBids === 0) {
+		const numBids = this.curRound?.numBids ?? 0;
+		if (numBids === 0) {
 			return false;
 		}
 		// can't paso twice in the same wound

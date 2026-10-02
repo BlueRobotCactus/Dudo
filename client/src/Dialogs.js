@@ -148,6 +148,7 @@ export function BidDropdownDlg({
   specialPasoString,
   onBidHistory,
   ggc,
+  onSwitchUI,
   onSubmit,
 }) {
 
@@ -164,149 +165,161 @@ export function BidDropdownDlg({
         top: '0.5rem',
         left: '50%',
         transform: 'translateX(-50%)',
-        zIndex: 2000,
-        width: '25rem',
-        maxWidth: '95%',
+        zIndex: 1000,
+        width: '80%',
+        maxWidth: '600px',
         overflow: 'visible',
         borderRadius: '0.5rem',
       }}
     >
-
       {/* Header */}
+      <div
+        className="bg-primary text-white py-2 px-3 d-flex justify-content-between align-items-center"
+        style={{
+          cursor: 'pointer',
+          borderTopLeftRadius: '0.4rem',
+          borderTopRightRadius: '0.4rem',
+        }}
+        onClick={handleToggle}
+      >
+        <div style={{ fontSize: '1rem' }}>
+          {minimized ? 'Tap/Click to bid' : 'Make Bid (Tap/Click to see table)'}
+        </div>
 
+        {!minimized && (
+          <div className="d-flex gap-2">
+            <span
+              className="d-flex gap-2"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <button
+                className="btn btn-light btn-sm"
+                disabled={
+                  !ggc.GAME_IN_PROGRESS ||
+                  !ggc.curRound ||
+                  ggc.curRound.numBids <= 0
+                }
+                onClick={onBidHistory}
+              >
+                Bid History
+              </button>
 
-{/* Header */}
-<div
-  className="bg-primary text-white py-2 px-3 d-flex justify-content-between align-items-center"
-  style={{
-    cursor: 'pointer',
-    borderTopLeftRadius: '0.4rem',
-    borderTopRightRadius: '0.4rem',
-  }}
-  onClick={handleToggle}
->
-  <div style={{ fontSize: '1rem' }}>
-    {minimized ? 'Tap/Click to bid' : 'Make a Bid  (Tap/Click to see table)'}
-  </div>
-
-  {!minimized && (
-    <button
-      className="btn btn-light btn-sm"
-      onClick={(e) => {
-        e.stopPropagation();
-        onBidHistory();
-      }}
-    >
-      Bid History
-    </button>
-  )}
-</div>
-
-
+              <button
+                className="btn btn-light btn-sm"
+                onClick={onSwitchUI}
+              >
+                Grid
+              </button>
+            </span>
+          </div>
+        )}
+      </div>
 
       {/* Body */}
       {!minimized && (
         <div className="p-3">
+          <div className="border border-primary rounded p-2">
 
-          {/* Message */}
-          <div className="mb-2">
-            <p className="fw-bold mb-1">{yourTurnString}</p>
-            <p className="fw-bold mb-0">{specialPasoString}</p>
-          </div>
+            {/* Message */}
+            <div className="mb-2">
+              <p className="fw-bold mb-1">{yourTurnString}</p>
+              <p className="fw-bold mb-0">{specialPasoString}</p>
+            </div>
 
-          {/* Bid controls */}
-          <div className="d-flex align-items-center gap-2">
+            {/* Bid controls */}
+            <div className="d-flex align-items-center gap-2">
 
-            {/* Rectangle around Dropdown / Show / Bid */}
-            <div
-              className="border border-secondary rounded p-2 d-flex align-items-center gap-2"
-            >
+              {/* Rectangle around Dropdown / Show / Bid */}
+              <div
+                className="border border-secondary rounded p-2 d-flex align-items-center gap-2"
+              >
 
-              {/* Select bid dropdown */}
-              <Dropdown>
-                <Dropdown.Toggle
-                  variant="outline-secondary"
-                  size="sm"
-                  style={{
-                    fontSize: '1rem',
-                    minWidth: '90px',
-                    textAlign: 'left',
-                  }}
+                {/* Select bid dropdown */}
+                <Dropdown>
+                  <Dropdown.Toggle
+                    variant="outline-secondary"
+                    size="sm"
+                    style={{
+                      fontSize: '1rem',
+                      minWidth: '90px',
+                      textAlign: 'left',
+                    }}
+                  >
+                    {selectedBid}
+                  </Dropdown.Toggle>
+
+                  <Dropdown.Menu
+                    style={{
+                      maxHeight: '50vh',
+                      overflowY: 'auto',
+                      fontSize: '.875rem',
+                    }}
+                  >
+                    {possibleBids.map((bid) => (
+                      <Dropdown.Item
+                        key={bid}
+                        onClick={() => setSelectedBid(bid)}
+                      >
+                        {bid}
+                      </Dropdown.Item>
+                    ))}
+                  </Dropdown.Menu>
+                </Dropdown>
+
+                {/* Show */}
+                <div className="form-check mb-0">
+                  <input
+                    className="form-check-input"
+                    type="checkbox"
+                    id="bidDropdownShowCheckbox"
+                    disabled={!canShowShake}
+                    checked={bidShowShake}
+                    onChange={(e) => setBidShowShake(e.target.checked)}
+                  />
+
+                  <label
+                    className="form-check-label"
+                    htmlFor="bidDropdownShowCheckbox"
+                    style={{
+                      color: canShowShake ? 'black' : 'gray',
+                    }}
+                  >
+                    Show
+                  </label>
+                </div>
+
+                {/* Bid */}
+                <button
+                  className="btn btn-primary btn-sm"
+                  disabled={selectedBid === '--Select--'}
+                  onClick={() => onSubmit(selectedBid, bidShowShake)}
                 >
-                  {selectedBid}
-                </Dropdown.Toggle>
+                  Bid
+                </button>
 
-                <Dropdown.Menu
-                  style={{
-                    maxHeight: '50vh',
-                    overflowY: 'auto',
-                    fontSize: '.875rem',
-                  }}
-                >
-                  {possibleBids.map((bid) => (
-                    <Dropdown.Item
-                      key={bid}
-                      onClick={() => setSelectedBid(bid)}
-                    >
-                      {bid}
-                    </Dropdown.Item>
-                  ))}
-                </Dropdown.Menu>
-              </Dropdown>
-
-              {/* Show */}
-              <div className="form-check mb-0">
-                <input
-                  className="form-check-input"
-                  type="checkbox"
-                  id="bidDropdownShowCheckbox"
-                  disabled={!canShowShake}
-                  checked={bidShowShake}
-                  onChange={(e) => setBidShowShake(e.target.checked)}
-                />
-
-                <label
-                  className="form-check-label"
-                  htmlFor="bidDropdownShowCheckbox"
-                  style={{
-                    color: canShowShake ? 'black' : 'gray',
-                  }}
-                >
-                  Show
-                </label>
               </div>
 
-              {/* Bid */}
+              {/* Paso */}
+              {ggc.bPasoAllowed && (
+                <button
+                  className="btn btn-outline-secondary btn-sm"
+                  disabled={!ggc.CanPaso()}
+                  onClick={() => onSubmit('PASO', bidShowShake)}
+                >
+                  Paso
+                </button>
+              )}
+
+              {/* Doubt */}
               <button
-                className="btn btn-primary btn-sm"
-                disabled={selectedBid === '--Select--'}
-                onClick={() => onSubmit(selectedBid, bidShowShake)}
+                className="btn btn-danger btn-sm text-white"
+                disabled={(ggc.curRound?.numBids ?? 0) < 1}
+                onClick={() => onSubmit('DOUBT', bidShowShake)}
               >
-                Bid
+                Doubt
               </button>
 
             </div>
-
-            {/* Paso */}
-            {ggc.bPasoAllowed && (
-              <button
-                className="btn btn-outline-secondary btn-sm"
-                disabled={!ggc.CanPaso()}
-                onClick={() => onSubmit('PASO', bidShowShake)}
-              >
-                Paso
-              </button>
-            )}
-
-            {/* Doubt */}
-            <button
-              className="btn btn-danger btn-sm text-white"
-              disabled={ggc.curRound.numBids < 1}
-              onClick={() => onSubmit('DOUBT', bidShowShake)}
-            >
-              Doubt
-            </button>
-
           </div>
         </div>
       )}
@@ -326,6 +339,7 @@ export function BidDlg({
   onBidHistory,
   ggc,
   myIndex,
+  onSwitchUI,
   onSubmit,
 }) {
 
@@ -405,7 +419,7 @@ export function BidDlg({
           left: '50%',
           width: '80%',
           transform: 'translateX(-50%)',
-          zIndex: 2000,
+          zIndex: 1000,
           maxWidth: '600px',
           height: minimized ? 'auto' : 'fit-content',
           overflow: 'hidden',
@@ -415,41 +429,50 @@ export function BidDlg({
         }}
       >
 
+        {/* Header */}
+        <div
+          className="bg-primary text-white py-2 px-3 d-flex justify-content-between align-items-center"
+          style={{
+            cursor: 'pointer',
+            borderTopLeftRadius: '0.4rem',
+            borderTopRightRadius: '0.4rem',
+          }}
+          onClick={handleToggle}
+        >
+          <div style={{ fontSize: '1rem' }}>
+            {minimized ? 'Tap/Click to bid' : 'Make Bid (Tap/Click to see table)'}
+          </div>
 
+            {!minimized && (
+              <div className="d-flex gap-2">
+                <span
+                  className="d-flex gap-2"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <button
+                    className="btn btn-light btn-sm"
+                    disabled={
+                      !ggc.GAME_IN_PROGRESS ||
+                      !ggc.curRound ||
+                      ggc.curRound.numBids <= 0
+                    }
+                    onClick={onBidHistory}
+                  >
+                    Bid History
+                  </button>
 
-{/* Header */}
-<div
-  className="bg-primary text-white py-2 px-3 d-flex justify-content-between align-items-center"
-  style={{
-    cursor: 'pointer',
-    borderTopLeftRadius: '0.4rem',
-    borderTopRightRadius: '0.4rem',
-  }}
-  onClick={handleToggle}
->
-  <div style={{ fontSize: '1rem' }}>
-    {minimized ? 'Tap/Click to bid' : 'Make a Bid  (Tap/Click to see table)'}
-  </div>
+                  <button
+                    className="btn btn-light btn-sm"
+                    onClick={onSwitchUI}
+                  >
+                    List
+                  </button>
+                </span>
+              </div>
+            )}
+          </div>
 
-  {!minimized && (
-    <button
-      className="btn btn-light btn-sm"
-      onClick={(e) => {
-        e.stopPropagation();
-        onBidHistory();
-      }}
-    >
-      Bid History
-    </button>
-  )}
-</div>
-
-
-
-
-
-
-
+        {/* Body */}
         {!minimized && (
           <div className="p-3">
             <div className="border border-primary rounded p-2">
@@ -520,7 +543,7 @@ export function BidDlg({
                 <div style={{ gridColumn: 8, gridRow: 3 }}>
                   <button
                     className="btn btn-danger btn-sm text-white w-100"
-                    disabled={!ggc.curRound.numBids > 0}
+                    disabled={(ggc.curRound?.numBids ?? 0) <= 0}
                     onClick={() => handleSubmit('DOUBT', bidShowShake)}
                   >
                     Doubt
@@ -1108,6 +1131,9 @@ export function SessionStatsDlg({
                                       <td style={{ paddingLeft: '3rem' }}>
                                         Bid {bidIndex + 1}:&nbsp;&nbsp;
                                         {bid.bidPlayerInfo?.name}: {bid.text}
+                                        {bid.bShowShake &&
+                                          `, show and shake ${bid.howManyShown} ${bid.howManyShown === 1 ? 'die' : 'dice'}`
+                                        }
                                       </td>
                                     </tr>
                                   ))

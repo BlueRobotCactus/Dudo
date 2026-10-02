@@ -552,10 +552,11 @@ import { STICKS_BLINK_SECONDS, GAME_PHASE, GetGamePhaseName } from '../shared/Du
     if (!ggc.curRound) return;
 
     // update Bid History
-    if (ggc.curRound.numBids < 1) {
+    const numBids = ggc.curRound?.numBids ?? 0;
+    if (numBids < 1) {
       return;
     }
-    const lastBidText = ggc.curRound.Bids[ggc.curRound.numBids-1].text;
+    const lastBidText = ggc.curRound.Bids[numBids-1].text;
     setHistCurrentBid(lastBidText);
     if (lastBidText === "PASO" || lastBidText === "DOUBT") {
       setHistShowing('');
@@ -857,6 +858,8 @@ import { STICKS_BLINK_SECONDS, GAME_PHASE, GetGamePhaseName } from '../shared/Du
 
     setOnYesHandler(() => () => {
       setShowYesNoDlg(false);
+      setShowBidDlg(false);
+      setShowBidDropdownDlg(false);
 
       if (connected) {
         socket.emit('killGame', lobbyId);
@@ -897,6 +900,98 @@ import { STICKS_BLINK_SECONDS, GAME_PHASE, GetGamePhaseName } from '../shared/Du
         }
     }
     return (false);
+  }
+
+  //************************************************************
+  // function to construct the status text
+  //************************************************************
+  function MakeStatusText() {
+
+    let statusText = '';
+
+    switch (ggc.gamePhase) {
+
+      case GAME_PHASE.WAITING_TO_START:
+        if (ggc.GetNumberPlayersStillIn() < 2) {
+          statusText = 'Waiting for 2 or more players in the lobby to start a game...';
+        } else if (lobby.host === myName) {
+          statusText = 'Waiting for YOU to start the game...';
+        } else {
+          statusText = `Waiting for ${lobbyHost} to start the game...`;
+        }
+        break;
+
+      case GAME_PHASE.ASKING_IN_OUT:
+        statusText = `Seeing who's in...`;
+        break;
+
+      case GAME_PHASE.SHAKE_CUPS:
+        statusText = 'Shaking and rolling the dice...';
+        break;
+
+      case GAME_PHASE.WHO_GOES_FIRST:
+        statusText = 'Rolling to see who goes first...';
+        break;
+
+      case GAME_PHASE.CHOOSING_DIRECTION:
+        if (isMyTurn) {
+          statusText = 'You choose the direction';
+        } else {
+          statusText = `Waiting for ${whosTurnName} to choose the direction...`;
+        }
+        break;
+
+      case GAME_PHASE.BIDDING: {
+        const numBids = ggc.curRound?.numBids ?? 0;
+
+        if (isMyTurn) {
+          //---------------
+          // my turn
+          //---------------
+          if (numBids === 0) {
+            statusText = 'You start the bidding.';
+          } else {
+            const sName =
+              ggc.curRound.Bids[numBids - 1].bidPlayerInfo.name;
+
+            statusText =
+              `${sName} bid to you: ${ggc.GetBidString(numBids - 1)}`;
+          }
+        } else {
+          //---------------
+          // not my turn
+          //---------------
+          if (numBids === 0) {
+            statusText =
+              `Waiting for ${whosTurnName} to start the bidding...`;
+          } else {
+            const sName =
+              ggc.curRound.Bids[numBids - 1].bidPlayerInfo.name;
+
+            statusText =
+              `${sName} bid to ${whosTurnName}: ${ggc.GetBidString(numBids - 1)}`;
+          }
+        }
+        if (ggc.bPaloFijoRound) {
+          statusText = 'PALO FIJO: ' + statusText;
+        }
+        break;
+      }
+
+      case GAME_PHASE.DOUBT_LIFT_CUPS:
+        statusText = 'Lifting cups...';
+        break;
+
+      case GAME_PHASE.DOUBT_SHOW_RESULT:
+        statusText = 'Round over.';
+        break;
+
+      default:
+        statusText = '';
+        break;
+    }
+
+    return statusText;
   }
 
   //************************************************************
@@ -1477,18 +1572,6 @@ useEffect(() => {
   // Make sure we have the latest game state
   ggc.AssignGameState(gameState);
 
-
-
-console.log(
-  "DEBUGG DRAW PHASE:",
-  "myName =", myName,
-  "gameState.gamePhase =", gameState?.gamePhase,
-  "ggc.gamePhase =", ggc.gamePhase
-);
-
-
-
-
   // Start drawing
   //DrawSomeText ();
 
@@ -1959,8 +2042,7 @@ console.log(
   return (
     <>
         {/* Show game phase for DEBUGGING */} 
-
-        
+        {/*
         <div
           style={{
             position: 'fixed',
@@ -1978,7 +2060,7 @@ console.log(
           Phase: {GetGamePhaseName(gameState?.gamePhase)}
           , Game in progress: {ggc.GAME_IN_PROGRESS ? 'YES' : 'NO'} 
         </div>
-        
+        */}
 
       <div className={`game-chat-layout ${showChat ? 'chat-open' : ''}`}>
         <div
@@ -2011,17 +2093,21 @@ console.log(
 
               {/* {ggc.gamePhase === GAME_PHASE.ASKING_IN_OUT && RenderInOut()} */}
 
-              {/*isMyTurn && ggc.allBidUIMode[myIndex] === 0 && RenderBid()*/}
-              {isMyTurn && ggc.allBidUIMode[myIndex] === 0 && ggc.gamePhase === GAME_PHASE.BIDDING && RenderBid()}
-
-              {(!isMyTurn || ggc.gamePhase === GAME_PHASE.WHO_GOES_FIRST) && (
+              {/*isMyTurn && ggc.allBidUIMode[myIndex] === 0 && ggc.gamePhase === GAME_PHASE.BIDDING && RenderBid()*/}
+              {/*(!isMyTurn || ggc.gamePhase === GAME_PHASE.WHO_GOES_FIRST) && (
                   <div className="border border-primary rounded p-1">
                   <div className="fw-bold text-center">
                     <div>{row2CurrentBid}</div>
                     <div>{row2BidToWhom}</div>
                   </div>
                 </div>
-              )}
+              )*/}
+
+              <div className="border border-primary rounded p-1">
+                <div className="fw-bold text-center">
+                  <div>{MakeStatusText()}</div>
+                </div>
+              </div>
 
               {/* (ggc.gamePhase === GAME_PHASE.DOUBT_LIFT_CUPS || 
                    ggc.gamePhase === GAME_PHASE.DOUBT_SHOW_RESULT) && RenderDoubt() */}
@@ -2071,7 +2157,7 @@ console.log(
               </button>
             )}
 
-{showYourTurn && (
+{/*showYourTurn && (
   <div
     style={{
       position: 'absolute',
@@ -2086,7 +2172,7 @@ console.log(
   >
     Your Turn
   </div>
-)}
+)*/}
 
             {ggc.allConnectionStatus.some(
               status => status === CONN_OBSERVER
@@ -2118,6 +2204,7 @@ console.log(
                 specialPasoString={row2SpecialPasoString}
                 onBidHistory={handleOptBidHistory}
                 ggc={ggc}
+                onSwitchUI={handleOptBidUIGrid}
                 onSubmit={handleBidOK}
               />
             )}
@@ -2132,6 +2219,7 @@ console.log(
                 onBidHistory={handleOptBidHistory}
                 ggc={ggc}
                 myIndex={myIndex}
+                onSwitchUI={handleOptBidUIDropdown}
                 onSubmit={handleBidOK}
               />
             )}

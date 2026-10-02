@@ -2317,7 +2317,6 @@ io.on('connection', (socket) => {
     const ggs = lobby.game;
 
     ggs.allBidUIMode[index] = UIMode;
-    console.log('server.js: BidUIMode (index,mode): ', index, ' ', UIMode);
 
     io.to(lobbyId).emit('gameStateUpdate', lobby.game);
   });
