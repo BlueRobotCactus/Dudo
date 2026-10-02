@@ -418,7 +418,7 @@ export function PlayerGrid({ lobbyId, ggc, myIndex, cc, showWinnerStars, whoGoes
           if (thisBid.bShowShake) {
             bidText += (", showed " + thisBid.howManyShown);
           }
-          if (thisBid.lookingFor !== undefined) {
+          if ((thisBid.lookingFor !== undefined) && (bidText !== "PASO")) {
             bidText += ("\n(looking for " + thisBid.lookingFor + ")");
             setBubbleLines(2);
           }

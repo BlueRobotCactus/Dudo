@@ -134,9 +134,9 @@ export function DirectionDlg({
 }
 
 //************************************************************
-// BidDropdownDlg
+// BidListDlg
 //************************************************************
-export function BidDropdownDlg({
+export function BidListDlg({
   open,
   possibleBids,
   selectedBid,
@@ -328,9 +328,9 @@ export function BidDropdownDlg({
 }
 
 //************************************************************
-// BidDlg
+// BidGridDlg
 //************************************************************
-export function BidDlg({ 
+export function BidGridDlg({ 
   open, 
   onHide, 
   bidMatrix,

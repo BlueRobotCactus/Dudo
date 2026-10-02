@@ -23,8 +23,8 @@ import { ObserversDlg } from '../Dialogs.js';
 import { SessionStatsDlg } from '../Dialogs.js';
 import { GameSettingsDlg } from '../Dialogs.js';
 import { SetGameParametersDlg } from '../Dialogs.js';
-import { BidDlg } from '../Dialogs.js';
-import { BidDropdownDlg } from '../Dialogs.js';
+import { BidGridDlg } from '../Dialogs.js';
+import { BidListDlg } from '../Dialogs.js';
 
 import { MAX_CONNECTIONS, CONN_PLAYER_IN, CONN_PLAYER_OUT, CONN_OBSERVER, } from '../shared/DudoGame.js';
 import { STICKS_BLINK_SECONDS, GAME_PHASE, GetGamePhaseName } from '../shared/DudoGame.js';
@@ -86,33 +86,10 @@ import { STICKS_BLINK_SECONDS, GAME_PHASE, GetGamePhaseName } from '../shared/Du
     const [chatRecipientGuid, setChatRecipientGuid] = useState('');
     const chatMessagesRef = useRef(null);
 
-    // Row2
-    // game settings
-    //const [row2NumSticks, setRow2NumSticks] = useState("3");
-    //const [row2PasoAllowed, setRow2PasoAllowed] = useState(true);
-    //const [row2PalofijoAllowed, setRow2PalofijoAllowed] = useState(true);
-
-    // bid
-    //const [showBidPanel, setShowBidPanel] = useState(false);  // obsolete
-
-    const [row2YourTurnString, setRow2YourTurnString] = useState('');
-    const [row2SpecialPasoString, setRow2SpecialPasoString] = useState('');
-    const [row2CurrentBid, setRow2CurrentBid] = useState('');
-    const [row2BidToWhom, setRow2BidToWhom] = useState('');
-
-    //const [thisBid, setThisBid] = useState('');
     const [selectedBid, setSelectedBid] = useState('');
     const [canShowShake, setCanShowShake] = useState(false);
     const [bidShowShake, setBidShowShake] = useState(false);
 
-    // show doubt
-    //const [row2DoubtWho, setRow2DoubtWho] = useState('');
-    //const [row2DoubtBid, setRow2DoubtBid] = useState('');
-    //const [row2DoubtResult, setRow2DoubtResult] = useState('');
-    //const [row2DoubtStick, setRow2DoubtStick] = useState('');
-    //const [row2DoubtWin, setRow2DoubtWin] = useState('');
-    //const [row2DoubtShowButton, setRow2DoubtShowButton] = useState('');
-    
     // Row3 (TableGrid)
     const tableGridRef = useRef(null);
 
@@ -138,8 +115,8 @@ import { STICKS_BLINK_SECONDS, GAME_PHASE, GetGamePhaseName } from '../shared/Du
     // Bid
     const [showYourTurn, setShowYourTurn] = useState(false);
     const [whoGoesFirstDice, setWhoGoesFirstDice] = useState([1, 1]);
-    const [showBidDlg, setShowBidDlg] = useState(false);
-    const [showBidDropdownDlg, setShowBidDropdownDlg] = useState(false);
+    const [showBidGridDlg, setShowBidGridDlg] = useState(false);
+    const [showBidListDlg, setShowBidListDlg] = useState(false);
 
     // OKhistShowingyPosIncr
     const [showOkDlg, setShowOkDlg] = useState(false);
@@ -761,8 +738,8 @@ import { STICKS_BLINK_SECONDS, GAME_PHASE, GetGamePhaseName } from '../shared/Du
     }
 
     myShowShakeRef.current = bShowShake;
-    setShowBidDlg(false);
-    setShowBidDropdownDlg(false);
+    setShowBidGridDlg(false);
+    setShowBidListDlg(false);
 
     // prepare to confirm the bid using YesNoDlg
     if (bid === "PASO" || bid === "DOUBT") {
@@ -812,7 +789,7 @@ import { STICKS_BLINK_SECONDS, GAME_PHASE, GetGamePhaseName } from '../shared/Du
   }
 
   const handleOptBidUIDropdown = () => {
-    setShowBidDlg (false);
+    setShowBidGridDlg (false);
     ggc.allBidUIMode[myIndex] = 0;
     socket.emit('BidUIMode', { lobbyId, index: myIndex, UIMode: 0 })
 
@@ -858,8 +835,8 @@ import { STICKS_BLINK_SECONDS, GAME_PHASE, GetGamePhaseName } from '../shared/Du
 
     setOnYesHandler(() => () => {
       setShowYesNoDlg(false);
-      setShowBidDlg(false);
-      setShowBidDropdownDlg(false);
+      setShowBidGridDlg(false);
+      setShowBidListDlg(false);
 
       if (connected) {
         socket.emit('killGame', lobbyId);
@@ -995,92 +972,59 @@ import { STICKS_BLINK_SECONDS, GAME_PHASE, GetGamePhaseName } from '../shared/Du
   }
 
   //************************************************************
+  // function to construct the bid dialog turn text
+  //************************************************************
+  function MakeBidYourTurnString() {
+
+    const numBids = ggc.curRound?.numBids ?? 0;
+
+    let s = '';
+
+    if (numBids > 0) {
+      const sName =
+        ggc.curRound.Bids[numBids - 1].bidPlayerInfo.name;
+
+      s = `${sName} bid to you: ${ggc.GetBidString(numBids - 1)}`;
+    } else {
+      s = 'You start the bidding.';
+    }
+
+    if (ggc.bPaloFijoRound) {
+      s = 'PALO FIJO: ' + s;
+    }
+
+    return s;
+  }
+
+  //************************************************************
+  // function to construct the special PASO text
+  //************************************************************
+  function MakeBidSpecialPasoString() {
+    const numBids = ggc.curRound?.numBids ?? 0;
+
+    if (numBids > 1 && ggc.curRound.Bids[numBids - 1].text === "PASO") {
+      return `Doubt the PASO or top the bid: ${ggc.curRound.Bids[ggc.FindLastNonPasoBid()].text}.`;
+    }
+    return '';
+  }  
+
+  //************************************************************
   // function to prepare the bid UI
-  // (sets up to use the YesNoDlg)
   //************************************************************
   const PrepareBidUI = () => {
-
     myShowShakeRef.current = false;
-    setBidShowShake(false)    
-    if (isMyTurn) {
-      //-------------------------------------------
-      // my turn
-      //-------------------------------------------
-      if (ggc.gamePhase === GAME_PHASE.CHOOSING_DIRECTION) {
-        // first bid of round
-        let s = (ggc.bPaloFijoRound ? 'PALO FIJO: ' : '');
-        s += "You choose the direction";
-        setRow2CurrentBid(s);
-        setRow2BidToWhom('');
-      } else {
-        // show previous bid
-        let turnString = '';
-        if (ggc.curRound.numBids > 0) {
-          const sName = ggc.curRound.Bids[ggc.curRound.numBids-1].bidPlayerInfo.name;
-          turnString = (`${sName} bid to you: ${ggc.GetBidString(ggc.curRound.numBids-1)}`);
-        } else {
-          turnString = 'You start the bidding.';
-        }
+    setBidShowShake(false)
 
-        if (ggc.bPaloFijoRound) {
-          turnString = 'PALO FIJO: ' + turnString;
-        }
-        setRow2YourTurnString(turnString);
-        setRow2SpecialPasoString (ggc.curRound.numBids > 1 && ggc.curRound.Bids[ggc.curRound.numBids-1].text === "PASO" ?
-                              `Doubt the PASO or top the bid: ${ggc.curRound.Bids[ggc.FindLastNonPasoBid()].text}.` :
-                              '');
-        setSelectedBid (ggc.possibleBids[0]);
-        //setShowBidPanel(true);
+    if (!isMyTurn) { return }
+
+    setSelectedBid(ggc.possibleBids[0]);
+
+    if (ggc.gamePhase === GAME_PHASE.BIDDING) {
+      if (ggc.allBidUIMode[myIndex] === 0) {
+        setShowBidListDlg(true);
       }
-
-      if (ggc.gamePhase === GAME_PHASE.BIDDING) {
-        if (ggc.allBidUIMode[myIndex] === 0) {
-          setShowBidDropdownDlg(true);
-        }
-        if (ggc.allBidUIMode[myIndex] === 1) {
-          setShowBidDlg(true);
-        }
-      }
-
-    } else {
-      //-------------------------------------------
-      // not my turn
-      //-------------------------------------------
-      if (ggc.curRound.numBids > 0) {
-        // there is at least one bid
-        const currentBid = ggc.curRound.Bids[ggc.curRound.numBids-1];
-        let s1 = currentBid.bidPlayerInfo.name + " bid: " + ggc.GetBidString(ggc.curRound.numBids-1);
-
-        if (ggc.bPaloFijoRound) {
-          s1 = "PALO FIJO: " + s1;
-        }
-        let s2 = `Bid is to: ${whosTurnName}...`;
-        switch (currentBid.text) {
-          case "DOUBT":
-            setRow2CurrentBid('');
-            setRow2BidToWhom('');
-            break;
-          case "PASO":
-            setRow2CurrentBid(s1);
-            setRow2BidToWhom(s2);
-            break;
-          default:
-            setRow2CurrentBid(s1);
-            setRow2BidToWhom(s2);
-        }
-      } else {
-        // waiting for someone to start bidding
-        let s = (ggc.bPaloFijoRound ? 'PALO FIJO: ' : '');
-        s += `Waiting for ${whosTurnName} to start the bidding...`;
-        setRow2CurrentBid(s);
-        setRow2BidToWhom('');
-      }
-      if (ggc.gamePhase === GAME_PHASE.CHOOSING_DIRECTION) {
-        // waiting for someone to choose the direction
-        let s = (ggc.bPaloFijoRound ? 'PALO FIJO: ' : '');
-        s += `Waiting for ${whosTurnName} to choose the direction...`;
-        setRow2CurrentBid(s);
-        setRow2BidToWhom('');
+      if (ggc.allBidUIMode[myIndex] === 1) {
+        setShowBidGridDlg(true);
       }
     }
   }
@@ -1572,47 +1516,27 @@ useEffect(() => {
   // Make sure we have the latest game state
   ggc.AssignGameState(gameState);
 
-  // Start drawing
-  //DrawSomeText ();
-
-  let yPos = 140;   //&&& obsolete
   const yPosIncr = 110;
   let arrayObserverNames = [];
   arrayObserverNames.length = 0;
   
-
   const DEBUGGING = 0;    // 0 means no debugging
   // draw bid history
   if (ggc.GAME_IN_PROGRESS && ggc.curRound) {
-    DrawBidHistory();
+    PrepareBidHistory();
   }
-
-  // draw observer names
-  yPos += 20;
-  //DrawObserverNames (yPos);
 
   // Draw according to game phase
-  if (ggc.gamePhase === GAME_PHASE.SHAKE_CUPS) {
-    DrawShakeCups();
-  } 
-  else if (ggc.gamePhase === GAME_PHASE.WHO_GOES_FIRST) {
-    DrawWhoGoesFirst();
-  }
-  else if (ggc.gamePhase === GAME_PHASE.CHOOSING_DIRECTION) {
+  if (ggc.gamePhase === GAME_PHASE.CHOOSING_DIRECTION) {
     DrawChooseDirection();
   }
   else if (ggc.gamePhase === GAME_PHASE.BIDDING) {
     DrawProcessBid();
   }
-  else if (ggc.gamePhase === GAME_PHASE.WAITING_TO_START) {
-    DrawWaitingToStartGame();
-  }
-
   // dialogs
   if (ggc.gamePhase === GAME_PHASE.ASKING_IN_OUT) {
     if (ggc.inOutMustSay[myIndex] && !ggc.inOutDidSay[myIndex]) {
       PrepareInOrOutDlg();
-      //DrawInOrOut();
     }
   }
   if (ggc.gamePhase === GAME_PHASE.DOUBT_LIFT_CUPS) {
@@ -1770,9 +1694,9 @@ useEffect(() => {
   }
 
   //************************************************************
-  //  function Draw bid history
+  //  function Prepare bid history
   //************************************************************
-  function DrawBidHistory () {
+  function PrepareBidHistory () {
     // clear out any previous values
     bidHistoryRef.current.length = 0;
 
@@ -1784,20 +1708,18 @@ useEffect(() => {
   }
   
   //************************************************************
-  //  function Draw Choose Direction
+  // function Draw Choose Direction
   //************************************************************
   function DrawChooseDirection() {
 
-    if (ggc.bDisconnectPause) { return; }
+    // only proceed if this player is choosing
+    if (ggc.bDisconnectPause || !isMyTurn) { return; }
 
-    // only the player whose turn it is chooses
-    if (!isMyTurn) { return; }
+    const left = ggc.getPlayerToLeft(myIndex);
+    const right = ggc.getPlayerToRight(myIndex);
 
-    let cc = ggc.getPlayerToLeft(myIndex);
-    setLeftTextDirection("to " + ggc.allParticipantNames[cc]);
-
-    cc = ggc.getPlayerToRight(myIndex);
-    setRightTextDirection("to " + ggc.allParticipantNames[cc]);
+    setLeftTextDirection("to " + ggc.allParticipantNames[left]);
+    setRightTextDirection("to " + ggc.allParticipantNames[right]);
 
     setOnLeftHandler(() => () => {
       setShowDirectionDlg(false);
@@ -1817,13 +1739,12 @@ useEffect(() => {
       });
     });
 
-    let title = 'Choose Direction';
+    setTitleDirection(
+      ggc.bPaloFijoRound
+        ? 'Choose Direction (PALO FIJO)'
+        : 'Choose Direction'
+    );
 
-    if (ggc.bPaloFijoRound) {
-      title += ' (PALO FIJO)';
-    }
-
-    setTitleDirection(title);
     setShowDirectionDlg(true);
   }
 
@@ -1832,22 +1753,18 @@ useEffect(() => {
   //************************************************************
   function DrawProcessBid() {
 
-    // wait for UI to be ready
-    // all shaking dice?
-    let delay = 0;
+    // delay bidding while the stick animation is displayed
     if (ggc.SomebodyGotStick()) {
-      // &&& never hits!
       console.log('Gamepage.js: delaying bid, SomebodyGotStick');
-      delay += STICKS_BLINK_SECONDS*1000;
-    }
-    // apply delay, if any
-    if (delay > 0) {
+
       setTimeout(() => {
         DoProcessBid();
-      }, delay);
-    } else {
-      DoProcessBid();
+      }, STICKS_BLINK_SECONDS * 1000);
+
+      return;
     }
+
+    DoProcessBid();
   }
 
   function DoProcessBid() {
@@ -1873,46 +1790,6 @@ useEffect(() => {
     PrepareBidUI();
   }    
 }, [gameState, lobbyPlayers, isMyTurn, screenSize, imagesReady, socketId]);
-
-  //************************************************************
-  //  function Draw Waiting for host to start the game
-  //************************************************************
-  function DrawWaitingToStartGame () {
-    if (ggc.GetNumberPlayersStillIn() < 2) {
-      setRow2CurrentBid(`Waiting for 2 or more players in the lobby to start a game...`);
-    } else {
-      setRow2CurrentBid(myName === lobbyHost ? 
-                        'Waiting for YOU to start the game...' :
-                        `Waiting for ${lobbyHost} to start the game...`);
-    }
-    setRow2BidToWhom('');
-  }
-
-  //************************************************************
-  // function SHAKE_CUPS
-  //************************************************************
-  function DrawShakeCups() {
-
-    console.log(
-      "DrawShakeCups:",
-      "myName =", myName,
-      "phase =", ggc.gamePhase,
-      "row2CurrentBid before =", row2CurrentBid
-    );
-
-    setRow2YourTurnString('');
-    setRow2SpecialPasoString('');
-    setRow2CurrentBid('Shaking and rolling the dice...');
-    setRow2BidToWhom('');
-  }
-
-  //************************************************************
-  // Draw WHO_GOES_FIRST
-  //************************************************************
-  function DrawWhoGoesFirst() {
-    setRow2CurrentBid('Choosing who goes first...');
-    setRow2BidToWhom('');
-  }
 
   //************************************************************
   //  function Render the chat panel
@@ -2086,31 +1963,14 @@ useEffect(() => {
             </div>
           </div>
 
-          {/* Row 2: Game status info */}
+          {/* Row 2: Game status text */}
           <div className="row mb-3">
             <div className="col">
-              {/* ggc.bSettingGameParms && lobby.host === myName && RenderGameSettings() */}
-
-              {/* {ggc.gamePhase === GAME_PHASE.ASKING_IN_OUT && RenderInOut()} */}
-
-              {/*isMyTurn && ggc.allBidUIMode[myIndex] === 0 && ggc.gamePhase === GAME_PHASE.BIDDING && RenderBid()*/}
-              {/*(!isMyTurn || ggc.gamePhase === GAME_PHASE.WHO_GOES_FIRST) && (
-                  <div className="border border-primary rounded p-1">
-                  <div className="fw-bold text-center">
-                    <div>{row2CurrentBid}</div>
-                    <div>{row2BidToWhom}</div>
-                  </div>
-                </div>
-              )*/}
-
               <div className="border border-primary rounded p-1">
                 <div className="fw-bold text-center">
                   <div>{MakeStatusText()}</div>
                 </div>
               </div>
-
-              {/* (ggc.gamePhase === GAME_PHASE.DOUBT_LIFT_CUPS || 
-                   ggc.gamePhase === GAME_PHASE.DOUBT_SHOW_RESULT) && RenderDoubt() */}
             </div>
           </div>
         </div>
@@ -2191,17 +2051,17 @@ useEffect(() => {
               </button>
             )}
 
-            {showBidDropdownDlg && (
-              <BidDropdownDlg
-                open={showBidDropdownDlg}
+            {showBidListDlg && (
+              <BidListDlg
+                open={showBidListDlg}
                 possibleBids={possibleBids}
                 selectedBid={selectedBid}
                 setSelectedBid={setSelectedBid}
                 canShowShake={canShowShake}
                 bidShowShake={bidShowShake}
                 setBidShowShake={setBidShowShake}
-                yourTurnString={row2YourTurnString}
-                specialPasoString={row2SpecialPasoString}
+                yourTurnString={MakeBidYourTurnString()}
+                specialPasoString={MakeBidSpecialPasoString()}
                 onBidHistory={handleOptBidHistory}
                 ggc={ggc}
                 onSwitchUI={handleOptBidUIGrid}
@@ -2209,13 +2069,13 @@ useEffect(() => {
               />
             )}
 
-            {showBidDlg && (
-              <BidDlg
-                open={showBidDlg}
-                onHide={() => setShowBidDlg(false)}
+            {showBidGridDlg && (
+              <BidGridDlg
+                open={showBidGridDlg}
+                onHide={() => setShowBidGridDlg(false)}
                 bidMatrix={bidMatrix}
-                yourTurnString={row2YourTurnString}
-                specialPasoString={row2SpecialPasoString}
+                yourTurnString={MakeBidYourTurnString()}
+                specialPasoString={MakeBidSpecialPasoString()}
                 onBidHistory={handleOptBidHistory}
                 ggc={ggc}
                 myIndex={myIndex}
@@ -2578,216 +2438,5 @@ useEffect(() => {
       </nav>
     )
   }
-
-  /*----------------------------------------------
-          IN OR OUT (obsolete)
-  -----------------------------------------------*/
-   function RenderInOut () {
-    return (
-      <div className="border border-primary rounded p-3 mb-1">
-        <div className="fw-bold text-center mb-1">
-          Starting a new game
-        </div>
-        <div className="fw-bold text-center mb-1">
-          Are you in?
-        </div>
-
-        <div className="row align-items-center mb-1">
-          {/* number of sticks (dropbox) */}
-          <div className="col-4 text-end">
-            Number of sticks:
-          </div>
-          <div className="col-4">
-            {ggc.maxSticks}
-          </div>
-
-          <div className="col-4 d-flex justify-content-end">
-            {/* Yes button */}
-            <button
-              onClick={handleYesImIn}
-              className="btn btn-primary btn-sm me-2"
-            >
-              Yes, I'm in
-            </button>
-          </div>
-        </div>
-
-        {/* paso allowed? (value) */}
-        <div className="row align-items-center mb-1">
-          <div className="col-4 text-end">
-            Paso allowed:
-          </div>
-          <div className="col-4">
-            {ggc.bPasoAllowed? ("Yes") : ("No")}  
-          </div>
-          <div className="col-4 d-flex justify-content-end">
-            {/* No button */}
-            <button
-              onClick={handleNoIllWatch}
-              className="btn btn-secondary btn-sm me-2"
-            >
-              No, I'll watch
-            </button>
-          </div>
-        </div>
-
-        {/* palofijo allowed? (checkbox) */}
-        <div className="row align-items-center">
-          <div className="col-4 text-end">
-            Palo Fijo allowed:
-          </div>
-          <div className="col-4">
-            {ggc.bPaloFijoAllowed? ("Yes") : ("No")}
-          </div>
-        </div>
-      </div>
-    )
-  }
-
-  /*----------------------------------------------
-          Render Bid
-  -----------------------------------------------*/
-  function RenderBid () {
-    return (
-      //----- MY TURN -----//
-      <div className="border border-primary rounded p-2">
-        <div
-          className="d-grid"
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'auto auto auto auto auto',
-            gridTemplateRows: 'auto auto',
-            alignItems: 'center',
-            rowGap: '0.5rem',
-            columnGap: '0.75rem',
-          }}
-        >
-          {/* Row 1: message spans first 4 cols */}
-          <div style={{ gridColumn: '1 / span 4' }}>
-            <p className="fw-bold mb-1">{row2YourTurnString}</p>
-            <p className="fw-bold mb-0">{row2SpecialPasoString}</p>
-          </div>
-
-          {/* Row 1: Paso button (col 5) on narrow screens*/}
-          {ggc.bPasoAllowed && getViewportWidth() < 500 ? (
-            <div style={{ gridColumn: 5 }}>
-              <button
-                className="btn btn-outline-secondary btn-sm"
-                disabled={!ggc.CanPaso()}
-                onClick={() => handleBidOK('PASO', bidShowShake)}
-              >
-                Paso
-              </button>
-            </div>
-          ) : null}
-
-          {/* Row 2: bordered wrapper around cols 1-3 */}
-          <div
-            style={{
-              gridColumn: '1 / span 3',
-              display: 'contents', // children placed directly in grid
-            }}
-          >
-            <div
-              className="border border-secondary rounded p-2 d-flex align-items-center justify-content-start"
-              style={{
-                gridColumn: '1 / span 3',
-                display: 'grid',
-                gridTemplateColumns: 'auto auto auto',
-                columnGap: '0.75rem',
-              }}
-            >
-              {/* Select bid dropdown */}
-              <Dropdown>
-                <Dropdown.Toggle
-                  variant="outline-secondary"
-                  size="sm"
-                  style={{
-                    fontSize: '1rem',
-                    minWidth: '90px',
-                    textAlign: 'left',
-                  }}
-                >
-                  {selectedBid}
-                </Dropdown.Toggle>
-
-                <Dropdown.Menu
-                  style={{
-                    maxHeight: '50vh',
-                    overflowY: 'auto',
-                    fontSize: '.875rem',
-                  }}
-                >
-                  {possibleBids.map((bid) => (
-                    <Dropdown.Item
-                      key={bid}
-                      onClick={() => setSelectedBid(bid)}
-                    >
-                      {bid}
-                    </Dropdown.Item>
-                  ))}
-                </Dropdown.Menu>
-              </Dropdown>
-
-              {/* Checkbox */}
-              <div className="form-check me-2">
-                <input
-                  className="form-check-input"
-                  type="checkbox"
-                  id="showShakeCheckbox"
-                  disabled={!canShowShake}
-                  checked={bidShowShake}
-                  onChange={(e) => setBidShowShake(e.target.checked)}
-                />
-                <label
-                  className="form-check-label"
-                  htmlFor="showShakeCheckbox"
-                  style={{
-                    color: canShowShake ? 'black' : 'gray',
-                  }}
-                >
-                  Show
-                </label>
-              </div>
-
-              {/* Bid button */}
-              <button
-                className="btn btn-primary btn-sm"
-                disabled={selectedBid === '--Select--'}
-                onClick={() => handleBidOK(selectedBid, bidShowShake)}
-              >
-                Bid
-              </button>
-            </div>
-          </div>
-
-          {/* Row 2: Paso button (col 4) on wider screens*/}
-          {ggc.bPasoAllowed && getViewportWidth() >= 500 ? (
-            <div style={{ gridColumn: 4 }}>
-              <button
-                className="btn btn-outline-secondary btn-sm"
-                disabled={!ggc.CanPaso()}
-                onClick={() => handleBidOK('PASO', bidShowShake)}
-              >
-                Paso
-              </button>
-            </div>
-            ) : null}
-
-          {/* Row 2: Doubt button (col 5) */}
-          <div style={{ gridColumn: 5 }}>
-            <button
-              className="btn btn-danger btn-sm text-white"
-              disabled={ggc.curRound.numBids < 1}
-              onClick={() => handleBidOK('DOUBT', bidShowShake)}
-            >
-              Doubt
-            </button>
-          </div>
-        </div>
-      </div>
-    )
-  }
 }
-
 export default GamePage;
