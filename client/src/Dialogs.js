@@ -172,26 +172,22 @@ export function BidListDlg({
         borderRadius: '0.5rem',
       }}
     >
+
       {/* Header */}
       <div
         className="bg-primary text-white py-2 px-3 d-flex justify-content-between align-items-center"
         style={{
-          cursor: 'pointer',
           borderTopLeftRadius: '0.4rem',
           borderTopRightRadius: '0.4rem',
         }}
-        onClick={handleToggle}
       >
         <div style={{ fontSize: '1rem' }}>
-          {minimized ? 'Tap/Click to bid' : 'Make Bid (Tap/Click to see table)'}
+          Make Bid
         </div>
 
-        {!minimized && (
-          <div className="d-flex gap-2">
-            <span
-              className="d-flex gap-2"
-              onClick={(e) => e.stopPropagation()}
-            >
+        <div className="d-flex gap-2">
+          {!minimized && (
+            <>
               <button
                 className="btn btn-light btn-sm"
                 disabled={
@@ -210,9 +206,16 @@ export function BidListDlg({
               >
                 Grid
               </button>
-            </span>
-          </div>
-        )}
+            </>
+          )}
+
+          <button
+            className="btn btn-light btn-sm"
+            onClick={handleToggle}
+          >
+            {minimized ? '+' : '−'}
+          </button>
+        </div>
       </div>
 
       {/* Body */}
@@ -221,14 +224,13 @@ export function BidListDlg({
           <div className="border border-primary rounded p-2">
 
             {/* Message */}
-            <div className="mb-2">
+            <div className="mb-2 text-center">
               <p className="fw-bold mb-1">{yourTurnString}</p>
               <p className="fw-bold mb-0">{specialPasoString}</p>
             </div>
 
             {/* Bid controls */}
-            <div className="d-flex align-items-center gap-2">
-
+            <div className="d-flex align-items-center justify-content-center gap-2 flex-wrap">
               {/* Rectangle around Dropdown / Show / Bid */}
               <div
                 className="border border-secondary rounded p-2 d-flex align-items-center gap-2"
@@ -367,7 +369,7 @@ export function BidGridDlg({
   //----------------------------------------------------
   // helper functions
   //----------------------------------------------------
-    const handleToggle = () => setMinimized(!minimized);
+  const handleToggle = () => setMinimized(!minimized);
 
   //----------------------------------------------------
   // function to say whether they can show/shake 
@@ -433,55 +435,59 @@ export function BidGridDlg({
         <div
           className="bg-primary text-white py-2 px-3 d-flex justify-content-between align-items-center"
           style={{
-            cursor: 'pointer',
             borderTopLeftRadius: '0.4rem',
             borderTopRightRadius: '0.4rem',
           }}
-          onClick={handleToggle}
         >
           <div style={{ fontSize: '1rem' }}>
-            {minimized ? 'Tap/Click to bid' : 'Make Bid (Tap/Click to see table)'}
+            Make Bid
           </div>
 
+          <div className="d-flex gap-2">
             {!minimized && (
-              <div className="d-flex gap-2">
-                <span
-                  className="d-flex gap-2"
-                  onClick={(e) => e.stopPropagation()}
+              <>
+                <button
+                  className="btn btn-light btn-sm"
+                  disabled={
+                    !ggc.GAME_IN_PROGRESS ||
+                    !ggc.curRound ||
+                    ggc.curRound.numBids <= 0
+                  }
+                  onClick={onBidHistory}
                 >
-                  <button
-                    className="btn btn-light btn-sm"
-                    disabled={
-                      !ggc.GAME_IN_PROGRESS ||
-                      !ggc.curRound ||
-                      ggc.curRound.numBids <= 0
-                    }
-                    onClick={onBidHistory}
-                  >
-                    Bid History
-                  </button>
+                  Bid History
+                </button>
 
-                  <button
-                    className="btn btn-light btn-sm"
-                    onClick={onSwitchUI}
-                  >
-                    List
-                  </button>
-                </span>
-              </div>
+                <button
+                  className="btn btn-light btn-sm"
+                  onClick={onSwitchUI}
+                >
+                  List
+                </button>
+              </>
             )}
+
+            <button
+              className="btn btn-light btn-sm"
+              onClick={handleToggle}
+            >
+              {minimized ? '+' : '−'}
+            </button>
           </div>
+        </div>
 
         {/* Body */}
         {!minimized && (
           <div className="p-3">
             <div className="border border-primary rounded p-2">
               {/* Row 1: header message (span all 8 cols) */}
-              <div style={{ marginBottom: '0.5rem' }}>
+              <div
+                className="text-center"
+                style={{ marginBottom: '0.5rem' }}
+              >
                 <p className="fw-bold mb-1">{yourTurnString}</p>
                 <p className="fw-bold mb-0">{specialPasoString}</p>
               </div>
-
               <div
                 className="d-grid"
                 style={{

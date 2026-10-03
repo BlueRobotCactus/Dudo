@@ -1033,9 +1033,11 @@ import { STICKS_BLINK_SECONDS, GAME_PHASE, GetGamePhaseName } from '../shared/Du
     if (ggc.gamePhase === GAME_PHASE.BIDDING) {
       if (ggc.allBidUIMode[myIndex] === 0) {
         setShowBidListDlg(true);
+        setShowBidGridDlg(false);
       }
       if (ggc.allBidUIMode[myIndex] === 1) {
         setShowBidGridDlg(true);
+        setShowBidListDlg(false);
       }
     }
   }
